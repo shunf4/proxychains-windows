@@ -23,23 +23,30 @@ CONNECT_FUNC fpConnect = NULL;
 int WSAAPI ProxyConnect(SOCKET s, const struct sockaddr* name, int namelen)
 {
 	int iResult;
-	fprintf(stderr, "Hooked connect()!\n");
+	const char proxyIP[4] = { 127, 0, 0, 1 };
+	fprintf(stderr, "Hooked connect()! %d\n", memcmp(&((reinterpret_cast<const struct sockaddr_in*>(name))->sin_addr), proxyIP, 4));
+
+	if (name->sa_family == AF_INET && memcmp(&((reinterpret_cast<const struct sockaddr_in*>(name))->sin_addr), proxyIP, 4) == 0) {
+		fprintf(stderr, "Localhost!\n");
+		return fpConnect(s, name, namelen);
+	}
+
 	struct sockaddr_in proxyAddr = { 0 };
 	proxyAddr.sin_family = AF_INET;
-	proxyAddr.sin_port = htons(1079);
-	const char proxyIP[4] = { 127, 0, 0, 1 };
+	proxyAddr.sin_port = htons(1078);
 	memcpy(&proxyAddr.sin_addr, proxyIP, sizeof(proxyAddr.sin_addr));
 
 	unsigned long origSocketBlockMode = 0;
 	unsigned long destSocketBlockMode = 0;
 
 	iResult = fpConnect(s, reinterpret_cast<const struct sockaddr*>(&proxyAddr), sizeof(proxyAddr));
-	if (iResult != 0) {
+	if (iResult != 0 && 0) {
 		int socksError = WSAGetLastError();
 		fprintf(stderr, "Connect SOCKS5 server failed: %ld\n", socksError);
 		if (socksError == WSAEWOULDBLOCK)
 		{
 			origSocketBlockMode = 1;
+			// WSAEventSelect(s, 0, 0);
 			iResult = ioctlsocket(s, FIONBIO, &destSocketBlockMode);
 			if (iResult != 0) {
 				fprintf(stderr, "ioctlsocket() failed: %ld\n", WSAGetLastError());
@@ -57,6 +64,8 @@ int WSAAPI ProxyConnect(SOCKET s, const struct sockaddr* name, int namelen)
 		else return iResult;
 	}
 
+	Sleep(1000);
+
 	const int SOCKS_BUF_LEN = 1024;
 	char socksSendBuf[SOCKS_BUF_LEN];
 	char socksRecvBuf[SOCKS_BUF_LEN];
@@ -65,11 +74,13 @@ int WSAAPI ProxyConnect(SOCKET s, const struct sockaddr* name, int namelen)
 	// I want to connect to a SOCKS"5" server, and I only provide "1" method of authentication, which is "No auth".
 	memcpy_s(socksSendBuf, SOCKS_BUF_LEN, "\05\01\00", 3);
 	iResult = send(s, socksSendBuf, 3, 0);
-	if (iResult != 3) {
+	if (iResult != 3 && 0) {
 		shutdown(s, SD_BOTH);
 		fprintf(stderr, "xx1\n");
 		return -1;
 	}
+
+	Sleep(1000);
 
 	// Server: Allow "No auth".
 	if (recv(s, socksRecvBuf, 2, 0) != 2 || socksRecvBuf[1] != '\00') {
@@ -93,11 +104,13 @@ int WSAAPI ProxyConnect(SOCKET s, const struct sockaddr* name, int namelen)
 	memcpy(socksSendBuf + 8, &(castSockAddr->sin_port), 2);
 
 	iResult = send(s, socksSendBuf, 10, 0);
-	if (iResult != 10) {
+	if (iResult != 10 && 0) {
 		shutdown(s, SD_BOTH);
 		fprintf(stderr, "xx2\n");
 		return -1;
 	}
+
+	Sleep(1000);
 
 	iResult = recv(s, socksRecvBuf, 10, 0);
 	if (iResult != 10 || socksRecvBuf[1] != '\00' || socksRecvBuf[3] != '\01') {
@@ -116,13 +129,60 @@ int WSAAPI ProxyConnect(SOCKET s, const struct sockaddr* name, int namelen)
 	}
 
 	fprintf(stderr, "SOCKS5 init success!\n");
-	iResult = ioctlsocket(s, FIONBIO, &origSocketBlockMode);
+	/*iResult = ioctlsocket(s, FIONBIO, &origSocketBlockMode);
 	if (iResult != 0) {
 		fprintf(stderr, "ioctlsocket() failed: %ld\n", WSAGetLastError());
 		return iResult;
-	}
+	}*/
+	fprintf(stderr, "ioctlsocket() success!\n");
 
 	return 0;
+}
+
+BOOL(WINAPI* fpCreateProcessW)(
+	LPCWSTR lpApplicationName,
+	LPWSTR lpCommandLine,
+	LPSECURITY_ATTRIBUTES lpProcessAttributes,
+	LPSECURITY_ATTRIBUTES lpThreadAttributes,
+	BOOL bInheritHandles,
+	DWORD dwCreationFlags,
+	LPVOID lpEnvironment,
+	LPCWSTR lpCurrentDirectory,
+	LPSTARTUPINFOW lpStartupInfo,
+	LPPROCESS_INFORMATION lpProcessInformation
+	);
+
+BOOL
+WINAPI
+ProxyCreateProcessW(
+	LPCWSTR lpApplicationName,
+	LPWSTR lpCommandLine,
+	LPSECURITY_ATTRIBUTES lpProcessAttributes,
+	LPSECURITY_ATTRIBUTES lpThreadAttributes,
+	BOOL bInheritHandles,
+	DWORD dwCreationFlags,
+	LPVOID lpEnvironment,
+	LPCWSTR lpCurrentDirectory,
+	LPSTARTUPINFOW lpStartupInfo,
+	LPPROCESS_INFORMATION lpProcessInformation
+) {
+	WCHAR processImageName[256];
+	DWORD processImageNameLength = 256;
+	QueryFullProcessImageNameW(GetCurrentProcess(), 0, processImageName, &processImageNameLength);
+	fprintf(stderr, "%.*S", processImageNameLength, processImageName);
+	fprintf(stderr, " Invoked CreateProcessW(%S)\n", lpCommandLine);
+	return fpCreateProcessW(
+		lpApplicationName,
+		lpCommandLine,
+		lpProcessAttributes,
+		lpThreadAttributes,
+		bInheritHandles,
+		dwCreationFlags,
+		lpEnvironment,
+		lpCurrentDirectory,
+		lpStartupInfo,
+		lpProcessInformation
+	);
 }
 
 extern "C" BOOL APIENTRY DllMain(HINSTANCE hinstDLL, DWORD dwReason, LPVOID lpvReserved)
@@ -133,6 +193,7 @@ extern "C" BOOL APIENTRY DllMain(HINSTANCE hinstDLL, DWORD dwReason, LPVOID lpvR
 	{
 		MH_Initialize();
 		MH_CreateHook(&connect, &ProxyConnect, reinterpret_cast<void**>((LPVOID)&fpConnect));
+		MH_CreateHook(&CreateProcessW, &ProxyCreateProcessW, reinterpret_cast<void**>((LPVOID)&fpCreateProcessW));
 
 		MH_EnableHook(MH_ALL_HOOKS);
 
