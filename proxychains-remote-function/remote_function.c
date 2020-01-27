@@ -19,8 +19,8 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 
 	hCygwinModule = pRemoteData->fpGetModuleHandle(_T("cygwin1.dll"));
 	if (hCygwinModule) {
-		pRemoteData->dwErrorCode = ERROR_NOT_SUPPORTED;
-		return ERROR_NOT_SUPPORTED;
+		//pRemoteData->dwErrorCode = ERROR_NOT_SUPPORTED;
+		//return ERROR_NOT_SUPPORTED;
 	}
 
 	hHookDllModule = pRemoteData->fpGetModuleHandle(szDllFileName);
@@ -41,6 +41,7 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 	if (!pInitFunc) goto err_getprocaddress;
 
 	pRemoteData->dwErrorCode = ERROR_FUNCTION_FAILED;
+	//pRemoteData->dwErrorCode = 0;
 	pRemoteData->dwErrorCode = ((DWORD(__stdcall*)(INJECT_REMOTE_DATA*))pInitFunc)(pRemoteData);
 	if (pRemoteData->dwErrorCode != NO_ERROR) goto err_init_func_failed;
 

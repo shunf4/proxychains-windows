@@ -13,6 +13,43 @@
 
 #pragma comment(lib, "Shlwapi.lib")
 
+BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
+{
+	switch (fdwCtrlType)
+	{
+		// Handle the CTRL-C signal. 
+	case CTRL_C_EVENT:
+		printf("Ctrl-C event");
+		Beep(750, 300);
+		return TRUE;
+
+		// CTRL-CLOSE: confirm that the user wants to exit. 
+	case CTRL_CLOSE_EVENT:
+		Beep(600, 200);
+		printf("Ctrl-Close event");
+		return TRUE;
+
+		// Pass other signals to the next handler. 
+	case CTRL_BREAK_EVENT:
+		Beep(900, 200);
+		printf("Ctrl-Break event");
+		return FALSE;
+
+	case CTRL_LOGOFF_EVENT:
+		Beep(1000, 200);
+		printf("Ctrl-Logoff event");
+		return FALSE;
+
+	case CTRL_SHUTDOWN_EVENT:
+		Beep(750, 500);
+		printf("Ctrl-Shutdown event");
+		return FALSE;
+
+	default:
+		return FALSE;
+	}
+}
+
 DWORD LoadConfiguration(PROXYCHAINS_CONFIG* pPxchConfig)
 {
 	DWORD dwRet;
@@ -237,6 +274,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	PROCESS_INFORMATION processInformation = { 0 };
 
 	setlocale(LC_ALL, "");
+	SetConsoleCtrlHandler(CtrlHandler, TRUE);
 
 	if ((dwError = LoadConfiguration(&config)) != NOERROR) goto err;
 	
@@ -244,7 +282,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	pPxchConfig = &config;
 	
-	InitHook(NULL);
+	InitHookForMain();
 
 	if ((dwError = ParseArgs(pPxchConfig, argc, argv)) != NOERROR) goto err;
 
@@ -252,9 +290,9 @@ int _tmain(int argc, _TCHAR* argv[])
 	_tprintf(_T("Quiet: %s\n"), config.quiet ? _T("Y") : _T("N"));
 	_tprintf(_T("Command Line: %s\n"), config.szCommandLine);
 
-	CreateProcess(NULL, config.szCommandLine, 0, 0, 1, CREATE_SUSPENDED | CREATE_BREAKAWAY_FROM_JOB, 0, 0, &startupInfo, &processInformation);
+	ProxyCreateProcessW(NULL, config.szCommandLine, 0, 0, 1, 0, 0, 0, &startupInfo, &processInformation);
+	//CreateProcessW(NULL, config.szCommandLine, 0, 0, 1, CREATE_SUSPENDED, 0, 0, &startupInfo, &processInformation);
 
-	ResumeThread(processInformation.hThread);
 	WaitForSingleObject(processInformation.hProcess, INFINITE);
 	
 	return 0;

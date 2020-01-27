@@ -13,7 +13,7 @@ int main()
     WSADATA wsaData;
     setlocale(LC_ALL, "");
     wprintf(L"哈哈哈\n");
-    
+
     int iResult;
     iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);     // Initialize Winsock 2.2
     if (iResult != 0) {

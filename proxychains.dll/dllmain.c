@@ -14,34 +14,6 @@
 #pragma comment(lib, "libMinHook-x86-v141-mdd.lib")
 #endif
 
-#define CreateProcessA_SIGN(name) BOOL (WINAPI name)(\
-	LPCSTR lpApplicationName,\
-	LPSTR lpCommandLine,\
-	LPSECURITY_ATTRIBUTES lpProcessAttributes,\
-	LPSECURITY_ATTRIBUTES lpThreadAttributes,\
-	BOOL bInheritHandles,\
-	DWORD dwCreationFlags,\
-	LPVOID lpEnvironment,\
-	LPCSTR lpCurrentDirectory,\
-	LPSTARTUPINFOA lpStartupInfo,\
-	LPPROCESS_INFORMATION lpProcessInformation)
-
-#define CreateProcessW_SIGN(name) BOOL (WINAPI name)(\
-	LPCWSTR lpApplicationName,\
-	LPWSTR lpCommandLine,\
-	LPSECURITY_ATTRIBUTES lpProcessAttributes,\
-	LPSECURITY_ATTRIBUTES lpThreadAttributes,\
-	BOOL bInheritHandles,\
-	DWORD dwCreationFlags,\
-	LPVOID lpEnvironment,\
-	LPCWSTR lpCurrentDirectory,\
-	LPSTARTUPINFOW lpStartupInfo,\
-	LPPROCESS_INFORMATION lpProcessInformation)
-
-#define FP_ORIGINAL_FUNC(name) name##_SIGN(*fp##name);
-#define PROXY_FUNC(name) FP_ORIGINAL_FUNC(name); name##_SIGN(Proxy##name)
-#define CREATE_HOOK(name) do {MH_CreateHook((LPVOID)&name, (LPVOID)&Proxy##name, (LPVOID*)&fp##name);} while(0)
-
 PROXYCHAINS_CONFIG* pPxchConfig;
 
 void MyPrintError(DWORD dwError)
@@ -87,6 +59,7 @@ DWORD RemoteCopyExecute(HANDLE hProcess, INJECT_REMOTE_DATA* pRemoteData)
 	DWORD dwErrorCode;
 	DWORD dwReturn;
 	HANDLE hRemoteThread;
+	BOOL bDebugDonotExecute = 0;
 
 	if (*(BYTE*)pCode == 0xE9) {
 		_ftprintf(stderr, _T("Function body is a JMP instruction! This is usually caused by \"incremental linking\". Try to disable that.\n"));
@@ -105,23 +78,31 @@ DWORD RemoteCopyExecute(HANDLE hProcess, INJECT_REMOTE_DATA* pRemoteData)
 	pTargetData = (char *)pTargetBuf + cbCodeSizeAligned;
 	if (!WriteProcessMemory(hProcess, pTargetData, pRemoteData, sizeof(INJECT_REMOTE_DATA), &cbWritten) || cbWritten != sizeof(INJECT_REMOTE_DATA)) goto err_write_data;
 
-	// Create remote thread in target process to execute the code
-	hRemoteThread = CreateRemoteThread(hProcess, NULL, 0, pTargetCode, pTargetData, 0, NULL);
-	if (!hRemoteThread) goto err_create_remote_thread;
+	if (!bDebugDonotExecute) {
 
-	// Wait for the thread to terminate
-	if ((dwReturn = WaitForSingleObject(hRemoteThread, INFINITE)) != WAIT_OBJECT_0) goto err_wait;
+		// Create remote thread in target process to execute the code
+		hRemoteThread = CreateRemoteThread(hProcess, NULL, 0, pTargetCode, pTargetData, 0, NULL);
+		if (!hRemoteThread) goto err_create_remote_thread;
+
+		_ftprintf(stderr, _T("WaitForSingleObject()...\n"));
+		// Wait for the thread to terminate
+		//if ((dwReturn = WaitForSingleObject(hRemoteThread, INFINITE)) != WAIT_OBJECT_0) goto err_wait;
+		if ((dwReturn = WaitForSingleObject(hRemoteThread, 5000)) != WAIT_OBJECT_0) _ftprintf(stderr, _T("WaitForSingleObject() error\n"));
+		_ftprintf(stderr, _T("WaitForSingleObject() Succeeded.\n"));
+	}
 
 	// Copy back data
 	if (!ReadProcessMemory(hProcess, pTargetData, pRemoteData, sizeof(INJECT_REMOTE_DATA), &cbRead) || cbRead != sizeof(INJECT_REMOTE_DATA)) goto err_read_data;
 
-	// Validate return value
-	dwReturn = -1;
-	if (!GetExitCodeThread(hRemoteThread, &dwReturn)) {
-		_ftprintf(stderr, _T("GetExitCodeThread() Error! %lu\n"), GetLastError());
-	}
-	if (dwReturn != pRemoteData->dwErrorCode) {
-		_ftprintf(stderr, _T("Error: Remote thread exit code does not match the error code stored in remote data memory! %lu %lu\n"), dwReturn, pRemoteData->dwErrorCode);
+	if (!bDebugDonotExecute) {
+		// Validate return value
+		dwReturn = -1;
+		if (!GetExitCodeThread(hRemoteThread, &dwReturn)) {
+			_ftprintf(stderr, _T("GetExitCodeThread() Error! %lu\n"), GetLastError());
+		}
+		if (dwReturn != pRemoteData->dwErrorCode) {
+			_ftprintf(stderr, _T("Error: Remote thread exit code does not match the error code stored in remote data memory! %lu %lu\n"), dwReturn, pRemoteData->dwErrorCode);
+		}
 	}
 
 	return 0;
@@ -243,21 +224,33 @@ PROXY_FUNC(CreateProcessW)
 	DWORD dwReturn;
 	PROCESS_INFORMATION processInformation;
 
-	bRet = fpCreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &processInformation);
+	_ftprintf(stderr, _T("CreateProcessW: %s, %s, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s\n"), lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory);
+
+	bRet = fpCreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &processInformation);
+	//bRet = fpCreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &processInformation);
 	dwErrorCode = GetLastError();
 
 	if (lpProcessInformation) {
 		CopyMemory(lpProcessInformation, &processInformation, sizeof(PROCESS_INFORMATION));
 	}
 
-	_ftprintf(stderr, _T("CreateProcessW: %s, %s\n"), lpApplicationName, lpCommandLine);
-
 	if (!bRet) goto err_orig;
 
+	_ftprintf(stderr, _T("Into sleep.\n"));
+	Sleep(100);
+	_ftprintf(stderr, _T("Suspending thread.\n"));
+	SuspendThread(processInformation.hThread);
+	_ftprintf(stderr, _T("Suspended thread.\n"));
+
+	dwReturn = 0;
 	dwReturn = InjectTargetProcess(processInformation.hProcess);
-	if (!(dwCreationFlags & CREATE_SUSPENDED)) {
+
+	if (1 || !(dwCreationFlags & CREATE_SUSPENDED)) {
+		_ftprintf(stderr, _T("Resuming thread.\n"));
 		ResumeThread(processInformation.hThread);
+		_ftprintf(stderr, _T("Resumed thread.\n"));
 	}
+	
 	if (dwReturn != 0) goto err_inject;
 	return 1;
 
@@ -272,9 +265,20 @@ err_inject:
 	return 1;
 }
 
+PXCHDLL_API DWORD __stdcall InitHookForMain(void)
+{
+	MH_Initialize();
+	//CREATE_HOOK(CreateProcessA);
+	//CREATE_HOOK(CreateProcessW);
+	MH_EnableHook(MH_ALL_HOOKS);
+
+	_ftprintf(stderr, _T("Main Program Hooked!\n"));
+	return 0;
+}
+
 PXCHDLL_API DWORD __stdcall InitHook(INJECT_REMOTE_DATA* pData)
 {
-	if (pData) pPxchConfig = &pData->pxchConfig;
+	pPxchConfig = &pData->pxchConfig;
 
 	MH_Initialize();
 	CREATE_HOOK(CreateProcessA);
