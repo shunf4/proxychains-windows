@@ -1,0 +1,17 @@
+{
+    "files.associations": {
+        "stdafx.h": "c",
+        "strsafe.h": "c",
+        "pxch_defines.h": "c",
+        "pxch_hook.h": "c",
+        "shlwapi.h": "c",
+        "winnt.h": "c",
+        "_mingw_unicode.h": "c",
+        "winapifamily.h": "c",
+        "objbase.h": "c",
+        "shtypes.h": "c",
+        "cwchar": "cpp",
+        "common.h": "c",
+        "stdio.h": "c"
+    }
+}

@@ -1,9 +1,5 @@
-#include <sdkddkver.h>
-
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-
-#include "proxychains_struct.h"
+#include "stdafx.h"
+#include "pxch_defines.h"
 
 DWORD __stdcall LoadHookDll(LPVOID* pArg)
 {
@@ -17,20 +13,20 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 	}
 	pRemoteData->uEverExecuted = 1;
 
-	hCygwinModule = pRemoteData->fpGetModuleHandle(_T("cygwin1.dll"));
+	hCygwinModule = pRemoteData->fpGetModuleHandleW(L"cygwin1.dll");
 	if (hCygwinModule) {
-		//pRemoteData->dwErrorCode = ERROR_NOT_SUPPORTED;
-		//return ERROR_NOT_SUPPORTED;
+		pRemoteData->dwErrorCode = ERROR_NOT_SUPPORTED;
+		return ERROR_NOT_SUPPORTED;
 	}
 
-	hHookDllModule = pRemoteData->fpGetModuleHandle(szDllFileName);
+	hHookDllModule = pRemoteData->fpGetModuleHandleW(szDllFileName);
 	if (hHookDllModule) {
 		pRemoteData->dwErrorCode = ERROR_ALREADY_REGISTERED;
 		return ERROR_ALREADY_REGISTERED;
 	}
 
 	pRemoteData->dwErrorCode = ERROR_DLL_INIT_FAILED;
-	hHookDllModule = pRemoteData->fpLoadLibrary(pRemoteData->pxchConfig.szDllPath);
+	hHookDllModule = pRemoteData->fpLoadLibraryW(pRemoteData->pxchConfig.szDllPath);
 	if (!hHookDllModule) {
 		pRemoteData->dwErrorCode = pRemoteData->fpGetLastError();
 		return pRemoteData->dwErrorCode;
@@ -41,7 +37,6 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 	if (!pInitFunc) goto err_getprocaddress;
 
 	pRemoteData->dwErrorCode = ERROR_FUNCTION_FAILED;
-	//pRemoteData->dwErrorCode = 0;
 	pRemoteData->dwErrorCode = ((DWORD(__stdcall*)(INJECT_REMOTE_DATA*))pInitFunc)(pRemoteData);
 	if (pRemoteData->dwErrorCode != NO_ERROR) goto err_init_func_failed;
 

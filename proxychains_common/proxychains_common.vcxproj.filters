@@ -15,7 +15,30 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Test.cpp">
+    <ClInclude Include="..\include\stdafx.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\common.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\pxch_hook.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\pxch_defines.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\log.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\common.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\log.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\stdafx.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

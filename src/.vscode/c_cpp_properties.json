@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "name": "Cygwin",
+            "includePath": [
+                "${workspaceFolder}/../include/**",
+                "C:/cygwin64/usr/include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "windowsSdkVersion": "10.0.18362.0",
+            "compilerPath": "C:/cygwin64/bin/gcc.exe",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-x64"
+        }
+    ],
+    "version": 4
+}
