@@ -12,6 +12,8 @@
         "shtypes.h": "c",
         "cwchar": "cpp",
         "common.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "unistd.h": "c",
+        "spawn.h": "c"
     }
 }

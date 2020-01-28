@@ -15,6 +15,13 @@
 #pragma comment(lib, "Shlwapi.lib")
 #endif
 
+#ifdef __CYGWIN__
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <spawn.h>
+#endif
+
 BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
 {
 	switch (fdwCtrlType)
@@ -283,14 +290,60 @@ err:
 #ifdef __CYGWIN__
 int main(int argc, char* argv[])
 {
-	int i;
-	WCHAR** wargv = malloc(argc * sizeof(WCHAR*));
-	for (i = 0; i < argc; i++) {
-		int iNeededChars = MultiByteToWideChar(CP_UTF8, 0, argv[i], -1, NULL, 0);
-		wargv[i] = malloc(iNeededChars * sizeof(WCHAR));
-		MultiByteToWideChar(CP_UTF8, 0, argv[i], -1, wargv[i], iNeededChars);
+	if (0) {
+		int i;
+		WCHAR** wargv = malloc(argc * sizeof(WCHAR*));
+		for (i = 0; i < argc; i++) {
+			int iNeededChars = MultiByteToWideChar(CP_UTF8, 0, argv[i], -1, NULL, 0);
+			wargv[i] = malloc(iNeededChars * sizeof(WCHAR));
+			MultiByteToWideChar(CP_UTF8, 0, argv[i], -1, wargv[i], iNeededChars);
+		}
+
+		return wmain(argc, wargv);
 	}
 
-	return wmain(argc, wargv);
+	PROXYCHAINS_CONFIG config = { 0 };
+	DWORD dwError;
+	STARTUPINFO startupInfo = { 0 };
+	PROCESS_INFORMATION processInformation = { 0 };
+	pid_t child_pid;
+	char* my_argv[] = { "bash.exe", NULL };
+
+	LOGI(L"Locale: %s\n", setlocale(LC_ALL, "zh_CN.UTF-8"));
+
+	if ((dwError = LoadConfiguration(&config)) != NOERROR) goto err;
+	
+	LOGI(L"DLL Path: %ls", config.szDllPath);
+
+	pPxchConfig = &config;
+	
+	InitHookForMain();
+
+	LOGI(L"Config Path: %ls", config.szConfigPath);
+	LOGI(L"Quiet: %ls", config.quiet ? L"Y" : L"N");
+	LOGI(L"Command Line: %ls", config.szCommandLine);
+
+	//posix_spawn(&child_pid, "bash.exe", NULL, NULL, my_argv, NULL);
+	//LOGI(L"Spawn PID: %lu", child_pid);
+	// execlp("bash.exe", "bash.exe", NULL);
+	//sleep(10);
+
+	child_pid = fork();
+	if (child_pid) {
+		// Parent
+		int status;
+		LOGI(L"I'm parent\n");
+		waitpid(-1, &status, 0);
+		LOGI(L"waitpid() end\n");
+	} else {
+		// Child
+		LOGI(L"I'm child\n");
+		execlp("bash.exe", "bash.exe", NULL);
+	}
+	return 0;
+
+err:
+	PrintErrorToFile(stderr, dwError);
+	return dwError;
 }
 #endif
