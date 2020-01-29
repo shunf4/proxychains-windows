@@ -18,10 +18,11 @@
 
 #ifdef __CYGWIN__
 #include <strsafe.h>
+#include <sys/cygwin.h>
 #endif
 
 INJECT_REMOTE_DATA* pRemoteData;
-PXCHDLL_API PROXYCHAINS_CONFIG* pPxchConfig;
+PXCHDLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;
 
 DWORD RemoteCopyExecute(HANDLE hProcess, INJECT_REMOTE_DATA* pRemoteData)
 {
@@ -133,7 +134,7 @@ DWORD InjectTargetProcess(HANDLE hProcess)
 	INJECT_REMOTE_DATA remoteData;
 	DWORD dwReturn;
 
-	CopyMemory(&remoteData.pxchConfig, pPxchConfig, sizeof(PROXYCHAINS_CONFIG));
+	CopyMemory(&remoteData.pxchConfig, g_pPxchConfig, sizeof(PROXYCHAINS_CONFIG));
 	remoteData.dwErrorCode = -1;
 	remoteData.fpFreeLibrary = FreeLibrary;
 	remoteData.fpGetModuleHandleW = GetModuleHandleW;
@@ -163,6 +164,85 @@ DWORD InjectTargetProcess(HANDLE hProcess)
 	return 0;
 }
 
+DWORD IpcCommunicateWithServer()
+{
+	HANDLE hPipe;
+	WCHAR szMessage[IPC_BUFSIZE];
+	WCHAR* pMessageEnd;
+	WCHAR chReadBuf[IPC_BUFSIZE];
+	DWORD cbRead;
+	DWORD cchRead;
+	//WCHAR chWriteBuf[IPC_BUFSIZE];
+	DWORD cbToWrite;
+	DWORD cbWritten;
+	DWORD dwMode;
+	DWORD dwErrorCode;
+	BOOL bReturn;
+
+	StringCchPrintfExW(szMessage, _countof(szMessage), &pMessageEnd, NULL, 0, L"PID %lu Injected", GetCurrentProcessId());
+
+	// Try to open a named pipe; wait for it if necessary
+	while (1)
+	{
+		hPipe = CreateFileW(g_pPxchConfig->szIpcPipeName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+
+		if (hPipe != INVALID_HANDLE_VALUE) break;
+
+		if ((dwErrorCode = GetLastError()) != ERROR_PIPE_BUSY) goto err_open_pipe;
+
+		// Wait needed
+		if (!WaitNamedPipeW(g_pPxchConfig->szIpcPipeName, 2000)) goto err_wait_pipe;
+	}
+
+	dwMode = PIPE_READMODE_MESSAGE;
+	bReturn = SetNamedPipeHandleState(hPipe, &dwMode, NULL, NULL);
+	if (!bReturn) goto err_set_handle_state;
+
+	// Request
+	cbToWrite = (DWORD)(pMessageEnd - szMessage) * sizeof(WCHAR);
+	LOGD(L"cbToWrite = %lu", cbToWrite);
+	bReturn = WriteFile(hPipe, szMessage, cbToWrite, &cbWritten, NULL);
+	if (!bReturn || cbToWrite != cbWritten) goto err_write;
+
+	// Read response
+	bReturn = ReadFile(hPipe, chReadBuf, IPC_BUFSIZE * sizeof(WCHAR), &cbRead, NULL);
+	if (!bReturn) goto err_read;
+	cchRead = cbRead / sizeof(WCHAR);
+	
+	LOGI(L"Server says:\n \"%.*ls\"", cchRead, chReadBuf);
+	CloseHandle(hPipe);
+	return 0;
+
+err_open_pipe:
+	LOGE(L"Opening pipe using CreateFileW error: %ls", FormatErrorToStr(dwErrorCode));
+	return dwErrorCode;
+
+err_wait_pipe:
+	dwErrorCode = GetLastError();
+	LOGE(L"Waiting pipe using WaitNamedPipeW error: %ls", FormatErrorToStr(dwErrorCode));
+	goto close_ret;
+
+err_set_handle_state:
+	dwErrorCode = GetLastError();
+	LOGE(L"SetNamedPipeHandleState() error: %ls", FormatErrorToStr(dwErrorCode));
+	goto close_ret;
+
+err_write:
+	dwErrorCode = GetLastError();
+	LOGE(L"WriteFile() error: %ls or written only %lu/%lu chars", FormatErrorToStr(dwErrorCode), cbWritten, cbToWrite);
+	dwErrorCode = (dwErrorCode == NO_ERROR ? ERROR_WRITE_FAULT : dwErrorCode);
+	goto close_ret;
+
+err_read:
+	dwErrorCode = GetLastError();
+	LOGE(L"ReadFile() error: %ls", FormatErrorToStr(dwErrorCode));
+	goto close_ret;
+
+close_ret:
+	CloseHandle(hPipe);
+	return dwErrorCode;
+}
+
 PROXY_FUNC(CreateProcessA)
 {
 	BOOL bRet;
@@ -185,6 +265,7 @@ PROXY_FUNC(CreateProcessA)
 	if (!(dwCreationFlags & CREATE_SUSPENDED)) {
 		ResumeThread(processInformation.hThread);
 	}
+	if (GetCurrentProcessId() != g_pPxchConfig->dwMasterProcessId) IpcCommunicateWithServer();
 	if (dwReturn != 0) goto err_inject;
 	return 1;
 
@@ -217,11 +298,17 @@ PROXY_FUNC(CreateProcessW)
 
 	if (!bRet) goto err_orig;
 
+#ifdef __CYGWIN__
+	g_pPxchConfig->pidCygwinSoleChildProc = cygwin_winpid_to_pid(processInformation.dwProcessId);
+#endif
+
 	dwReturn = InjectTargetProcess(processInformation.hProcess);
 
 	if (!(dwCreationFlags & CREATE_SUSPENDED)) {
 		ResumeThread(processInformation.hThread);
 	}
+
+	if (GetCurrentProcessId() != g_pPxchConfig->dwMasterProcessId) IpcCommunicateWithServer();
 	
 	if (dwReturn != 0) goto err_inject;
 	return 1;
@@ -237,8 +324,10 @@ err_inject:
 	return 1;
 }
 
-PXCHDLL_API DWORD __stdcall InitHookForMain(void)
+PXCHDLL_API DWORD __stdcall InitHookForMain(PROXYCHAINS_CONFIG* pPxchConfig)
 {
+	g_pPxchConfig = pPxchConfig;
+
 	MH_Initialize();
 	CREATE_HOOK(CreateProcessA);
 	CREATE_HOOK(CreateProcessW);
@@ -250,7 +339,7 @@ PXCHDLL_API DWORD __stdcall InitHookForMain(void)
 
 PXCHDLL_API DWORD __stdcall InitHook(INJECT_REMOTE_DATA* pData)
 {
-	pPxchConfig = &pData->pxchConfig;
+	g_pPxchConfig = &pData->pxchConfig;
 
 	MH_Initialize();
 	CREATE_HOOK(CreateProcessA);

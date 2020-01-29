@@ -14,6 +14,8 @@
         "common.h": "c",
         "stdio.h": "c",
         "unistd.h": "c",
-        "spawn.h": "c"
+        "spawn.h": "c",
+        "cygwin.h": "c",
+        "signal.h": "c"
     }
 }

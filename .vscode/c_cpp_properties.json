@@ -3,7 +3,7 @@
         {
             "name": "Cygwin",
             "includePath": [
-                "${workspaceFolder}/../include/**",
+                "${workspaceFolder}//include/**",
                 "C:/cygwin64/usr/include"
             ],
             "defines": [

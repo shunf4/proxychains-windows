@@ -41,7 +41,7 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg);
 void* LoadHookDll_End(void);
 
 PXCHDLL_API DWORD __stdcall InitHook(INJECT_REMOTE_DATA* pData);
-PXCHDLL_API DWORD __stdcall InitHookForMain(void);
+PXCHDLL_API DWORD __stdcall InitHookForMain(PROXYCHAINS_CONFIG *pConfig);
 PXCHDLL_API void UninitHook(void);
 
 //DECLARE_PROXY_FUNC(CreateProcessA);

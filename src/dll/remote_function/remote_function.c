@@ -8,6 +8,10 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 	HMODULE hHookDllModule;
 	FARPROC pInitFunc;
 
+#if defined(__CYGWIN__) && 0
+	return 0;
+#endif
+
 	if (pRemoteData->uStructSize != sizeof(INJECT_REMOTE_DATA)) {
 		return ERROR_INCORRECT_SIZE;
 	}
@@ -19,7 +23,7 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 		return ERROR_NOT_SUPPORTED;
 	}
 
-	hHookDllModule = pRemoteData->fpGetModuleHandleW(szDllFileName);
+	hHookDllModule = pRemoteData->fpGetModuleHandleW(g_szDllFileName);
 	if (hHookDllModule) {
 		pRemoteData->dwErrorCode = ERROR_ALREADY_REGISTERED;
 		return ERROR_ALREADY_REGISTERED;
