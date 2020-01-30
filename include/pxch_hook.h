@@ -35,6 +35,7 @@
 #define DECLARE_PROXY_FUNC(name) PXCHDLL_API name##_SIGN(Proxy##name)
 #define PROXY_FUNC(name) FP_ORIGINAL_FUNC(name); PXCHDLL_API name##_SIGN(Proxy##name)
 #define CREATE_HOOK(name) do {MH_CreateHook((LPVOID)&name, (LPVOID)&Proxy##name, (LPVOID*)&fp##name);} while(0)
+#define CREATE_HOOK_ALT(name) do {MH_CreateHook((LPVOID)&name, (LPVOID)&_Proxy##name, (LPVOID*)&fp##name);} while(0)
 
 // MSVC arranges these functions in alphabetical order
 DWORD __stdcall LoadHookDll(LPVOID* pArg);

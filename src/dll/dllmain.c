@@ -3,6 +3,7 @@
 #include "pxch_defines.h"
 #include "pxch_hook.h"
 #include "log.h"
+#include "ipc.h"
 #include "common.h"
 
 #include <locale.h>
@@ -21,8 +22,89 @@
 #include <sys/cygwin.h>
 #endif
 
-INJECT_REMOTE_DATA* pRemoteData;
+INJECT_REMOTE_DATA* g_pRemoteData;
 PXCHDLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;
+BOOL g_bCurrentlyInWinapiCall = FALSE;
+
+DWORD IpcCommunicateWithServer(const IPC_MSGBUF sendMessage, DWORD cbSendMessageSize, IPC_MSGBUF responseMessage, DWORD* pcbResponseMessageSize)
+{
+	HANDLE hPipe;
+	// WCHAR szMessage[IPC_BUFSIZE];
+	// WCHAR* pMessageEnd;
+	// WCHAR chReadBuf[IPC_BUFSIZE];
+	// DWORD cbRead;
+	// DWORD cchRead;
+	//WCHAR chWriteBuf[IPC_BUFSIZE];
+	DWORD cbToWrite;
+	DWORD cbWritten;
+	DWORD dwMode;
+	DWORD dwErrorCode;
+	BOOL bReturn;
+
+	*pcbResponseMessageSize = 0;
+	SetMsgInvalid(responseMessage);
+
+	// StringCchPrintfExW(szMessage, _countof(szMessage), &pMessageEnd, NULL, 0, L"WINPID " WPRDW L" Injected", GetCurrentProcessId());
+
+	// Try to open a named pipe; wait for it if necessary
+	while (1)
+	{
+		hPipe = CreateFileW(g_pPxchConfig->szIpcPipeName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+
+		if (hPipe != INVALID_HANDLE_VALUE) break;
+
+		if ((dwErrorCode = GetLastError()) != ERROR_PIPE_BUSY) goto err_open_pipe;
+
+		// Wait needed
+		if (!WaitNamedPipeW(g_pPxchConfig->szIpcPipeName, 2000)) goto err_wait_pipe;
+	}
+
+	dwMode = PIPE_READMODE_MESSAGE;
+	bReturn = SetNamedPipeHandleState(hPipe, &dwMode, NULL, NULL);
+	if (!bReturn) goto err_set_handle_state;
+
+	// Request
+	cbToWrite = (DWORD)cbSendMessageSize;
+	bReturn = WriteFile(hPipe, sendMessage, cbToWrite, &cbWritten, NULL);
+	if (!bReturn || cbToWrite != cbWritten) goto err_write;
+
+	// Read response
+	bReturn = ReadFile(hPipe, responseMessage, IPC_BUFSIZE, pcbResponseMessageSize, NULL);
+	if (!bReturn) goto err_read;
+
+	CloseHandle(hPipe);
+	return 0;
+
+err_open_pipe:
+	LOGV(L"Opening pipe using CreateFileW error: %ls", FormatErrorToStr(dwErrorCode));
+	return dwErrorCode;
+
+err_wait_pipe:
+	dwErrorCode = GetLastError();
+	LOGV(L"Waiting pipe using WaitNamedPipeW error: %ls", FormatErrorToStr(dwErrorCode));
+	goto close_ret;
+
+err_set_handle_state:
+	dwErrorCode = GetLastError();
+	LOGV(L"SetNamedPipeHandleState() error: %ls", FormatErrorToStr(dwErrorCode));
+	goto close_ret;
+
+err_write:
+	dwErrorCode = GetLastError();
+	LOGV(L"WriteFile() error: %ls or written only " WPRDW L"/" WPRDW L" chars", FormatErrorToStr(dwErrorCode), cbWritten, cbToWrite);
+	dwErrorCode = (dwErrorCode == NO_ERROR ? ERROR_WRITE_FAULT : dwErrorCode);
+	goto close_ret;
+
+err_read:
+	dwErrorCode = GetLastError();
+	LOGV(L"ReadFile() error: %ls", FormatErrorToStr(dwErrorCode));
+	goto close_ret;
+
+close_ret:
+	CloseHandle(hPipe);
+	return dwErrorCode;
+}
+
 
 DWORD RemoteCopyExecute(HANDLE hProcess, INJECT_REMOTE_DATA* pRemoteData)
 {
@@ -42,7 +124,7 @@ DWORD RemoteCopyExecute(HANDLE hProcess, INJECT_REMOTE_DATA* pRemoteData)
 	if (*(BYTE*)pCode == 0xE9) {
 		// LOGE(L"Function body is a JMP instruction! This is usually caused by \"incremental linking\". Try to disable that.");
 		// return ERROR_INVALID_FUNCTION;
-		LOGW(L"Function body is a JMP instruction! This is usually caused by \"incremental linking\". Try to disable that.");
+		// LOGW(L"Function body is a JMP instruction! This is usually caused by \"incremental linking\". Try to disable that.");
 		pCode = (void*)((char*)pCode + *(DWORD*)((char*)pCode + 1) + 5);
 	}
 
@@ -69,23 +151,20 @@ DWORD RemoteCopyExecute(HANDLE hProcess, INJECT_REMOTE_DATA* pRemoteData)
 	hRemoteThread = CreateRemoteThread(hProcess, NULL, 0, pTargetCode, pTargetData, 0, NULL);
 	if (!hRemoteThread) goto err_create_remote_thread;
 
-	LOGD(L"WaitForSingleObject()...");
 	// Wait for the thread to terminate
 	if ((dwReturn = WaitForSingleObject(hRemoteThread, INFINITE)) != WAIT_OBJECT_0) goto err_wait;
-	LOGD(L"WaitForSingleObject() Succeeded.");
 
 	dwReturn = -1;
 	if (!GetExitCodeThread(hRemoteThread, &dwReturn)) {
-		LOGE(L"GetExitCodeThread() Error: %ls", FormatErrorToStr(GetLastError()));
+		RLOGE(L"GetExitCodeThread() Error: %ls", FormatErrorToStr(GetLastError()));
 	}
-	LOGD(L"dwReturn = %lu", dwReturn);
 
 	// Copy back data
 	if (!ReadProcessMemory(hProcess, pTargetData, pRemoteData, sizeof(INJECT_REMOTE_DATA), &cbRead) || cbRead != sizeof(INJECT_REMOTE_DATA)) goto err_read_data;
 
 	// Validate return value
 	if (dwReturn != pRemoteData->dwErrorCode) {
-		LOGE(L"Error: Remote thread exit code does not match the error code stored in remote data memory! %lu %ls", dwReturn, FormatErrorToStr(pRemoteData->dwErrorCode));
+		RLOGE(L"Error: Remote thread exit code does not match the error code stored in remote data memory! " WPRDW L" %ls", dwReturn, FormatErrorToStr(pRemoteData->dwErrorCode));
 	}
 
 	return 0;
@@ -93,32 +172,32 @@ DWORD RemoteCopyExecute(HANDLE hProcess, INJECT_REMOTE_DATA* pRemoteData)
 
 err_alloc:
 	dwErrorCode = GetLastError();
-	LOGE(L"VirtualAllocEx() Failed: %ls", FormatErrorToStr(dwErrorCode));
+	RLOGE(L"VirtualAllocEx() Failed: %ls", FormatErrorToStr(dwErrorCode));
 	return dwErrorCode;
 
 err_write_code:
 	dwErrorCode = GetLastError();
-	LOGE(L"WriteProcessMemory() Failed to write code(cbWritten = %zu, cbCodeSize = %zu): %ls", cbWritten, cbCodeSize, FormatErrorToStr(dwErrorCode));
+	RLOGE(L"WriteProcessMemory() Failed to write code(cbWritten = %zu, cbCodeSize = %zu): %ls", cbWritten, cbCodeSize, FormatErrorToStr(dwErrorCode));
 	goto ret_free;
 
 err_write_data:
 	dwErrorCode = GetLastError();
-	LOGE(L"WriteProcessMemory() Failed to write data: %ls", FormatErrorToStr(dwErrorCode));
+	RLOGE(L"WriteProcessMemory() Failed to write data: %ls", FormatErrorToStr(dwErrorCode));
 	goto ret_free;
 
 err_create_remote_thread:
 	dwErrorCode = GetLastError();
-	LOGE(L"CreateRemoteThread() Failed: %ls", FormatErrorToStr(dwErrorCode));
+	RLOGE(L"CreateRemoteThread() Failed: %ls", FormatErrorToStr(dwErrorCode));
 	goto ret_free;
 
 err_wait:
 	dwErrorCode = GetLastError();
-	LOGE(L"WaitForSingleObject() Failed: %lu, %ls", dwReturn, FormatErrorToStr(dwErrorCode));
+	RLOGE(L"WaitForSingleObject() Failed: " WPRDW L", %ls", dwReturn, FormatErrorToStr(dwErrorCode));
 	goto ret_close;
 
 err_read_data:
 	dwErrorCode = GetLastError();
-	LOGE(L"ReadProcessMemory() Failed to read data: %ls", FormatErrorToStr(dwErrorCode));
+	RLOGE(L"ReadProcessMemory() Failed to read data: %ls", FormatErrorToStr(dwErrorCode));
 	goto ret_close;
 
 ret_close:
@@ -136,15 +215,17 @@ DWORD InjectTargetProcess(HANDLE hProcess)
 
 	CopyMemory(&remoteData.pxchConfig, g_pPxchConfig, sizeof(PROXYCHAINS_CONFIG));
 	remoteData.dwErrorCode = -1;
+	remoteData.dwParentPid = GetCurrentProcessId();
 	remoteData.fpFreeLibrary = FreeLibrary;
 	remoteData.fpGetModuleHandleW = GetModuleHandleW;
 	remoteData.fpGetProcAddress = GetProcAddress;
 	remoteData.fpLoadLibraryW = LoadLibraryW;
 	remoteData.fpGetLastError = GetLastError;
 
-	StringCchCopyA(remoteData.szInitFuncName, _countof(remoteData.szInitFuncName), pRemoteData ? pRemoteData->szInitFuncName : "InitHook");
+	StringCchCopyA(remoteData.szInitFuncName, _countof(remoteData.szInitFuncName), "InitHook");
 	remoteData.uEverExecuted = 0;
 	remoteData.uStructSize = sizeof(INJECT_REMOTE_DATA);
+
 
 	dwReturn = RemoteCopyExecute(hProcess, &remoteData);
 	if (dwReturn != 0) {
@@ -152,95 +233,16 @@ DWORD InjectTargetProcess(HANDLE hProcess)
 	}
 
 	if (remoteData.uEverExecuted == 0) {
-		LOGE(L"Error: Remote thread never executed!");
+		RLOGE(L"Error: Remote thread never executed!");
 		//return ERROR_FUNCTION_NOT_CALLED;
 	}
 
 	if (remoteData.dwErrorCode != 0) {
-		LOGE(L"Error: Remote thread error: %ls!", FormatErrorToStr(remoteData.dwErrorCode));
+		RLOGE(L"Error: Remote thread error: %ls!", FormatErrorToStr(remoteData.dwErrorCode));
 		return remoteData.dwErrorCode;
 	}
 
 	return 0;
-}
-
-DWORD IpcCommunicateWithServer()
-{
-	HANDLE hPipe;
-	WCHAR szMessage[IPC_BUFSIZE];
-	WCHAR* pMessageEnd;
-	WCHAR chReadBuf[IPC_BUFSIZE];
-	DWORD cbRead;
-	DWORD cchRead;
-	//WCHAR chWriteBuf[IPC_BUFSIZE];
-	DWORD cbToWrite;
-	DWORD cbWritten;
-	DWORD dwMode;
-	DWORD dwErrorCode;
-	BOOL bReturn;
-
-	StringCchPrintfExW(szMessage, _countof(szMessage), &pMessageEnd, NULL, 0, L"PID %lu Injected", GetCurrentProcessId());
-
-	// Try to open a named pipe; wait for it if necessary
-	while (1)
-	{
-		hPipe = CreateFileW(g_pPxchConfig->szIpcPipeName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-
-		if (hPipe != INVALID_HANDLE_VALUE) break;
-
-		if ((dwErrorCode = GetLastError()) != ERROR_PIPE_BUSY) goto err_open_pipe;
-
-		// Wait needed
-		if (!WaitNamedPipeW(g_pPxchConfig->szIpcPipeName, 2000)) goto err_wait_pipe;
-	}
-
-	dwMode = PIPE_READMODE_MESSAGE;
-	bReturn = SetNamedPipeHandleState(hPipe, &dwMode, NULL, NULL);
-	if (!bReturn) goto err_set_handle_state;
-
-	// Request
-	cbToWrite = (DWORD)(pMessageEnd - szMessage) * sizeof(WCHAR);
-	LOGD(L"cbToWrite = %lu", cbToWrite);
-	bReturn = WriteFile(hPipe, szMessage, cbToWrite, &cbWritten, NULL);
-	if (!bReturn || cbToWrite != cbWritten) goto err_write;
-
-	// Read response
-	bReturn = ReadFile(hPipe, chReadBuf, IPC_BUFSIZE * sizeof(WCHAR), &cbRead, NULL);
-	if (!bReturn) goto err_read;
-	cchRead = cbRead / sizeof(WCHAR);
-	
-	LOGI(L"Server says:\n \"%.*ls\"", cchRead, chReadBuf);
-	CloseHandle(hPipe);
-	return 0;
-
-err_open_pipe:
-	LOGE(L"Opening pipe using CreateFileW error: %ls", FormatErrorToStr(dwErrorCode));
-	return dwErrorCode;
-
-err_wait_pipe:
-	dwErrorCode = GetLastError();
-	LOGE(L"Waiting pipe using WaitNamedPipeW error: %ls", FormatErrorToStr(dwErrorCode));
-	goto close_ret;
-
-err_set_handle_state:
-	dwErrorCode = GetLastError();
-	LOGE(L"SetNamedPipeHandleState() error: %ls", FormatErrorToStr(dwErrorCode));
-	goto close_ret;
-
-err_write:
-	dwErrorCode = GetLastError();
-	LOGE(L"WriteFile() error: %ls or written only %lu/%lu chars", FormatErrorToStr(dwErrorCode), cbWritten, cbToWrite);
-	dwErrorCode = (dwErrorCode == NO_ERROR ? ERROR_WRITE_FAULT : dwErrorCode);
-	goto close_ret;
-
-err_read:
-	dwErrorCode = GetLastError();
-	LOGE(L"ReadFile() error: %ls", FormatErrorToStr(dwErrorCode));
-	goto close_ret;
-
-close_ret:
-	CloseHandle(hPipe);
-	return dwErrorCode;
 }
 
 PROXY_FUNC(CreateProcessA)
@@ -265,12 +267,12 @@ PROXY_FUNC(CreateProcessA)
 	if (!(dwCreationFlags & CREATE_SUSPENDED)) {
 		ResumeThread(processInformation.hThread);
 	}
-	if (GetCurrentProcessId() != g_pPxchConfig->dwMasterProcessId) IpcCommunicateWithServer();
+	//if (GetCurrentProcessId() != g_pPxchConfig->dwMasterProcessId) IpcCommunicateWithServer();
 	if (dwReturn != 0) goto err_inject;
 	return 1;
 
 err_orig:
-	LOGE(L"CreateProcessA Error: %lu, %ls", bRet, FormatErrorToStr(dwErrorCode));
+	LOGE(L"CreateProcessA Error: " WPRDW L", %ls", bRet, FormatErrorToStr(dwErrorCode));
 	SetLastError(dwErrorCode);
 	return bRet;
 
@@ -284,10 +286,12 @@ PROXY_FUNC(CreateProcessW)
 {
 	BOOL bRet;
 	DWORD dwErrorCode;
-	DWORD dwReturn;
+	DWORD dwReturn = 0;
 	PROCESS_INFORMATION processInformation;
 
-	LOGI(L"CreateProcessW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s", lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory);
+	g_bCurrentlyInWinapiCall = TRUE;
+
+	RLOGV(L"CreateProcessW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s", lpApplicationName, lpCommandLine, (UINT64)lpProcessAttributes, (UINT64)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory);
 
 	bRet = fpCreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &processInformation);
 	dwErrorCode = GetLastError();
@@ -301,26 +305,33 @@ PROXY_FUNC(CreateProcessW)
 #ifdef __CYGWIN__
 	g_pPxchConfig->pidCygwinSoleChildProc = cygwin_winpid_to_pid(processInformation.dwProcessId);
 #endif
-
 	dwReturn = InjectTargetProcess(processInformation.hProcess);
 
 	if (!(dwCreationFlags & CREATE_SUSPENDED)) {
 		ResumeThread(processInformation.hThread);
 	}
 
-	if (GetCurrentProcessId() != g_pPxchConfig->dwMasterProcessId) IpcCommunicateWithServer();
+	RLOGD(L"I've Injected WINPID " WPRDW, processInformation.dwProcessId);
 	
 	if (dwReturn != 0) goto err_inject;
+	g_bCurrentlyInWinapiCall = FALSE;
 	return 1;
 
 err_orig:
-	LOGE(L"CreateProcessW Error: %lu, %ls", bRet, FormatErrorToStr(dwErrorCode));
+	RLOGE(L"CreateProcessW Error: " WPRDW L", %ls", bRet, FormatErrorToStr(dwErrorCode));
 	SetLastError(dwErrorCode);
+	g_bCurrentlyInWinapiCall = FALSE;
 	return bRet;
 
 err_inject:
-	PrintErrorToFile(stderr, dwReturn);
+	RLOGE(L"Inject Error: %ls", FormatErrorToStr(dwErrorCode));
 	SetLastError(dwReturn);
+	g_bCurrentlyInWinapiCall = FALSE;
+	return 1;
+}
+
+CreateProcessW_SIGN(_ProxyCreateProcessW)
+{
 	return 1;
 }
 
@@ -329,7 +340,7 @@ PXCHDLL_API DWORD __stdcall InitHookForMain(PROXYCHAINS_CONFIG* pPxchConfig)
 	g_pPxchConfig = pPxchConfig;
 
 	MH_Initialize();
-	CREATE_HOOK(CreateProcessA);
+	// CREATE_HOOK(CreateProcessA);
 	CREATE_HOOK(CreateProcessW);
 	MH_EnableHook(MH_ALL_HOOKS);
 
@@ -342,11 +353,14 @@ PXCHDLL_API DWORD __stdcall InitHook(INJECT_REMOTE_DATA* pData)
 	g_pPxchConfig = &pData->pxchConfig;
 
 	MH_Initialize();
-	CREATE_HOOK(CreateProcessA);
+	// CREATE_HOOK(CreateProcessA);
 	CREATE_HOOK(CreateProcessW);
+
 	MH_EnableHook(MH_ALL_HOOKS);
 
-	//LOGI(L"PID %lu Hooked!", GetCurrentProcessId());
+	g_bCurrentlyInWinapiCall = TRUE;
+	RLOGI(L"I'm WINPID " WPRDW L" Hooked!", GetCurrentProcessId());
+	g_bCurrentlyInWinapiCall = FALSE;
 	return 0;
 }
 
@@ -355,7 +369,7 @@ PXCHDLL_API void UninitHook(void)
 	MH_DisableHook(MH_ALL_HOOKS);
 	MH_Uninitialize();
 
-	LOGI(L"PID %lu UnHooked!", GetCurrentProcessId());
+	RLOGI(L"I'm WINPID " WPRDW L" UnHooked!", GetCurrentProcessId());
 }
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
@@ -363,8 +377,6 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	switch (fdwReason)
 	{
 	case DLL_PROCESS_ATTACH:
-		LOGI(L"PID %lu DLL Attached!", GetCurrentProcessId());
-		break;
 	case DLL_PROCESS_DETACH:
 	case DLL_THREAD_ATTACH:
 	case DLL_THREAD_DETACH:

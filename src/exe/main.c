@@ -5,12 +5,12 @@
 #endif
 #include <locale.h>
 #include <ShellAPI.h>
-#include <inttypes.h>
 
 #include "pxch_defines.h"
 #include "pxch_hook.h"
 #include "common.h"
 #include "log.h"
+#include "ipc.h"
 
 #ifndef __CYGWIN__
 #pragma comment(lib, "Shlwapi.lib")
@@ -24,14 +24,14 @@
 #include <spawn.h>
 #endif
 
-typedef struct _IPC_INSTANCE{
+typedef struct _IPC_INSTANCE {
 	OVERLAPPED oOverlap;
 	HANDLE hPipe;
 
-	WCHAR chReadBuf[IPC_BUFSIZE];
+	IPC_MSGBUF chReadBuf;
 	DWORD cbRead;
 
-	WCHAR chWriteBuf[IPC_BUFSIZE];
+	IPC_MSGBUF chWriteBuf;
 	DWORD cbToWrite;
 
 	DWORD dwState;
@@ -42,11 +42,17 @@ typedef struct _IPC_INSTANCE{
 
 DWORD HandleMessage(int i, IPC_INSTANCE* pipc)
 {
-	WCHAR* pWchar;
-	LOGD(L"[IPC%03d] Client says:\n \"%.*ls\"", i, (int)(pipc->cbRead / sizeof(WCHAR)), pipc->chReadBuf);
-	StringCchPrintfExW(pipc->chWriteBuf, _countof(pipc->chWriteBuf), &pWchar, NULL, 0, L"OK");
-	pipc->cbToWrite = (DWORD)(pWchar - pipc->chWriteBuf) * sizeof(WCHAR);
-	LOGD(L"[IPC%03d] cbWrite = %lu", i, pipc->cbToWrite);
+	IPC_MSGBUF* pMsg = (IPC_MSGBUF*)pipc->chReadBuf;
+	WCHAR sz[IPC_BUFSIZE / sizeof(WCHAR)];
+
+	if (MsgIsType(WSTR, pMsg)) {
+		MessageToWstr(sz, *pMsg, pipc->cbRead);
+		fwprintf(stderr, L"%ls", sz);
+		fflush(stderr);
+	}
+
+	WstrToMessage(pipc->chWriteBuf, &pipc->cbToWrite, L"OK");
+
 	return 0;
 }
 
@@ -60,7 +66,7 @@ DWORD ConnectToNewClient(HANDLE hPipe, LPOVERLAPPED lpo)
 
 	// Should return zero because it's overlapped
 	if (bConnected != 0) goto err_connected_not_zero;
-	
+
 
 	switch (dwErrorCode) {
 	case ERROR_IO_PENDING:
@@ -69,7 +75,7 @@ DWORD ConnectToNewClient(HANDLE hPipe, LPOVERLAPPED lpo)
 	case ERROR_PIPE_CONNECTED:
 		if (!SetEvent(lpo->hEvent)) goto err_set_event;
 		return ERROR_PIPE_CONNECTED;
-	
+
 	default:
 		goto err_other_codes;
 	}
@@ -118,7 +124,7 @@ DWORD ServerLoop(PROXYCHAINS_CONFIG* pPxchConfig, HANDLE hProcess)
 		if (hEvents[i] == 0) goto err_create_event;
 
 		ipc[i].oOverlap.hEvent = hEvents[i];
-		ipc[i].hPipe = CreateNamedPipeW(pPxchConfig->szIpcPipeName, PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, IPC_INSTANCE_NUM, IPC_BUFSIZE * sizeof(WCHAR), IPC_BUFSIZE * sizeof(WCHAR), 0, NULL);
+		ipc[i].hPipe = CreateNamedPipeW(pPxchConfig->szIpcPipeName, PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, IPC_INSTANCE_NUM, IPC_BUFSIZE, IPC_BUFSIZE, 0, NULL);
 
 		if (ipc[i].hPipe == INVALID_HANDLE_VALUE) goto err_create_pipe;
 
@@ -130,7 +136,7 @@ DWORD ServerLoop(PROXYCHAINS_CONFIG* pPxchConfig, HANDLE hProcess)
 		ipc[i].dwState = (dwErrorCode == ERROR_PIPE_CONNECTED) ? IPC_STATE_READING : IPC_STATE_CONNECTING;
 	}
 
-	LOGD(L"[IPCALL] Waiting for clients...");
+	LOGD(L"[IPCALL] Waiting for clients...%ls", hProcess == INVALID_HANDLE_VALUE ? L"(not waiting for child process)" : L"");
 
 	while (1) {
 		if (hProcess == INVALID_HANDLE_VALUE) {
@@ -149,7 +155,8 @@ DWORD ServerLoop(PROXYCHAINS_CONFIG* pPxchConfig, HANDLE hProcess)
 				continue;
 			}
 #endif
-		} else {
+		}
+		else {
 			dwWait = WaitForMultipleObjects(IPC_INSTANCE_NUM + 1, hEvents, FALSE, INFINITE);
 
 		}
@@ -173,33 +180,39 @@ DWORD ServerLoop(PROXYCHAINS_CONFIG* pPxchConfig, HANDLE hProcess)
 			switch (ipc[i].dwState) {
 			case IPC_STATE_CONNECTING:
 				if (!bReturn) goto err_connect_overlapped_error;
-				LOGD(L"[IPC%03d] named pipe connected.", i);
+				LOGV(L"[IPC%03d] named pipe connected.", i);
 				ipc[i].dwState = IPC_STATE_READING;
 				break;
 
 			case IPC_STATE_READING:
 				if (!bReturn || cbReturn == 0) {
-					LOGE(L"[IPC%03d] GetOverlappedResult() error(%lu) or read 0 bytes(%lu), disconnect and reconnecting", i, GetLastError(), cbReturn);
+					dwErrorCode = GetLastError();
+					if (dwErrorCode != ERROR_BROKEN_PIPE) {
+						LOGE(L"[IPC%03d] GetOverlappedResult() error(" WPRDW L") or read 0 bytes(" WPRDW L"), disconnect and reconnecting", i, dwErrorCode, cbReturn);
+					}
 					if ((dwErrorCode = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwErrorCode;
 					continue;
 				}
-				LOGI(L"[IPC%03d] ReadFile() received msglen = %lu", i, cbReturn);
+				LOGV(L"[IPC%03d] ReadFile() received msglen = " WPRDW L"", i, cbReturn);
 				ipc[i].cbRead = cbReturn;
 				ipc[i].dwState = IPC_STATE_WRITING;
 				break;
 
 			case IPC_STATE_WRITING:
 				if (!bReturn || cbReturn != ipc[i].cbToWrite) {
-					LOGE(L"[IPC%03d] GetOverlappedResult() error(%lu) or wrote %lu bytes (!= %lu as expected), disconnect and reconnecting", i, GetLastError(), cbReturn, ipc[i].cbToWrite);
+					dwErrorCode = GetLastError();
+					if (dwErrorCode != ERROR_BROKEN_PIPE) {
+						LOGE(L"[IPC%03d] GetOverlappedResult() error(" WPRDW L") or wrote " WPRDW L" bytes (!= " WPRDW L" as expected), disconnect and reconnecting", i, dwErrorCode, cbReturn, ipc[i].cbToWrite);
+					}
 					if ((dwErrorCode = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwErrorCode;
 					continue;
 				}
-				LOGI(L"[IPC%03d] WriteFile() sent msglen = %lu", i, cbReturn);
+				LOGV(L"[IPC%03d] WriteFile() sent msglen = " WPRDW L"", i, cbReturn);
 				ipc[i].dwState = IPC_STATE_READING;
 				break;
 
 			default:
-				LOGE(L"[IPC%03d] Invalid pipe state: %lu", i, ipc[i].dwState);
+				LOGE(L"[IPC%03d] Invalid pipe state: " WPRDW L"", i, ipc[i].dwState);
 				return ERROR_INVALID_STATE;
 			}
 		}
@@ -207,11 +220,11 @@ DWORD ServerLoop(PROXYCHAINS_CONFIG* pPxchConfig, HANDLE hProcess)
 		// Last operation has finished, now dwState stores what to do next
 		switch (ipc[i].dwState) {
 		case IPC_STATE_READING:
-			bReturn = ReadFile(ipc[i].hPipe, ipc[i].chReadBuf, IPC_BUFSIZE * sizeof(WCHAR), &ipc[i].cbRead, &ipc[i].oOverlap);
+			bReturn = ReadFile(ipc[i].hPipe, ipc[i].chReadBuf, IPC_BUFSIZE, &ipc[i].cbRead, &ipc[i].oOverlap);
 
 			// Finished instantly
 			if (bReturn && ipc[i].cbRead != 0) {
-				LOGI(L"[IPC%03d] ReadFile() received msglen = %lu (immediately)", i, ipc[i].cbRead);
+				LOGV(L"[IPC%03d] ReadFile() received msglen = " WPRDW L" (immediately)", i, ipc[i].cbRead);
 				ipc[i].bPending = FALSE;
 				ipc[i].dwState = IPC_STATE_WRITING;
 				continue;
@@ -224,7 +237,9 @@ DWORD ServerLoop(PROXYCHAINS_CONFIG* pPxchConfig, HANDLE hProcess)
 				continue;
 			}
 
-			LOGE(L"[IPC%03d] ReadFile() error: %ls or has read 0 bytes; disconnecting and reconnecting", i, FormatErrorToStr(dwErrorCode));
+			if (dwErrorCode != ERROR_BROKEN_PIPE) {
+				LOGE(L"[IPC%03d] ReadFile() error: %ls or has read 0 bytes; disconnecting and reconnecting", i, FormatErrorToStr(dwErrorCode));
+			}
 			if ((dwErrorCode = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwErrorCode;
 			break;
 
@@ -241,7 +256,7 @@ DWORD ServerLoop(PROXYCHAINS_CONFIG* pPxchConfig, HANDLE hProcess)
 
 			// Finished instantly
 			if (bReturn && cbReturn == ipc[i].cbToWrite) {
-				LOGI(L"[IPC%03d] WriteFile() sent msglen = %lu (immediately)", i, cbReturn);
+				LOGV(L"[IPC%03d] WriteFile() sent msglen = " WPRDW L" (immediately)", i, cbReturn);
 				ipc[i].bPending = FALSE;
 				ipc[i].dwState = IPC_STATE_READING;
 				continue;
@@ -254,17 +269,19 @@ DWORD ServerLoop(PROXYCHAINS_CONFIG* pPxchConfig, HANDLE hProcess)
 				continue;
 			}
 
-			LOGE(L"[IPC%03d] Write() error: %ls or wrote unexpected bytes(%lu, different from %lu as expected); disconnecting and reconnecting", i, FormatErrorToStr(dwErrorCode), cbReturn, ipc[i].cbToWrite);
+			if (dwErrorCode != ERROR_BROKEN_PIPE) {
+				LOGE(L"[IPC%03d] Write() error: %ls or wrote unexpected bytes(" WPRDW L", different from " WPRDW L" as expected); disconnecting and reconnecting", i, FormatErrorToStr(dwErrorCode), cbReturn, ipc[i].cbToWrite);
+			}
 			if ((dwErrorCode = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwErrorCode;
 			break;
 
 		default:
-			LOGE(L"[IPC%03d] Invalid pipe state: %lu", i, ipc[i].dwState);
+			LOGE(L"[IPC%03d] Invalid pipe state: " WPRDW L"", i, ipc[i].dwState);
 			return ERROR_INVALID_STATE;
 		}
 	}
 	return 0;
-	
+
 err_create_event:
 	dwErrorCode = GetLastError();
 	LOGE(L"Error creating event: %ls", FormatErrorToStr(dwErrorCode));
@@ -324,9 +341,6 @@ BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
 	}
 }
 
-#define _PREFIX_L(s) L ## s
-#define PREFIX_L(s) _PREFIX_L(s)
-
 DWORD LoadConfiguration(PROXYCHAINS_CONFIG* pPxchConfig)
 {
 	DWORD dwRet;
@@ -338,7 +352,7 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG* pPxchConfig)
 	GetSystemTimeAsFileTime(&ft);
 	uli.HighPart = ft.dwHighDateTime;
 	uli.LowPart = ft.dwLowDateTime;
-	StringCchPrintfW(pPxchConfig->szIpcPipeName, _countof(pPxchConfig->szIpcPipeName), L"\\\\.\\pipe\\proxychains_%lu_%" PREFIX_L(PRIu64) L"", GetCurrentProcessId(), uli.QuadPart);
+	StringCchPrintfW(pPxchConfig->szIpcPipeName, _countof(pPxchConfig->szIpcPipeName), L"\\\\.\\pipe\\proxychains_" WPRDW L"_%" PREFIX_L(PRIu64) L"", GetCurrentProcessId(), uli.QuadPart);
 	pPxchConfig->testNum = 1234;
 
 	dwRet = GetModuleFileNameW(NULL, pPxchConfig->szDllPath, MAX_DLL_PATH_BUFSIZE);
@@ -348,14 +362,22 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG* pPxchConfig)
 	if (!PathRemoveFileSpecW(pPxchConfig->szDllPath)) goto err_insuf_buf;
 
 	if (FAILED(StringCchCatW(pPxchConfig->szDllPath, MAX_DLL_PATH_BUFSIZE, L"\\"))) goto err_insuf_buf;
+	if (FAILED(StringCchCopyW(pPxchConfig->szMinHookDllPath, MAX_DLL_PATH_BUFSIZE, pPxchConfig->szDllPath))) goto err_insuf_buf;
 	if (FAILED(StringCchCatW(pPxchConfig->szDllPath, MAX_DLL_PATH_BUFSIZE, g_szDllFileName))) goto err_insuf_buf;
-	
+	if (FAILED(StringCchCatW(pPxchConfig->szMinHookDllPath, MAX_DLL_PATH_BUFSIZE, g_szMinHookDllFileName))) goto err_insuf_buf;
+
+	if (!PathFileExistsW(pPxchConfig->szDllPath)) goto err_dll_not_exist;
+	if (!PathFileExistsW(pPxchConfig->szMinHookDllPath)) pPxchConfig->szMinHookDllPath[0] = L'\0';
+
 	return 0;
 
-//err_other:
-//	return GetLastError();
+	//err_other:
+	//	return GetLastError();
 err_insuf_buf:
 	return ERROR_INSUFFICIENT_BUFFER;
+
+err_dll_not_exist:
+	return ERROR_FILE_NOT_FOUND;
 }
 
 BOOL ArgHasSpecialChar(WCHAR* sz)
@@ -405,10 +427,12 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 				bOptionFile = TRUE;
 				iOptionPrefixLen = 2;
 				bOptionHasValue = TRUE;
-			} else if (wcsncmp(pWchar, L"-q", 2) == 0) {
-				g_pPxchConfig->bQuiet = TRUE;
+			}
+			else if (wcsncmp(pWchar, L"-q", 2) == 0) {
+				pConfig->bQuiet = TRUE;
 				continue;
-			} else {
+			}
+			else {
 				bOptionsEnd = TRUE;
 				i--;
 				continue;
@@ -425,7 +449,7 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 		// else
 		// Option Ends, Command starts
 #ifdef __CYGWIN__
-		*piCommandStart = i;
+		* piCommandStart = i;
 		return 0;
 #endif
 		iCountCommands++;
@@ -540,6 +564,8 @@ int wmain(int argc, WCHAR* argv[])
 	PROCESS_INFORMATION processInformation = { 0 };
 	int iCommandStart;
 
+	g_pPxchConfig = &config;
+
 	setvbuf(stderr, NULL, _IOFBF, 65536);
 
 #ifdef __CYGWIN__
@@ -547,12 +573,13 @@ int wmain(int argc, WCHAR* argv[])
 #else
 	LOGI(L"Locale: %S", setlocale(LC_ALL, ""));
 #endif
-	SetConsoleCtrlHandler(CtrlHandler, TRUE);
+	// SetConsoleCtrlHandler(CtrlHandler, TRUE);
 
 	if ((dwError = LoadConfiguration(&config)) != NOERROR) goto err;
-	
+
 	LOGI(L"DLL Path: %ls", config.szDllPath);
-	
+	LOGI(L"MinHook DLL Path: %ls", config.szMinHookDllPath);
+
 	InitHookForMain(&config);
 
 	if ((dwError = ParseArgs(g_pPxchConfig, argc, argv, &iCommandStart)) != NOERROR) goto err;
@@ -568,7 +595,7 @@ int wmain(int argc, WCHAR* argv[])
 	// WaitForSingleObject(processInformation.hProcess, INFINITE);
 	// ServerLoop(g_pPxchConfig, processInformation.hProcess);
 	ServerLoop(g_pPxchConfig, INVALID_HANDLE_VALUE);
-	
+
 	return 0;
 
 err:
@@ -591,10 +618,10 @@ void handle_sigint(int sig)
 	fflush(stderr);
 }
 
-int main(int argc, char*const argv[], char*const envp[])
+int main(int argc, char* const argv[], char* const envp[])
 {
 	PROXYCHAINS_CONFIG config = { 0 };
-	DWORD dwError;
+	DWORD dwError = 0;
 	pid_t child_pid;
 	int iCommandStart;
 	int i;
@@ -602,7 +629,9 @@ int main(int argc, char*const argv[], char*const envp[])
 	// char* spawn_argv[] = { "bash.exe", NULL };
 	WCHAR** wargv = malloc(argc * sizeof(WCHAR*));
 
-	signal(SIGINT, handle_sigint);
+	g_pPxchConfig = &config;
+
+	//signal(SIGINT, handle_sigint);
 	setvbuf(stderr, NULL, _IOFBF, 65536);
 
 	for (i = 0; i < argc; i++) {
@@ -614,8 +643,9 @@ int main(int argc, char*const argv[], char*const envp[])
 	LOGI(L"Locale: %s", setlocale(LC_ALL, ""));
 
 	if ((dwError = LoadConfiguration(&config)) != NOERROR) goto err;
-	
+
 	LOGI(L"DLL Path: %ls", config.szDllPath);
+	LOGI(L"MinHook DLL Path: %ls", config.szMinHookDllPath);
 
 	InitHookForMain(&config);
 
@@ -626,9 +656,10 @@ int main(int argc, char*const argv[], char*const envp[])
 	LOGI(L"argv[iCommandStart]: %s", argv[iCommandStart]);
 
 	iReturn = posix_spawnp(&child_pid, argv[iCommandStart], NULL, NULL, &argv[iCommandStart], envp);
-	LOGD(L"Spawn ret: %d; CYGWINPID: %lu", iReturn, child_pid);
+	LOGD(L"Spawn ret: %d; CYGPID: " WPRDW L"", iReturn, child_pid);
 
 	signal(SIGCHLD, handle_sigchld);
+	// pause();
 	ServerLoop(g_pPxchConfig, INVALID_HANDLE_VALUE);
 
 #ifdef __CYGWIN_PXCH_FORK__
@@ -640,7 +671,8 @@ int main(int argc, char*const argv[], char*const envp[])
 		// waitpid(-1, &status, 0);
 		signal(SIGCHLD, handle_sigchld);
 		ServerLoop(g_pPxchConfig, INVALID_HANDLE_VALUE);
-	} else {
+	}
+	else {
 		// Child
 		LOGI(L"I'm child\n");
 		execvp(argv[iCommandStart], &argv[iCommandStart]);

@@ -1,0 +1,53 @@
+#pragma once
+
+#ifndef __IPC_H__
+#define __IPC_H__
+#include "stdafx.h"
+
+#define IPC_STATE_CONNECTING 0
+#define IPC_STATE_READING 1
+#define IPC_STATE_WRITING 2
+#define IPC_INSTANCE_NUM 4
+#define IPC_BUFSIZE 4096	// In bytes
+
+typedef const char CIPC_MSGBUF[IPC_BUFSIZE];
+typedef char IPC_MSGBUF[IPC_BUFSIZE];
+
+#define IPC_MSGDIRECTION_CLIENTTOSERVER 0x80000000
+#define IPC_MSGDIRECTION_SERVERTOCLIENT 0x00000000
+#define IPC_MSGDIRECTION_MASK 0x80000000
+
+#define IPC_MSGTYPE_MASK (IPC_MSGDIRECTION_MASK - 1)
+
+#define IPC_MSGTYPE_WSTR 0x1
+#define IPC_MSGTYPE_GETHOSTBYFAKEIPV4 0x10
+#define IPC_MSGTYPE_GETHOSTBYFAKEIPV6 0x11
+
+#define IPC_MSGTYPE_GETFAKEIPV4BYHOST 0x20
+#define IPC_MSGTYPE_GETFAKEIPV6BYHOST 0x21
+#define IPC_MSGTYPE_RESPHOST 0x2F
+
+#define IPC_MSGTYPE_RESPADDRS 0x30
+
+#define IPC_MSGTAG_INVALID 0x0
+
+#define MsgIsC2S(x) (((*(DWORD*)(x)) & IPC_MSGDIRECTION_MASK) == IPC_MSGDIRECTION_CLIENTTOSERVER)
+#define MsgIsS2C(x) (((*(DWORD*)(x)) & IPC_MSGDIRECTION_MASK) == IPC_MSGDIRECTION_SERVERTOCLIENT)
+#define MsgIsType(type, x) (((*(DWORD*)(x)) & IPC_MSGTYPE_MASK) == IPC_MSGTYPE_##type)
+#define MsgIsInvalid(x) ((*(DWORD*)(x)) == IPC_MSGTAG_INVALID)
+
+#define SetMsgC2S(x) *((DWORD*)(x)) = (*((DWORD*)(x)) & ~IPC_MSGDIRECTION_MASK) | IPC_MSGDIRECTION_CLIENTTOSERVER
+#define SetMsgS2C(x) *((DWORD*)(x)) = (*((DWORD*)(x)) & ~IPC_MSGDIRECTION_MASK) | IPC_MSGDIRECTION_SERVERTOCLIENT
+#define SetMsgInvalid(x) (*(DWORD*)(x)) = IPC_MSGTAG_INVALID
+
+#pragma pack(push, 1)
+typedef struct _IPC_MSGHDR_WSTR {
+	UINT32 u32Tag;
+	UINT32 cchLength;
+} IPC_MSGHDR_WSTR;
+#pragma pack(pop)
+
+DWORD WstrToMessage(IPC_MSGBUF chMessageBuf, DWORD* pcbMessageSize, PCWSTR szWstr);
+DWORD MessageToWstr(PWSTR wstr, CIPC_MSGBUF chMessageBuf, DWORD cbMessageSize);
+
+#endif

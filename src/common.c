@@ -1,6 +1,9 @@
 #include "stdafx.h"
 #include <strsafe.h>
+#include "pxch_defines.h"
 #include "common.h"
+#include "log.h"
+#include "ipc.h"
 
 WCHAR szErrorMessage[MAX_ERROR_MESSAGE_BUFSIZE];
 
@@ -31,17 +34,46 @@ after_fmt:
 		if (buf[dwCb - 2] == L'\r') {
 			buf[dwCb - 2] = L'\0';
 		}
-		StringCchPrintfW(szErrorMessage, MAX_ERROR_MESSAGE_BUFSIZE, L"%ls(%lu)", buf, dwError);
+		StringCchPrintfW(szErrorMessage, MAX_ERROR_MESSAGE_BUFSIZE, L"%ls(" WPRDW L")", buf, dwError);
 		LocalFree(hLocalBuffer);
 	}
 	else {
-		StringCchPrintfW(szErrorMessage, MAX_ERROR_MESSAGE_BUFSIZE, L"(%lu)", dwError);
+		StringCchPrintfW(szErrorMessage, MAX_ERROR_MESSAGE_BUFSIZE, L"(" WPRDW L")", dwError);
 	}
 	return szErrorMessage;
 }
+
 
 void PrintErrorToFile(FILE* f, DWORD dwError)
 {
 	FormatErrorToStr(dwError);
 	fwprintf(f, L"Error: %ls\n", szErrorMessage);
+}
+
+DWORD WstrToMessage(IPC_MSGBUF chMessageBuf, DWORD* pcbMessageSize, PCWSTR szWstr)
+{
+	IPC_MSGHDR_WSTR* pHdr = (IPC_MSGHDR_WSTR*)chMessageBuf;
+	PWCHAR szWstrEnd;
+
+	pHdr->u32Tag = IPC_MSGTYPE_WSTR;
+	if (FAILED(StringCchCopyExW((PWSTR)(chMessageBuf + sizeof(IPC_MSGHDR_WSTR)), (sizeof(IPC_MSGBUF) - sizeof(IPC_MSGHDR_WSTR)) / sizeof(WCHAR), szWstr, &szWstrEnd, NULL, 0))) goto err_copy;
+	pHdr->cchLength = (DWORD)(((char*)szWstrEnd - (chMessageBuf + sizeof(IPC_MSGHDR_WSTR))) / sizeof(WCHAR));
+	*pcbMessageSize = (DWORD)((char*)szWstrEnd - chMessageBuf);
+	return 0;
+
+err_copy:
+	pHdr->cchLength = 0;
+	*pcbMessageSize = sizeof(IPC_MSGHDR_WSTR);
+	return ERROR_FUNCTION_FAILED;
+}
+
+
+DWORD MessageToWstr(PWSTR szWstr, CIPC_MSGBUF chMessageBuf, DWORD cbMessageSize)
+{
+	const IPC_MSGHDR_WSTR* pHdr = (IPC_MSGHDR_WSTR*)chMessageBuf;
+	szWstr[0] = L'\0';
+	if (!MsgIsType(WSTR, chMessageBuf)) return ERROR_INVALID_PARAMETER;
+	if (pHdr->cchLength * sizeof(WCHAR) + sizeof(IPC_MSGHDR_WSTR) > sizeof(IPC_MSGBUF)) return ERROR_INSUFFICIENT_BUFFER;
+	if (FAILED(StringCchCopyNW(szWstr, IPC_BUFSIZE / sizeof(WCHAR), (PCWCH)(chMessageBuf + sizeof(IPC_MSGHDR_WSTR)), pHdr->cchLength))) return ERROR_FUNCTION_FAILED;
+	return 0;
 }

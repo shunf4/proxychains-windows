@@ -4,7 +4,7 @@
 #define __DLL_H__
 
 #ifdef PXCHDLL_EXPORTS
-#define PXCHDLL_API __declspec(dllexport)
+#define PXCHDLL_API __declspec(dllexport)	// Cygwin gcc also recognizes this
 #else
 #define PXCHDLL_API __declspec(dllimport)
 #endif

@@ -4,8 +4,9 @@
 DWORD __stdcall LoadHookDll(LPVOID* pArg)
 {
 	INJECT_REMOTE_DATA* pRemoteData = (INJECT_REMOTE_DATA*)pArg;
-	HMODULE hCygwinModule;
+	// HMODULE hCygwinModule;
 	HMODULE hHookDllModule;
+	HMODULE hMinHookDllModule = NULL;
 	FARPROC pInitFunc;
 
 #if defined(__CYGWIN__) && 0
@@ -17,10 +18,18 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 	}
 	pRemoteData->uEverExecuted = 1;
 
-	hCygwinModule = pRemoteData->fpGetModuleHandleW(L"cygwin1.dll");
+	/*hCygwinModule = pRemoteData->fpGetModuleHandleW(L"cygwin1.dll");
 	if (hCygwinModule) {
 		pRemoteData->dwErrorCode = ERROR_NOT_SUPPORTED;
 		return ERROR_NOT_SUPPORTED;
+	}*/
+
+	if (pRemoteData->pxchConfig.szMinHookDllPath[0] != L'\0') {
+		hMinHookDllModule = pRemoteData->fpLoadLibraryW(pRemoteData->pxchConfig.szMinHookDllPath);
+		if (!hMinHookDllModule) {
+			pRemoteData->dwErrorCode = pRemoteData->fpGetLastError();
+			return pRemoteData->dwErrorCode;
+		}
 	}
 
 	hHookDllModule = pRemoteData->fpGetModuleHandleW(g_szDllFileName);
@@ -30,6 +39,7 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 	}
 
 	pRemoteData->dwErrorCode = ERROR_DLL_INIT_FAILED;
+
 	hHookDllModule = pRemoteData->fpLoadLibraryW(pRemoteData->pxchConfig.szDllPath);
 	if (!hHookDllModule) {
 		pRemoteData->dwErrorCode = pRemoteData->fpGetLastError();
@@ -42,6 +52,7 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 
 	pRemoteData->dwErrorCode = ERROR_FUNCTION_FAILED;
 	pRemoteData->dwErrorCode = ((DWORD(__stdcall*)(INJECT_REMOTE_DATA*))pInitFunc)(pRemoteData);
+
 	if (pRemoteData->dwErrorCode != NO_ERROR) goto err_init_func_failed;
 
 	pRemoteData->dwErrorCode = 0;

@@ -165,6 +165,7 @@
   <ItemGroup>
     <ClInclude Include="..\include\common.h" />
     <ClInclude Include="..\include\dll.h" />
+    <ClInclude Include="..\include\ipc.h" />
     <ClInclude Include="..\include\log.h" />
     <ClInclude Include="..\include\pxch_defines.h" />
     <ClInclude Include="..\include\pxch_hook.h" />

@@ -1,1 +1,0 @@
-stdafx.o: ../src/stdafx.c ../include/stdafx.h
