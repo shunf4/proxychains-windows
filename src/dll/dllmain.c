@@ -22,10 +22,10 @@
 #include <sys/cygwin.h>
 #endif
 
+PXCHDLL_API DWORD(*fpSavePointer)(DWORD dwPid, PROXYCHAINS_CONFIG* pPxchConfig, INJECT_REMOTE_DATA* pRemoteData);
 INJECT_REMOTE_DATA* g_pRemoteData;
 PXCHDLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;
 PXCHDLL_API BOOL g_bCurrentlyInWinapiCall = FALSE;
-DWORD g_dwDebugAlternateHook = 1;
 
 DWORD IpcCommunicateWithServer(const IPC_MSGBUF sendMessage, DWORD cbSendMessageSize, IPC_MSGBUF responseMessage, DWORD* pcbResponseMessageSize)
 {
@@ -107,6 +107,56 @@ close_ret:
 }
 
 
+DWORD IpcClientRegisterChildProcess()
+{
+	REPORTED_CHILD_DATA childData;
+	IPC_MSGBUF chMessageBuf;
+	IPC_MSGBUF chRespMessageBuf;
+	DWORD cbMessageSize;
+	DWORD cbRespMessageSize;
+	DWORD dwErrorCode;
+
+	childData.dwPid = GetCurrentProcessId();
+	childData.pSavedPxchConfig = g_pPxchConfig;
+	childData.pSavedRemoteData = g_pRemoteData;
+
+	if ((dwErrorCode = ChildDataToMessage(chMessageBuf, &cbMessageSize, &childData)) != NO_ERROR) return dwErrorCode;
+	if ((dwErrorCode = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) return dwErrorCode;
+
+	return 0;
+}
+
+
+DWORD IpcClientRestoreData()
+{
+	REPORTED_CHILD_DATA childData;
+	IPC_MSGBUF chMessageBuf;
+	IPC_MSGBUF chRespMessageBuf;
+	DWORD cbMessageSize;
+	DWORD cbRespMessageSize;
+	DWORD dwErrorCode;
+
+	childData.dwPid = GetCurrentProcessId();
+
+	if (childData.dwPid == g_pPxchConfig->dwMasterProcessId) return 0;
+
+	if ((dwErrorCode = QueryStorageToMessage(chMessageBuf, &cbMessageSize, childData.dwPid)) != NO_ERROR) return dwErrorCode;
+	if ((dwErrorCode = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) return dwErrorCode;
+	if ((dwErrorCode = MessageToChildData(&childData, chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) return dwErrorCode;
+
+	RLOGD(L"g_pPxchConfig was %p", g_pPxchConfig);
+	RLOGD(L"g_pRemoteData was %p", g_pRemoteData);
+
+	// g_pPxchConfig = childData.pSavedPxchConfig;
+	// g_pRemoteData = childData.pSavedRemoteData;
+
+	RLOGD(L"g_pPxchConfig restored to %p", g_pPxchConfig);
+	RLOGD(L"g_pRemoteData restored to %p", g_pRemoteData);
+	
+	return 0;
+}
+
+
 DWORD RemoteCopyExecute(HANDLE hProcess, INJECT_REMOTE_DATA* pRemoteData)
 {
 	void* pCode = LoadHookDll;
@@ -152,7 +202,7 @@ DWORD RemoteCopyExecute(HANDLE hProcess, INJECT_REMOTE_DATA* pRemoteData)
 	hRemoteThread = CreateRemoteThread(hProcess, NULL, 0, pTargetCode, pTargetData, 0, NULL);
 	if (!hRemoteThread) goto err_create_remote_thread;
 
-	// Wait for the thread to terminate
+	// Wait for the thread to exit
 	if ((dwReturn = WaitForSingleObject(hRemoteThread, INFINITE)) != WAIT_OBJECT_0) goto err_wait;
 
 	dwReturn = -1;
@@ -209,8 +259,9 @@ ret_free:
 	return dwErrorCode;
 }
 
-DWORD InjectTargetProcess(HANDLE hProcess)
+DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi)
 {
+	HANDLE hProcess = pPi->hProcess;
 	INJECT_REMOTE_DATA remoteData;
 	DWORD dwReturn;
 
@@ -222,6 +273,9 @@ DWORD InjectTargetProcess(HANDLE hProcess)
 	remoteData.fpGetProcAddress = GetProcAddress;
 	remoteData.fpLoadLibraryW = LoadLibraryW;
 	remoteData.fpGetLastError = GetLastError;
+	remoteData.pSavedGlobalProxychainsConfig = NULL;
+	remoteData.pSavedGlobalRemoteData = NULL;
+	remoteData.dwDebugMode = g_pRemoteData ? g_pRemoteData->dwDebugMode + 1 : 1;
 
 	StringCchCopyA(remoteData.szInitFuncName, _countof(remoteData.szInitFuncName), g_pRemoteData ? g_pRemoteData->szInitFuncName : "InitHook");
 	StringCchCopyA(remoteData.szCIWCVarName, _countof(remoteData.szCIWCVarName), g_pRemoteData ? g_pRemoteData->szCIWCVarName : "g_bCurrentlyInWinapiCall");
@@ -243,6 +297,16 @@ DWORD InjectTargetProcess(HANDLE hProcess)
 	if (remoteData.dwErrorCode != 0) {
 		RLOGE(L"Error: Remote thread error: %ls!", FormatErrorToStr(remoteData.dwErrorCode));
 		return remoteData.dwErrorCode;
+	}
+
+	if (GetCurrentProcessId() == g_pPxchConfig->dwMasterProcessId) {
+		if (fpSavePointer) {
+			// fpSavePointer(pPi->dwProcessId, remoteData.pSavedGlobalProxychainsConfig, remoteData.pSavedGlobalRemoteData);
+		}
+	}
+	else {
+		// Seems no need to implement
+		// IpcSavePointer(GetCurrentProcessId(), remoteData.pSavedGlobalProxychainsConfig, remoteData.pSavedGlobalRemoteData);
 	}
 
 	return 0;
@@ -292,7 +356,12 @@ PROXY_FUNC(CreateProcessW)
 	DWORD dwReturn = 0;
 	PROCESS_INFORMATION processInformation;
 
-	g_bCurrentlyInWinapiCall = TRUE;
+	// g_bCurrentlyInWinapiCall = TRUE;
+
+	// For cygwin: cygwin fork() will duplicate the data in child process, including pointer g_*.
+	// IpcClientRestoreData();
+
+	// RLOGI(L"(In CreateProcessW) g_pRemoteData->dwDebugMode = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugMode : -1);
 
 	RLOGV(L"CreateProcessW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s", lpApplicationName, lpCommandLine, (UINT64)lpProcessAttributes, (UINT64)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory);
 
@@ -308,7 +377,7 @@ PROXY_FUNC(CreateProcessW)
 #ifdef __CYGWIN__
 	g_pPxchConfig->pidCygwinSoleChildProc = cygwin_winpid_to_pid(processInformation.dwProcessId);
 #endif
-	dwReturn = InjectTargetProcess(processInformation.hProcess);
+	dwReturn = InjectTargetProcess(&processInformation);
 
 	if (!(dwCreationFlags & CREATE_SUSPENDED)) {
 		ResumeThread(processInformation.hThread);
@@ -317,25 +386,19 @@ PROXY_FUNC(CreateProcessW)
 	RLOGD(L"I've Injected WINPID " WPRDW, processInformation.dwProcessId);
 	
 	if (dwReturn != 0) goto err_inject;
-	g_bCurrentlyInWinapiCall = FALSE;
+	//g_bCurrentlyInWinapiCall = FALSE;
 	return 1;
 
 err_orig:
 	RLOGE(L"CreateProcessW Error: " WPRDW L", %ls", bRet, FormatErrorToStr(dwErrorCode));
 	SetLastError(dwErrorCode);
-	g_bCurrentlyInWinapiCall = FALSE;
+	//g_bCurrentlyInWinapiCall = FALSE;
 	return bRet;
 
 err_inject:
 	RLOGE(L"Inject Error: %ls", FormatErrorToStr(dwErrorCode));
 	SetLastError(dwReturn);
-	g_bCurrentlyInWinapiCall = FALSE;
-	return 1;
-}
-
-CreateProcessW_SIGN(_ProxyCreateProcessW)
-{
-
+	//g_bCurrentlyInWinapiCall = FALSE;
 	return 1;
 }
 
@@ -354,14 +417,17 @@ PXCHDLL_API DWORD __stdcall InitHookForMain(PROXYCHAINS_CONFIG* pPxchConfig)
 
 PXCHDLL_API DWORD __stdcall InitHook(INJECT_REMOTE_DATA* pRemoteData)
 {
-	g_pRemoteData = pRemoteData;
 	g_pPxchConfig = &pRemoteData->pxchConfig;
+	g_pRemoteData = pRemoteData;
 
 	MH_Initialize();
 	// CREATE_HOOK(CreateProcessA);
 	CREATE_HOOK(CreateProcessW);
 
+	// RLOGI(L"g_pRemoteData->dwDebugMode = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugMode : -1);
+	//if (g_pRemoteData->dwDebugMode < 2) {
 	MH_EnableHook(MH_ALL_HOOKS);
+	//}
 
 	/*do {
 		HMODULE hWs2_32;
@@ -377,8 +443,13 @@ PXCHDLL_API DWORD __stdcall InitHook(INJECT_REMOTE_DATA* pRemoteData)
 		RLOGI(L"wsock32.dll connect(): %p", hWsock32 ? pRemoteData->fpGetProcAddress(hWsock32, "connect") : NULL);
 		RLOGI(L"cygwin1.dll connect(): %p", hCygwin1 ? pRemoteData->fpGetProcAddress(hCygwin1, "connect") : NULL);
 	} while (0);*/
+	
+	// IpcClientRegisterChildProcess();
 
-	RLOGI(L"I'm WINPID " WPRDW L" Hooked!", log_pid);
+
+	// pRemoteData->pSavedGlobalProxychainsConfig = g_pPxchConfig;
+	// pRemoteData->pSavedGlobalRemoteData = g_pRemoteData;
+	// RLOGI(L"I'm WINPID " WPRDW L" Hooked!", log_pid);
 	return 0;
 }
 

@@ -28,6 +28,7 @@
 #define MAX_COMMAND_EXEC_PATH_BUFSIZE 512
 #define MAX_COMMAND_LINE_BUFSIZE 65536
 #define MAX_REMOTE_LOG_BUFSIZE 1024
+#define MAX_HOSTNAME_BUFSIZE 256
 // In characters -- end
 
 typedef struct _PROXYCHAINS_CONFIG {
@@ -56,6 +57,7 @@ typedef struct _INJECT_REMOTE_DATA {
 	UINT32 uEverExecuted;
 
 	DWORD dwParentPid;
+	DWORD dwDebugMode;
 
 	FpGetModuleHandleW fpGetModuleHandleW;
 	FpLoadLibraryW fpLoadLibraryW;
@@ -63,12 +65,16 @@ typedef struct _INJECT_REMOTE_DATA {
 	FpFreeLibrary fpFreeLibrary;
 	FpGetLastError fpGetLastError;
 
+	struct _INJECT_REMOTE_DATA* pSavedGlobalRemoteData;
+	PROXYCHAINS_CONFIG* pSavedGlobalProxychainsConfig;
+
 	CHAR szInitFuncName[MAX_DLL_FUNC_NAME_BUFSIZE];
 	CHAR szCIWCVarName[MAX_DLL_FUNC_NAME_BUFSIZE];
 	WCHAR szCygwin1ModuleName[MAX_DLL_FILE_NAME_BUFSIZE];
 
 	DWORD dwErrorCode;
 	PROXYCHAINS_CONFIG pxchConfig;
+
 } INJECT_REMOTE_DATA;
 
 #ifdef __CYGWIN__
@@ -78,7 +84,5 @@ static const WCHAR g_szDllFileName[] = L"proxychains_hook.dll";
 #endif
 static const WCHAR g_szMinHookDllFileName[] = L"MinHook.x64.dll";
 extern PXCHDLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;
-
-extern BOOL g_bCurrentlyInWinapiCall;
 
 #endif

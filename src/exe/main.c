@@ -24,6 +24,35 @@
 #include <spawn.h>
 #endif
 
+typedef int IP_ADDRESS;
+
+typedef DWORD pid_key_t;
+typedef struct _ip_dl_element_t {
+	IP_ADDRESS ip;
+	struct _ip_dl_element_t* prev;
+	struct _ip_dl_element_t* next;
+} ip_dl_element_t;
+
+typedef struct {
+	REPORTED_CHILD_DATA data;
+	ip_dl_element_t* fakeIps;
+
+	UT_hash_handle hh;
+} tab_per_process_t;
+
+static tab_per_process_t* g_tabPerProcess;
+HANDLE g_hDataMutex;
+
+typedef struct {
+	IP_ADDRESS ip;	// Key
+	WCHAR szHostname[MAX_HOSTNAME_BUFSIZE];
+
+	UT_hash_handle hh;
+} tab_fake_ip_hostname_t;
+
+static tab_fake_ip_hostname_t* g_tabFakeIpHostname;
+
+
 typedef struct _IPC_INSTANCE {
 	OVERLAPPED oOverlap;
 	HANDLE hPipe;
@@ -40,19 +69,154 @@ typedef struct _IPC_INSTANCE {
 
 } IPC_INSTANCE;
 
+#define LOCKED(proc) do { \
+	DWORD dwWaitResult; \
+	DWORD dwErrorCode; \
+	DWORD dwReturn = 0; \
+	 \
+	dwWaitResult = WaitForSingleObject(g_hDataMutex, INFINITE); \
+	switch (dwWaitResult) \
+	{ \
+	case WAIT_OBJECT_0: \
+	{ \
+		proc \
+	after_proc: \
+		if (!ReleaseMutex(g_hDataMutex)) { \
+			dwErrorCode = GetLastError(); \
+			LOGC(L"Release mutex error: %ls", FormatErrorToStr(dwErrorCode)); \
+			exit(dwErrorCode); \
+		} \
+		return dwReturn; \
+	} \
+	 \
+	case WAIT_ABANDONED: \
+		LOGC(L"Mutex abandoned!"); \
+		exit(ERROR_ABANDONED_WAIT_0); \
+		break; \
+	 \
+	default: \
+		dwErrorCode = GetLastError(); \
+		LOGW(L"Wait for mutex error: " WPRDW L", %ls", dwWaitResult, FormatErrorToStr(dwErrorCode)); \
+		return dwErrorCode; \
+	} \
+} while(0)
+
+
+DWORD ChildProcessExitedCallbackWorker(PVOID lpParameter, BOOLEAN TimerOrWaitFired)
+{
+	LOCKED({
+		tab_per_process_t * entry = (tab_per_process_t*)lpParameter;
+		HASH_DELETE(hh, g_tabPerProcess, entry);
+		LOGI(L"Child process pid " WPRDW L" exited.", entry->data.dwPid);
+		free(entry);
+
+		if (g_tabPerProcess == NULL) {
+			LOGI(L"All children exited.");
+			exit(0);
+		}
+
+		goto after_proc;
+	});
+}
+
+
+VOID CALLBACK ChildProcessExitedCallback(
+	_In_ PVOID   lpParameter,
+	_In_ BOOLEAN TimerOrWaitFired
+)
+{
+	ChildProcessExitedCallbackWorker(lpParameter, TimerOrWaitFired);
+}
+
+DWORD RegisterNewChildProcess(const REPORTED_CHILD_DATA* pChildData)
+{
+	LOCKED({
+		tab_per_process_t* entry = (tab_per_process_t*)malloc(sizeof(tab_per_process_t));
+		HANDLE hWaitHandle;
+		HANDLE hChildHandle;
+
+		if ((hChildHandle = OpenProcess(SYNCHRONIZE, FALSE, pChildData->dwPid)) == NULL) {
+			dwReturn = GetLastError();
+			LOGC(L"OpenProcess() error: %ls", FormatErrorToStr(dwReturn));
+			goto after_proc;
+		}
+
+		if (!RegisterWaitForSingleObject(&hWaitHandle, hChildHandle, &ChildProcessExitedCallback, entry, INFINITE, WT_EXECUTELONGFUNCTION | WT_EXECUTEONLYONCE)) {
+			dwReturn = GetLastError();
+			LOGC(L"RegisterWaitForSingleObject() error: %ls", FormatErrorToStr(dwReturn));
+			goto after_proc;
+		}
+
+		memset(entry, 0, sizeof(tab_per_process_t));
+		entry->data = *pChildData;
+		HASH_ADD(hh, g_tabPerProcess, data, sizeof(pid_key_t), entry);
+		LOGI(L"Registered child pid " WPRDW, pChildData->dwPid);
+	});
+}
+
+DWORD MasterSavePointerForChild(DWORD dwPid, PROXYCHAINS_CONFIG* pPxchConfig, INJECT_REMOTE_DATA* pRemoteData)
+{
+	REPORTED_CHILD_DATA childData;
+	childData.dwPid = dwPid;
+	childData.pSavedPxchConfig = pPxchConfig;
+	childData.pSavedRemoteData = pRemoteData;
+	return RegisterNewChildProcess(&childData);
+}
+
+DWORD QueryChildStorage(REPORTED_CHILD_DATA* pChildData)
+{
+	LOCKED({
+		tab_per_process_t* entry;
+		HASH_FIND(hh, g_tabPerProcess, &pChildData->dwPid, sizeof(pid_key_t), entry);
+		if (entry) {
+			*pChildData = entry->data;
+		}
+
+		goto after_proc;
+	});
+}
+
 DWORD HandleMessage(int i, IPC_INSTANCE* pipc)
 {
 	IPC_MSGBUF* pMsg = (IPC_MSGBUF*)pipc->chReadBuf;
-	WCHAR sz[IPC_BUFSIZE / sizeof(WCHAR)];
 
 	if (MsgIsType(WSTR, pMsg)) {
+		WCHAR sz[IPC_BUFSIZE / sizeof(WCHAR)];
 		MessageToWstr(sz, *pMsg, pipc->cbRead);
 		fwprintf(stderr, L"%ls", sz);
 		fflush(stderr);
+
+		goto after_handling_resp_ok;
 	}
 
-	WstrToMessage(pipc->chWriteBuf, &pipc->cbToWrite, L"OK");
+	if (MsgIsType(CHILDDATA, pMsg)) {
+		REPORTED_CHILD_DATA childData;
+		MessageToChildData(&childData, *pMsg, pipc->cbRead);
+		LOGD(L"Child process pid " WPRDW L" created.", childData.dwPid);
 
+		RegisterNewChildProcess(&childData);
+		goto after_handling_resp_ok;
+	}
+
+	if (MsgIsType(QUERYSTORAGE, pMsg)) {
+		REPORTED_CHILD_DATA childData = { 0 };
+		MessageToQueryStorage(&childData.dwPid, *pMsg, pipc->cbRead);
+		QueryChildStorage(&childData);
+		ChildDataToMessage(pipc->chWriteBuf, &pipc->cbToWrite, &childData);
+		goto ret;
+	}
+
+	goto after_handling_not_recognized;
+
+after_handling_resp_ok:
+	WstrToMessage(pipc->chWriteBuf, &pipc->cbToWrite, L"OK");
+	return 0;
+
+after_handling_not_recognized:
+	WstrToMessage(pipc->chWriteBuf, &pipc->cbToWrite, L"NOT RECOGNIZED");
+	return 0;
+
+ret:
 	return 0;
 }
 
@@ -149,8 +313,7 @@ DWORD ServerLoop(PROXYCHAINS_CONFIG* pPxchConfig, HANDLE hProcess)
 				int iChildPid = 0;
 				while ((iChildPid = waitpid((pid_t)(-1), 0, WNOHANG)) > 0) { bChild = TRUE; }
 				if (bChild) {
-					LOGI(L"Child Process Terminated (between WaitForMultipleObjects()).");
-					return 0;
+					LOGI(L"Direct child Process Terminated (between WaitForMultipleObjects()).");
 				}
 				continue;
 			}
@@ -168,8 +331,8 @@ DWORD ServerLoop(PROXYCHAINS_CONFIG* pPxchConfig, HANDLE hProcess)
 		if (i < 0 || i > IPC_INSTANCE_NUM + 1) goto err_wait_out_of_range;
 
 		if (i == 0) {
-			// Child process terminated
-			LOGD(L"Child process terminated");
+			// Child process exited
+			LOGD(L"Child process exited");
 			return 0;
 		}
 
@@ -554,6 +717,15 @@ err_get_exec_path:
 	return dwErrorCode;
 }
 
+DWORD InitData(void)
+{
+	g_tabPerProcess = NULL;
+	g_tabFakeIpHostname = NULL;
+
+	if ((g_hDataMutex = CreateMutex(NULL, FALSE, NULL)) == NULL) return GetLastError();
+	return 0;
+}
+
 #ifndef __CYGWIN__
 
 int wmain(int argc, WCHAR* argv[])
@@ -565,6 +737,7 @@ int wmain(int argc, WCHAR* argv[])
 	int iCommandStart;
 
 	g_pPxchConfig = &config;
+	fpSavePointer = MasterSavePointerForChild;
 
 	setvbuf(stderr, NULL, _IOFBF, 65536);
 
@@ -574,7 +747,8 @@ int wmain(int argc, WCHAR* argv[])
 	LOGI(L"Locale: %S", setlocale(LC_ALL, ""));
 #endif
 	// SetConsoleCtrlHandler(CtrlHandler, TRUE);
-
+	
+	if ((dwError = InitData()) != NOERROR) goto err;
 	if ((dwError = LoadConfiguration(&config)) != NOERROR) goto err;
 
 	LOGI(L"DLL Path: %ls", config.szDllPath);
@@ -609,13 +783,12 @@ void handle_sigchld(int sig)
 {
 	while (waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
 	LOGI(L"Child Process Terminated.");
-	exit(0);
 }
 
 void handle_sigint(int sig)
 {
-	fwprintf(stderr, L"[PX:Ctrl-C]");
-	fflush(stderr);
+	//fwprintf(stderr, L"[PX:Ctrl-C]");
+	//fflush(stderr);
 }
 
 int main(int argc, char* const argv[], char* const envp[])
@@ -630,8 +803,9 @@ int main(int argc, char* const argv[], char* const envp[])
 	WCHAR** wargv = malloc(argc * sizeof(WCHAR*));
 
 	g_pPxchConfig = &config;
+	fpSavePointer = MasterSavePointerForChild;
 
-	// signal(SIGINT, handle_sigint);
+	signal(SIGINT, handle_sigint);
 	setvbuf(stderr, NULL, _IOFBF, 65536);
 
 	for (i = 0; i < argc; i++) {
@@ -642,6 +816,7 @@ int main(int argc, char* const argv[], char* const envp[])
 
 	LOGI(L"Locale: %s", setlocale(LC_ALL, ""));
 
+	if ((dwError = InitData()) != NOERROR) goto err;
 	if ((dwError = LoadConfiguration(&config)) != NOERROR) goto err;
 
 	LOGI(L"DLL Path: %ls", config.szDllPath);

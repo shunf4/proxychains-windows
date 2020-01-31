@@ -51,10 +51,10 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 		return pRemoteData->dwErrorCode;
 	}
 
-	pRemoteData->dwErrorCode = ERROR_PROC_NOT_FOUND;
+	/*pRemoteData->dwErrorCode = ERROR_PROC_NOT_FOUND;
 	fpSetCurrentlyInWinapiCall = pRemoteData->fpGetProcAddress(hHookDllModule, pRemoteData->szCIWCVarName);
 	if (!fpSetCurrentlyInWinapiCall) goto err_getprocaddress;
-	*(BOOL*)fpSetCurrentlyInWinapiCall = TRUE;
+	*(BOOL*)fpSetCurrentlyInWinapiCall = TRUE;*/
 
 	pRemoteData->dwErrorCode = ERROR_PROC_NOT_FOUND;
 	fpInitFunc = pRemoteData->fpGetProcAddress(hHookDllModule, pRemoteData->szInitFuncName);
@@ -66,7 +66,7 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 	if (pRemoteData->dwErrorCode != NO_ERROR) goto err_init_func_failed;
 
 	pRemoteData->dwErrorCode = 0;
-	*(BOOL*)fpSetCurrentlyInWinapiCall = FALSE;
+	/**(BOOL*)fpSetCurrentlyInWinapiCall = FALSE;*/
 	return 0;
 
 err_init_func_failed:

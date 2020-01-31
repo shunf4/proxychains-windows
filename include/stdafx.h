@@ -19,4 +19,8 @@
 #define _countof(_Array) (sizeof(_Array) / sizeof(_Array[0]))
 #endif
 
+#include "uthash.h"
+#include "utarray.h"
+#include "utlist.h"
+
 #endif
