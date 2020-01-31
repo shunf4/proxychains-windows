@@ -631,7 +631,7 @@ int main(int argc, char* const argv[], char* const envp[])
 
 	g_pPxchConfig = &config;
 
-	//signal(SIGINT, handle_sigint);
+	// signal(SIGINT, handle_sigint);
 	setvbuf(stderr, NULL, _IOFBF, 65536);
 
 	for (i = 0; i < argc; i++) {
@@ -659,7 +659,6 @@ int main(int argc, char* const argv[], char* const envp[])
 	LOGD(L"Spawn ret: %d; CYGPID: " WPRDW L"", iReturn, child_pid);
 
 	signal(SIGCHLD, handle_sigchld);
-	// pause();
 	ServerLoop(g_pPxchConfig, INVALID_HANDLE_VALUE);
 
 #ifdef __CYGWIN_PXCH_FORK__

@@ -7,6 +7,12 @@
 #include "dll.h"
 #include "pxch_defines.h"
 
+#ifdef __CYGWIN__
+#define PXCHDLL_NOT_SUPPORTING_CYGWIN FALSE
+#else
+#define PXCHDLL_NOT_SUPPORTING_CYGWIN TRUE
+#endif
+
 #define CreateProcessA_SIGN(name) BOOL (WINAPI name)(\
 	LPCSTR lpApplicationName,\
 	LPSTR lpCommandLine,\
@@ -43,6 +49,7 @@ void* LoadHookDll_End(void);
 
 PXCHDLL_API DWORD __stdcall InitHook(INJECT_REMOTE_DATA* pData);
 PXCHDLL_API DWORD __stdcall InitHookForMain(PROXYCHAINS_CONFIG *pConfig);
+PXCHDLL_API BOOL g_bCurrentlyInWinapiCall;
 PXCHDLL_API void UninitHook(void);
 
 //DECLARE_PROXY_FUNC(CreateProcessA);

@@ -17,6 +17,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "proxychains_hook.dll", "pro
 		{D7744E4C-B1F8-495B-BDD4-DCDB0738B2BE} = {D7744E4C-B1F8-495B-BDD4-DCDB0738B2BE}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test", "test\test.vcxproj", "{0D8AB1EC-7D1C-4475-AB7E-411F36137C94}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -57,6 +59,14 @@ Global
 		{FDBD3C8E-2DDF-4BBB-A157-0CB0054D5782}.Release|x64.Build.0 = Debug|x64
 		{FDBD3C8E-2DDF-4BBB-A157-0CB0054D5782}.Release|x86.ActiveCfg = Debug|x64
 		{FDBD3C8E-2DDF-4BBB-A157-0CB0054D5782}.Release|x86.Build.0 = Debug|x64
+		{0D8AB1EC-7D1C-4475-AB7E-411F36137C94}.Debug|x64.ActiveCfg = Debug|x64
+		{0D8AB1EC-7D1C-4475-AB7E-411F36137C94}.Debug|x64.Build.0 = Debug|x64
+		{0D8AB1EC-7D1C-4475-AB7E-411F36137C94}.Debug|x86.ActiveCfg = Debug|Win32
+		{0D8AB1EC-7D1C-4475-AB7E-411F36137C94}.Debug|x86.Build.0 = Debug|Win32
+		{0D8AB1EC-7D1C-4475-AB7E-411F36137C94}.Release|x64.ActiveCfg = Release|x64
+		{0D8AB1EC-7D1C-4475-AB7E-411F36137C94}.Release|x64.Build.0 = Release|x64
+		{0D8AB1EC-7D1C-4475-AB7E-411F36137C94}.Release|x86.ActiveCfg = Release|Win32
+		{0D8AB1EC-7D1C-4475-AB7E-411F36137C94}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

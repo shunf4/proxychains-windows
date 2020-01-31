@@ -3,14 +3,6 @@
 
 #include <sdkddkver.h>
 
-#ifdef __CYGWIN__
-#define PXCHPLATFORM() CYG
-#endif
-
-#ifdef _WIN32
-#define PXCHPLATFORM WIN
-#endif
-
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <WinDef.h>

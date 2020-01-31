@@ -24,7 +24,8 @@
 
 INJECT_REMOTE_DATA* g_pRemoteData;
 PXCHDLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;
-BOOL g_bCurrentlyInWinapiCall = FALSE;
+PXCHDLL_API BOOL g_bCurrentlyInWinapiCall = FALSE;
+DWORD g_dwDebugAlternateHook = 1;
 
 DWORD IpcCommunicateWithServer(const IPC_MSGBUF sendMessage, DWORD cbSendMessageSize, IPC_MSGBUF responseMessage, DWORD* pcbResponseMessageSize)
 {
@@ -222,7 +223,9 @@ DWORD InjectTargetProcess(HANDLE hProcess)
 	remoteData.fpLoadLibraryW = LoadLibraryW;
 	remoteData.fpGetLastError = GetLastError;
 
-	StringCchCopyA(remoteData.szInitFuncName, _countof(remoteData.szInitFuncName), "InitHook");
+	StringCchCopyA(remoteData.szInitFuncName, _countof(remoteData.szInitFuncName), g_pRemoteData ? g_pRemoteData->szInitFuncName : "InitHook");
+	StringCchCopyA(remoteData.szCIWCVarName, _countof(remoteData.szCIWCVarName), g_pRemoteData ? g_pRemoteData->szCIWCVarName : "g_bCurrentlyInWinapiCall");
+	StringCchCopyW(remoteData.szCygwin1ModuleName, _countof(remoteData.szCygwin1ModuleName), g_pRemoteData ? g_pRemoteData->szCygwin1ModuleName : L"cygwin1.dll");
 	remoteData.uEverExecuted = 0;
 	remoteData.uStructSize = sizeof(INJECT_REMOTE_DATA);
 
@@ -332,6 +335,7 @@ err_inject:
 
 CreateProcessW_SIGN(_ProxyCreateProcessW)
 {
+
 	return 1;
 }
 
@@ -348,9 +352,10 @@ PXCHDLL_API DWORD __stdcall InitHookForMain(PROXYCHAINS_CONFIG* pPxchConfig)
 	return 0;
 }
 
-PXCHDLL_API DWORD __stdcall InitHook(INJECT_REMOTE_DATA* pData)
+PXCHDLL_API DWORD __stdcall InitHook(INJECT_REMOTE_DATA* pRemoteData)
 {
-	g_pPxchConfig = &pData->pxchConfig;
+	g_pRemoteData = pRemoteData;
+	g_pPxchConfig = &pRemoteData->pxchConfig;
 
 	MH_Initialize();
 	// CREATE_HOOK(CreateProcessA);
@@ -358,9 +363,22 @@ PXCHDLL_API DWORD __stdcall InitHook(INJECT_REMOTE_DATA* pData)
 
 	MH_EnableHook(MH_ALL_HOOKS);
 
-	g_bCurrentlyInWinapiCall = TRUE;
-	RLOGI(L"I'm WINPID " WPRDW L" Hooked!", GetCurrentProcessId());
-	g_bCurrentlyInWinapiCall = FALSE;
+	/*do {
+		HMODULE hWs2_32;
+		HMODULE hWsock32;
+		HMODULE hCygwin1;
+		g_pPxchConfig = &pRemoteData->pxchConfig;
+
+		hWs2_32 = pRemoteData->fpGetModuleHandleW(L"ws2_32.dll");
+		hWsock32 = pRemoteData->fpGetModuleHandleW(L"wsock32.dll");
+		hCygwin1 = pRemoteData->fpGetModuleHandleW(L"cygwin1.dll");
+
+		RLOGI(L"ws2_32.dll  connect(): %p", hWs2_32 ? pRemoteData->fpGetProcAddress(hWs2_32, "connect") : NULL);
+		RLOGI(L"wsock32.dll connect(): %p", hWsock32 ? pRemoteData->fpGetProcAddress(hWsock32, "connect") : NULL);
+		RLOGI(L"cygwin1.dll connect(): %p", hCygwin1 ? pRemoteData->fpGetProcAddress(hCygwin1, "connect") : NULL);
+	} while (0);*/
+
+	RLOGI(L"I'm WINPID " WPRDW L" Hooked!", log_pid);
 	return 0;
 }
 
@@ -369,7 +387,7 @@ PXCHDLL_API void UninitHook(void)
 	MH_DisableHook(MH_ALL_HOOKS);
 	MH_Uninitialize();
 
-	RLOGI(L"I'm WINPID " WPRDW L" UnHooked!", GetCurrentProcessId());
+	RLOGI(L"I'm WINPID " WPRDW L" UnHooked!", log_pid);
 }
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
