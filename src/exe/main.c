@@ -5,6 +5,7 @@
 #endif
 #include <locale.h>
 #include <ShellAPI.h>
+#include <Sddl.h>
 
 #include "pxch_defines.h"
 #include "pxch_hook.h"
@@ -112,9 +113,7 @@ DWORD ChildProcessExitedCallbackWorker(PVOID lpParameter, BOOLEAN TimerOrWaitFir
 
 		if (g_tabPerProcess == NULL) {
 			LOGI(L"All windows descendant process exited.");
-#ifndef __CYGWIN__
-			exit(0);
-#endif
+			IF_WIN32_EXIT(0);
 		}
 
 		goto after_proc;
@@ -193,6 +192,7 @@ DWORD HandleMessage(int i, IPC_INSTANCE* pipc)
 
 	if (MsgIsType(CHILDDATA, pMsg)) {
 		REPORTED_CHILD_DATA childData;
+		LOGV(L"Message is CHILDDATA");
 		MessageToChildData(&childData, *pMsg, pipc->cbRead);
 		LOGD(L"Child process pid " WPRDW L" created.", childData.dwPid);
 
@@ -202,6 +202,7 @@ DWORD HandleMessage(int i, IPC_INSTANCE* pipc)
 
 	if (MsgIsType(QUERYSTORAGE, pMsg)) {
 		REPORTED_CHILD_DATA childData = { 0 };
+		LOGV(L"Message is QUERYSTORAGE");
 		MessageToQueryStorage(&childData.dwPid, *pMsg, pipc->cbRead);
 		QueryChildStorage(&childData);
 		ChildDataToMessage(pipc->chWriteBuf, &pipc->cbToWrite, &childData);
@@ -281,6 +282,16 @@ DWORD ServerLoop(PROXYCHAINS_CONFIG* pPxchConfig, HANDLE hProcess)
 	DWORD cbReturn;
 	BOOL bReturn;
 	int i;
+	SECURITY_ATTRIBUTES SecAttr;
+	PSECURITY_DESCRIPTOR pSecDesc;
+	
+	// https://docs.microsoft.com/zh-cn/windows/win32/secauthz/security-descriptor-string-format
+	// https://stackoverflow.com/questions/9589141/low-integrity-to-medium-high-integrity-pipe-security-descriptor
+	if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(L"D:(A;;0x12019f;;;WD)S:(ML;;NW;;;LW)", SDDL_REVISION_1, &pSecDesc, NULL)) return GetLastError();
+
+	SecAttr.nLength = sizeof(SecAttr);
+	SecAttr.bInheritHandle = FALSE;
+	SecAttr.lpSecurityDescriptor = pSecDesc;
 
 	// Initialize
 	hEvents[0] = hProcess;
@@ -290,7 +301,8 @@ DWORD ServerLoop(PROXYCHAINS_CONFIG* pPxchConfig, HANDLE hProcess)
 		if (hEvents[i] == 0) goto err_create_event;
 
 		ipc[i].oOverlap.hEvent = hEvents[i];
-		ipc[i].hPipe = CreateNamedPipeW(pPxchConfig->szIpcPipeName, PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, IPC_INSTANCE_NUM, IPC_BUFSIZE, IPC_BUFSIZE, 0, NULL);
+
+		ipc[i].hPipe = CreateNamedPipeW(pPxchConfig->szIpcPipeName, PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, IPC_INSTANCE_NUM, IPC_BUFSIZE, IPC_BUFSIZE, 0, &SecAttr);
 
 		if (ipc[i].hPipe == INVALID_HANDLE_VALUE) goto err_create_pipe;
 
@@ -316,7 +328,7 @@ DWORD ServerLoop(PROXYCHAINS_CONFIG* pPxchConfig, HANDLE hProcess)
 				while ((iChildPid = waitpid((pid_t)(-1), 0, WNOHANG)) > 0) { bChild = TRUE; }
 				if (bChild) {
 					LOGI(L"Cygwin child process exited (between WaitForMultipleObjects()).");
-					exit(0);
+					IF_CYGWIN_EXIT(0);
 				}
 				continue;
 			}
@@ -766,14 +778,12 @@ int wmain(int argc, WCHAR* argv[])
 	LOGI(L"Quiet: %ls", config.bQuiet ? L"Y" : L"N");
 	LOGI(L"Command Line: %ls", config.szCommandLine);
 
-	ProxyCreateProcessW(NULL, config.szCommandLine, 0, 0, 1, 0, 0, 0, &startupInfo, &processInformation);
-	//CreateProcessW(NULL, config.szCommandLine, 0, 0, 1, 0, 0, 0, &startupInfo, &processInformation);
-
-	// WaitForSingleObject(processInformation.hProcess, INFINITE);
-	// ServerLoop(g_pPxchConfig, processInformation.hProcess);
-	ServerLoop(g_pPxchConfig, INVALID_HANDLE_VALUE);
-
-	return 0;
+	if (ProxyCreateProcessW(NULL, config.szCommandLine, 0, 0, 1, 0, 0, 0, &startupInfo, &processInformation)) {
+		ServerLoop(g_pPxchConfig, INVALID_HANDLE_VALUE);
+		return 0;
+	}
+	// else
+	dwError = GetLastError();
 
 err:
 	PrintErrorToFile(stderr, dwError);
@@ -786,13 +796,33 @@ void handle_sigchld(int sig)
 {
 	while (waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
 	LOGI(L"Cygwin child process exited.");
-	exit(0);
+
+	IF_CYGWIN_EXIT(0);
 }
 
 void handle_sigint(int sig)
 {
-	//fwprintf(stderr, L"[PX:Ctrl-C]");
-	//fflush(stderr);
+	// Once hooked, a cygwin program cannot handle Ctrl-C signal.
+	// Thus we have to implement this to kill everything forked
+	// by proxychains
+	tab_per_process_t* current;
+	tab_per_process_t* tmp;
+	HANDLE h;
+
+	LOGW(L"[PX:Ctrl-C]");
+	fflush(stderr);
+	HASH_ITER(hh, g_tabPerProcess, current, tmp) {
+		HASH_DELETE(hh, g_tabPerProcess, current);
+		h = OpenProcess(SYNCHRONIZE | PROCESS_TERMINATE, TRUE, current->data.dwPid);
+		if ((h != NULL || h != INVALID_HANDLE_VALUE) && TerminateProcess(h, 0)) {
+			LOGW(L"Killed WINPID " WPRDW, current->data.dwPid);
+		}
+		else {
+			LOGW(L"Unable to kill WINPID " WPRDW, current->data.dwPid);
+		}
+		free(current);
+	}
+	IF_CYGWIN_EXIT(0);
 }
 
 int main(int argc, char* const argv[], char* const envp[])
@@ -836,7 +866,7 @@ int main(int argc, char* const argv[], char* const envp[])
 	iReturn = posix_spawnp(&child_pid, argv[iCommandStart], NULL, NULL, &argv[iCommandStart], envp);
 	LOGD(L"Spawn ret: %d; CYGPID: " WPRDW L"", iReturn, child_pid);
 
-	// signal(SIGINT, handle_sigint);
+	signal(SIGINT, handle_sigint);
 	signal(SIGCHLD, handle_sigchld);
 	ServerLoop(g_pPxchConfig, INVALID_HANDLE_VALUE);
 

@@ -33,6 +33,9 @@
     <ClInclude Include="..\include\ipc.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\remote.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\common.c">

@@ -159,6 +159,7 @@
     <ClInclude Include="..\include\log.h" />
     <ClInclude Include="..\include\pxch_defines.h" />
     <ClInclude Include="..\include\pxch_hook.h" />
+    <ClInclude Include="..\include\remote.h" />
     <ClInclude Include="..\include\stdafx.h" />
   </ItemGroup>
   <ItemGroup>

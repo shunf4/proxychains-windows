@@ -89,4 +89,12 @@ static const WCHAR g_szDllFileName[] = L"proxychains_hook.dll";
 static const WCHAR g_szMinHookDllFileName[] = L"MinHook.x64.dll";
 extern PXCHDLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;
 
+#ifdef __CYGWIN__
+#define IF_CYGWIN_EXIT(code) do {exit(0);} while(0)
+#define IF_WIN32_EXIT(code) do {} while(0)
+#else
+#define IF_CYGWIN_EXIT(code) do {} while(0)
+#define IF_WIN32_EXIT(code) do {exit(0);} while(0)
+#endif
+
 #endif

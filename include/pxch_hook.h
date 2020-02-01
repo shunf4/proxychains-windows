@@ -37,6 +37,19 @@
 	LPSTARTUPINFOW lpStartupInfo,\
 	LPPROCESS_INFORMATION lpProcessInformation)
 
+#define CreateProcessAsUserW_SIGN(name) BOOL (WINAPI name)(\
+	HANDLE hToken,\
+	LPCWSTR lpApplicationName,\
+	LPWSTR lpCommandLine,\
+	LPSECURITY_ATTRIBUTES lpProcessAttributes,\
+	LPSECURITY_ATTRIBUTES lpThreadAttributes,\
+	BOOL bInheritHandles,\
+	DWORD dwCreationFlags,\
+	LPVOID lpEnvironment,\
+	LPCWSTR lpCurrentDirectory,\
+	LPSTARTUPINFOW lpStartupInfo,\
+	LPPROCESS_INFORMATION lpProcessInformation)
+
 #define FP_ORIGINAL_FUNC(name) name##_SIGN(*fp##name) = name
 #define DECLARE_PROXY_FUNC(name) PXCHDLL_API name##_SIGN(Proxy##name)
 #define PROXY_FUNC(name) FP_ORIGINAL_FUNC(name); PXCHDLL_API name##_SIGN(Proxy##name)
@@ -56,5 +69,6 @@ PXCHDLL_API DWORD(*fpSavePointer)(DWORD dwPid, PROXYCHAINS_CONFIG * pPxchConfig,
 
 //DECLARE_PROXY_FUNC(CreateProcessA);
 DECLARE_PROXY_FUNC(CreateProcessW);
+DECLARE_PROXY_FUNC(CreateProcessAsUserW);
 
 #endif
