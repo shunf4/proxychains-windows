@@ -82,9 +82,9 @@ typedef struct _INJECT_REMOTE_DATA {
 } INJECT_REMOTE_DATA;
 
 #ifdef __CYGWIN__
-static const WCHAR g_szDllFileName[] = L"cygproxychains_hook.dll";
+static const WCHAR g_szHookDllFileName[] = L"cygproxychains_hook.dll";
 #else
-static const WCHAR g_szDllFileName[] = L"proxychains_hook.dll";
+static const WCHAR g_szHookDllFileName[] = L"proxychains_hook.dll";
 #endif
 static const WCHAR g_szMinHookDllFileName[] = L"MinHook.x64.dll";
 extern PXCHDLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;

@@ -321,6 +321,7 @@ DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi)
 	StringCchCopyA(remoteData.szCIWCVarName, _countof(remoteData.szCIWCVarName), g_pRemoteData ? g_pRemoteData->szCIWCVarName : "g_bCurrentlyInWinapiCall");
 	CopyMemory(remoteData.chDebugOutput, g_pRemoteData ? g_pRemoteData->chDebugOutput : "A\0B\0C\0D\0E\0F\0G\0H\0I\0J\0K\0L\0M\0N\0O\0P\0Q\0R\0S\0T\0", sizeof(remoteData.chDebugOutput));
 	StringCchCopyW(remoteData.szCygwin1ModuleName, _countof(remoteData.szCygwin1ModuleName), g_pRemoteData ? g_pRemoteData->szCygwin1ModuleName : L"cygwin1.dll");
+	StringCchCopyW(remoteData.szCygwin1ModuleName, _countof(remoteData.szCygwin1ModuleName), g_pRemoteData ? g_pRemoteData->szHookDllModuleName : g_szHookDllFileName);
 	remoteData.uEverExecuted = 0;
 	remoteData.uStructSize = sizeof(INJECT_REMOTE_DATA);
 
