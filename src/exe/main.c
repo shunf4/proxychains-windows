@@ -80,6 +80,7 @@ typedef struct _IPC_INSTANCE {
 	{ \
 	case WAIT_OBJECT_0: \
 	{ \
+		LOGV(L"Mutex fetched."); \
 		proc \
 	after_proc: \
 		if (!ReleaseMutex(g_hDataMutex)) { \
@@ -109,7 +110,7 @@ DWORD ChildProcessExitedCallbackWorker(PVOID lpParameter, BOOLEAN TimerOrWaitFir
 		tab_per_process_t * entry = (tab_per_process_t*)lpParameter;
 		HASH_DELETE(hh, g_tabPerProcess, entry);
 		LOGI(L"Child process pid " WPRDW L" exited.", entry->data.dwPid);
-		free(entry);
+		HeapFree(GetProcessHeap(), 0, entry);
 
 		if (g_tabPerProcess == NULL) {
 			LOGI(L"All windows descendant process exited.");
@@ -132,36 +133,32 @@ VOID CALLBACK ChildProcessExitedCallback(
 DWORD RegisterNewChildProcess(const REPORTED_CHILD_DATA* pChildData)
 {
 	LOCKED({
-		tab_per_process_t* entry = (tab_per_process_t*)malloc(sizeof(tab_per_process_t));
+		tab_per_process_t* entry;
 		HANDLE hWaitHandle;
 		HANDLE hChildHandle;
 
+		LOGV(L"Before HeapAlloc...");
+		entry = (tab_per_process_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(tab_per_process_t));
+		LOGV(L"After HeapAlloc...");
 		if ((hChildHandle = OpenProcess(SYNCHRONIZE, FALSE, pChildData->dwPid)) == NULL) {
 			dwReturn = GetLastError();
 			LOGC(L"OpenProcess() error: %ls", FormatErrorToStr(dwReturn));
 			goto after_proc;
 		}
+		LOGV(L"After OpenProcess...");
 
 		if (!RegisterWaitForSingleObject(&hWaitHandle, hChildHandle, &ChildProcessExitedCallback, entry, INFINITE, WT_EXECUTELONGFUNCTION | WT_EXECUTEONLYONCE)) {
 			dwReturn = GetLastError();
 			LOGC(L"RegisterWaitForSingleObject() error: %ls", FormatErrorToStr(dwReturn));
 			goto after_proc;
 		}
-
-		memset(entry, 0, sizeof(tab_per_process_t));
+		LOGV(L"After RegisterWaitForSingleObject...");
 		entry->data = *pChildData;
+		LOGV(L"After entry->data = *pChildData;");
 		HASH_ADD(hh, g_tabPerProcess, data, sizeof(pid_key_t), entry);
+		LOGV(L"After HASH_ADD");
 		LOGI(L"Registered child pid " WPRDW, pChildData->dwPid);
 	});
-}
-
-DWORD MasterSavePointerForChild(DWORD dwPid, PROXYCHAINS_CONFIG* pPxchConfig, INJECT_REMOTE_DATA* pRemoteData)
-{
-	REPORTED_CHILD_DATA childData;
-	childData.dwPid = dwPid;
-	childData.pSavedPxchConfig = pPxchConfig;
-	childData.pSavedRemoteData = pRemoteData;
-	return RegisterNewChildProcess(&childData);
 }
 
 DWORD QueryChildStorage(REPORTED_CHILD_DATA* pChildData)
@@ -195,8 +192,9 @@ DWORD HandleMessage(int i, IPC_INSTANCE* pipc)
 		LOGV(L"Message is CHILDDATA");
 		MessageToChildData(&childData, *pMsg, pipc->cbRead);
 		LOGD(L"Child process pid " WPRDW L" created.", childData.dwPid);
-
+		LOGV(L"RegisterNewChildProcess...");
 		RegisterNewChildProcess(&childData);
+		LOGV(L"RegisterNewChildProcess done.");
 		goto after_handling_resp_ok;
 	}
 
@@ -273,10 +271,11 @@ DWORD DisconnectAndReconnect(IPC_INSTANCE* ipc, int i)
 	return 0;
 }
 
-DWORD ServerLoop(PROXYCHAINS_CONFIG* pPxchConfig, HANDLE hProcess)
+DWORD WINAPI ServerLoop(LPVOID lpVoid)
 {
-	static IPC_INSTANCE ipc[IPC_INSTANCE_NUM + 1];
-	static HANDLE hEvents[IPC_INSTANCE_NUM + 1];
+	static IPC_INSTANCE ipc[IPC_INSTANCE_NUM];
+	static HANDLE hEvents[IPC_INSTANCE_NUM];
+	PROXYCHAINS_CONFIG* pPxchConfig = (PROXYCHAINS_CONFIG*)lpVoid;
 	DWORD dwErrorCode;
 	DWORD dwWait;
 	DWORD cbReturn;
@@ -284,7 +283,7 @@ DWORD ServerLoop(PROXYCHAINS_CONFIG* pPxchConfig, HANDLE hProcess)
 	int i;
 	SECURITY_ATTRIBUTES SecAttr;
 	PSECURITY_DESCRIPTOR pSecDesc;
-	
+
 	// https://docs.microsoft.com/zh-cn/windows/win32/secauthz/security-descriptor-string-format
 	// https://stackoverflow.com/questions/9589141/low-integrity-to-medium-high-integrity-pipe-security-descriptor
 	if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(L"D:(A;;0x12019f;;;WD)S:(ML;;NW;;;LW)", SDDL_REVISION_1, &pSecDesc, NULL)) return GetLastError();
@@ -294,8 +293,7 @@ DWORD ServerLoop(PROXYCHAINS_CONFIG* pPxchConfig, HANDLE hProcess)
 	SecAttr.lpSecurityDescriptor = pSecDesc;
 
 	// Initialize
-	hEvents[0] = hProcess;
-	for (i = 1; i < IPC_INSTANCE_NUM + 1; i++) {
+	for (i = 0; i < IPC_INSTANCE_NUM; i++) {
 		// Manual-reset, initially signaled event
 		hEvents[i] = CreateEventW(NULL, TRUE, TRUE, NULL);
 		if (hEvents[i] == 0) goto err_create_event;
@@ -314,14 +312,21 @@ DWORD ServerLoop(PROXYCHAINS_CONFIG* pPxchConfig, HANDLE hProcess)
 		ipc[i].dwState = (dwErrorCode == ERROR_PIPE_CONNECTED) ? IPC_STATE_READING : IPC_STATE_CONNECTING;
 	}
 
-	LOGD(L"[IPCALL] Waiting for clients...%ls", hProcess == INVALID_HANDLE_VALUE ? L"(not waiting for child process)" : L"");
+	LOGD(L"[IPCALL] Waiting for clients...");
+	LOGV(L"ServerLoop: Signaling semaphore...");
+	if (!ReleaseSemaphore(g_hIpcServerSemaphore, 1, NULL)) {
+		dwErrorCode = GetLastError();
+		LOGC(L"Release semaphore error: %ls", FormatErrorToStr(dwErrorCode));
+		exit(dwErrorCode);
+	}
+	// CloseHandle(g_hIpcServerSemaphore);
+	LOGV(L"ServerLoop: Signaled semaphore.");
 
 	while (1) {
-		if (hProcess == INVALID_HANDLE_VALUE) {
 #ifndef __CYGWIN__
-			dwWait = WaitForMultipleObjects(IPC_INSTANCE_NUM, hEvents + 1, FALSE, INFINITE);
+			dwWait = WaitForMultipleObjects(IPC_INSTANCE_NUM, hEvents, FALSE, INFINITE);
 #else
-			dwWait = WaitForMultipleObjects(IPC_INSTANCE_NUM, hEvents + 1, FALSE, 100);
+			dwWait = WaitForMultipleObjects(IPC_INSTANCE_NUM, hEvents, FALSE, 100);
 			if (dwWait == WAIT_TIMEOUT) {
 				BOOL bChild = FALSE;
 				int iChildPid = 0;
@@ -333,23 +338,8 @@ DWORD ServerLoop(PROXYCHAINS_CONFIG* pPxchConfig, HANDLE hProcess)
 				continue;
 			}
 #endif
-		}
-		else {
-			dwWait = WaitForMultipleObjects(IPC_INSTANCE_NUM + 1, hEvents, FALSE, INFINITE);
-
-		}
-
 		i = dwWait - WAIT_OBJECT_0;
-		if (hProcess == INVALID_HANDLE_VALUE && i >= 0) {
-			i++;
-		}
-		if (i < 0 || i > IPC_INSTANCE_NUM + 1) goto err_wait_out_of_range;
-
-		if (i == 0) {
-			// Child process exited
-			LOGD(L"Child process exited");
-			return 0;
-		}
+		if (i < 0 || i >= IPC_INSTANCE_NUM) goto err_wait_out_of_range;
 
 		// If this pipe is just awaken from pending state
 		if (ipc[i].bPending) {
@@ -423,6 +413,7 @@ DWORD ServerLoop(PROXYCHAINS_CONFIG* pPxchConfig, HANDLE hProcess)
 
 		case IPC_STATE_WRITING:
 			dwErrorCode = HandleMessage(i, &ipc[i]);
+			LOGV(L"HandleMessage done.");
 
 			if (dwErrorCode != NO_ERROR) {
 				LOGE(L"[IPC%03d] Handle message error: %ls; disconnecting and reconnecting", i, FormatErrorToStr(dwErrorCode));
@@ -430,7 +421,9 @@ DWORD ServerLoop(PROXYCHAINS_CONFIG* pPxchConfig, HANDLE hProcess)
 				break;
 			}
 
+			LOGV(L"[IPC%03d] Writing pipe...", i);
 			bReturn = WriteFile(ipc[i].hPipe, ipc[i].chWriteBuf, ipc[i].cbToWrite, &cbReturn, &ipc[i].oOverlap);
+			LOGV(L"[IPC%03d] Written pipe.", i);
 
 			// Finished instantly
 			if (bReturn && cbReturn == ipc[i].cbToWrite) {
@@ -488,7 +481,7 @@ BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
 	{
 		// Handle the CTRL-C signal. 
 	case CTRL_C_EVENT:
-		wprintf(L"Ctrl-C event");
+		wprintf(L"[PX:Ctrl-C]");
 		Beep(750, 300);
 		return TRUE;
 
@@ -737,7 +730,9 @@ DWORD InitData(void)
 	g_tabPerProcess = NULL;
 	g_tabFakeIpHostname = NULL;
 
-	if ((g_hDataMutex = CreateMutex(NULL, FALSE, NULL)) == NULL) return GetLastError();
+	if ((g_hDataMutex = CreateMutexW(NULL, FALSE, NULL)) == NULL) return GetLastError();
+	if ((g_hIpcServerSemaphore = CreateSemaphoreW(NULL, 0, 1, NULL)) == NULL) return GetLastError();
+
 	return 0;
 }
 
@@ -747,12 +742,12 @@ int wmain(int argc, WCHAR* argv[])
 {
 	PROXYCHAINS_CONFIG config = { 0 };
 	DWORD dwError;
+	DWORD dwTid;
 	STARTUPINFO startupInfo = { 0 };
 	PROCESS_INFORMATION processInformation = { 0 };
 	int iCommandStart;
 
 	g_pPxchConfig = &config;
-	fpSavePointer = MasterSavePointerForChild;
 
 	setvbuf(stderr, NULL, _IOFBF, 65536);
 
@@ -761,7 +756,7 @@ int wmain(int argc, WCHAR* argv[])
 #else
 	LOGI(L"Locale: %S", setlocale(LC_ALL, ""));
 #endif
-	// SetConsoleCtrlHandler(CtrlHandler, TRUE);
+	SetConsoleCtrlHandler(CtrlHandler, TRUE);
 	
 	if ((dwError = InitData()) != NOERROR) goto err;
 	if ((dwError = LoadConfiguration(&config)) != NOERROR) goto err;
@@ -778,13 +773,47 @@ int wmain(int argc, WCHAR* argv[])
 	LOGI(L"Quiet: %ls", config.bQuiet ? L"Y" : L"N");
 	LOGI(L"Command Line: %ls", config.szCommandLine);
 
-	if (ProxyCreateProcessW(NULL, config.szCommandLine, 0, 0, 1, 0, 0, 0, &startupInfo, &processInformation)) {
-		ServerLoop(g_pPxchConfig, INVALID_HANDLE_VALUE);
-		return 0;
-	}
-	// else
-	dwError = GetLastError();
+	if (CreateThread(0, 0, &ServerLoop, g_pPxchConfig, 0, &dwTid) == NULL) goto err_get;
+	LOGI(L"IPC Server Tid: " WPRDW, dwTid);
 
+	if (g_hIpcServerSemaphore != NULL) {
+		DWORD dwWaitResult;
+		DWORD dwErrorCode;
+
+		LOGV(L"Waiting for g_hIpcServerSemaphore.");
+
+		dwWaitResult = WaitForSingleObject(g_hIpcServerSemaphore, INFINITE);
+		switch (dwWaitResult)
+		{
+		case WAIT_OBJECT_0:
+			if (!ReleaseSemaphore(g_hIpcServerSemaphore, 1, NULL)) {
+				dwErrorCode = GetLastError();
+				LOGC(L"Release semaphore error: %ls", FormatErrorToStr(dwErrorCode));
+				exit(dwErrorCode);
+			}
+			CloseHandle(g_hIpcServerSemaphore);
+			g_hIpcServerSemaphore = NULL;
+			break;
+
+		case WAIT_ABANDONED:
+			LOGC(L"Mutex abandoned!");
+			Sleep(INFINITE);
+			exit(ERROR_ABANDONED_WAIT_0);
+			break;
+
+		default:
+			dwErrorCode = GetLastError();
+			LOGW(L"Wait for semaphore error: " WPRDW L", %ls", dwWaitResult, FormatErrorToStr(dwErrorCode));
+			exit(dwErrorCode);
+		}
+	}
+
+	if (!ProxyCreateProcessW(NULL, config.szCommandLine, 0, 0, 1, 0, 0, 0, &startupInfo, &processInformation)) goto err_get;
+	Sleep(INFINITE);
+	return 0;
+
+err_get:
+	dwError = GetLastError();
 err:
 	PrintErrorToFile(stderr, dwError);
 	return dwError;
@@ -820,24 +849,37 @@ void handle_sigint(int sig)
 		else {
 			LOGW(L"Unable to kill WINPID " WPRDW, current->data.dwPid);
 		}
-		free(current);
+		HeapFree(GetProcessHeap(), 0, current);
 	}
 	IF_CYGWIN_EXIT(0);
+}
+
+DWORD WINAPI CygwinSpawn(LPVOID lpParam)
+{
+	void** ctx = lpParam;
+	pid_t child_pid;
+	char*const* p_argv_command_start = ctx[0];
+	char*const* envp = ctx[1];
+	int iReturn;
+
+	iReturn = posix_spawnp(&child_pid, *p_argv_command_start, NULL, NULL, p_argv_command_start, envp);
+	LOGD(L"Spawn ret: %d; CYGPID: " WPRDW L"", iReturn, child_pid);
+
+	return 0;
 }
 
 int main(int argc, char* const argv[], char* const envp[])
 {
 	PROXYCHAINS_CONFIG config = { 0 };
 	DWORD dwError = 0;
-	pid_t child_pid;
+	DWORD dwTid;
 	int iCommandStart;
 	int i;
-	int iReturn;
 	// char* spawn_argv[] = { "bash.exe", NULL };
 	WCHAR** wargv = malloc(argc * sizeof(WCHAR*));
+	const void* ctx[2];
 
 	g_pPxchConfig = &config;
-	fpSavePointer = MasterSavePointerForChild;
 
 	setvbuf(stderr, NULL, _IOFBF, 65536);
 
@@ -860,15 +902,59 @@ int main(int argc, char* const argv[], char* const envp[])
 	if ((dwError = ParseArgs(g_pPxchConfig, argc, wargv, &iCommandStart)) != NOERROR) goto err;
 
 	LOGI(L"Config Path: %ls", config.szConfigPath);
+	LOGI(L"Pipe name: %ls", config.szIpcPipeName);
 	LOGI(L"Quiet: %ls", config.bQuiet ? L"Y" : L"N");
 	LOGI(L"argv[iCommandStart]: %s", argv[iCommandStart]);
 
-	iReturn = posix_spawnp(&child_pid, argv[iCommandStart], NULL, NULL, &argv[iCommandStart], envp);
-	LOGD(L"Spawn ret: %d; CYGPID: " WPRDW L"", iReturn, child_pid);
+	if (CreateThread(0, 0, &ServerLoop, g_pPxchConfig, 0, &dwTid) == NULL) goto err_get;
+	LOGI(L"IPC Server Tid: " WPRDW, dwTid);
+
+	if (g_hIpcServerSemaphore != NULL) {
+		DWORD dwWaitResult;
+		DWORD dwErrorCode;
+
+		LOGV(L"Waiting for g_hIpcServerSemaphore.");
+
+		dwWaitResult = WaitForSingleObject(g_hIpcServerSemaphore, INFINITE);
+		switch (dwWaitResult)
+		{
+		case WAIT_OBJECT_0:
+			if (!ReleaseSemaphore(g_hIpcServerSemaphore, 1, NULL)) {
+				dwErrorCode = GetLastError();
+				LOGC(L"Release semaphore error: %ls", FormatErrorToStr(dwErrorCode));
+				exit(dwErrorCode);
+			}
+			CloseHandle(g_hIpcServerSemaphore);
+			g_hIpcServerSemaphore = NULL;
+			break;
+
+		case WAIT_ABANDONED:
+			LOGC(L"Mutex abandoned!");
+			Sleep(INFINITE);
+			exit(ERROR_ABANDONED_WAIT_0);
+			break;
+
+		default:
+			dwErrorCode = GetLastError();
+			LOGW(L"Wait for semaphore error: " WPRDW L", %ls", dwWaitResult, FormatErrorToStr(dwErrorCode));
+			exit(dwErrorCode);
+		}
+	}
+
+	ctx[0] = &argv[iCommandStart];
+	ctx[1] = envp;
+
+	// if (CreateThread(0, 0, &CygwinSpawn, ctx, 0, &dwTid) == NULL) goto err_get;
+	// LOGI(L"Cygwin spawn Tid: " WPRDW, dwTid);
+	
+	CygwinSpawn(ctx);
+	// i = posix_spawnp(&child_pid, &argv[iCommandStart], NULL, NULL, p_argv_command_start, p_envp);
+	// LOGD(L"Spawn ret: %d; CYGPID: " WPRDW L"", i, child_pid);
 
 	signal(SIGINT, handle_sigint);
 	signal(SIGCHLD, handle_sigchld);
-	ServerLoop(g_pPxchConfig, INVALID_HANDLE_VALUE);
+
+	pause();
 
 #ifdef __CYGWIN_PXCH_FORK__
 	child_pid = fork();
@@ -888,6 +974,8 @@ int main(int argc, char* const argv[], char* const envp[])
 #endif
 	return 0;
 
+err_get:
+	dwError = GetLastError();
 err:
 	PrintErrorToFile(stderr, dwError);
 	return dwError;

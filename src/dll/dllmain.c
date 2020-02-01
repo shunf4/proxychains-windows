@@ -23,7 +23,7 @@
 #include <sys/cygwin.h>
 #endif
 
-PXCHDLL_API DWORD(*fpSavePointer)(DWORD dwPid, PROXYCHAINS_CONFIG* pPxchConfig, INJECT_REMOTE_DATA* pRemoteData);
+PXCHDLL_API HANDLE g_hIpcServerSemaphore;
 INJECT_REMOTE_DATA* g_pRemoteData;
 PXCHDLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;
 PXCHDLL_API BOOL g_bCurrentlyInWinapiCall = FALSE;
@@ -40,6 +40,8 @@ DWORD IpcCommunicateWithServer(const IPC_MSGBUF sendMessage, DWORD cbSendMessage
 	*pcbResponseMessageSize = 0;
 	SetMsgInvalid(responseMessage);
 
+	DBGSTR_GP("before createfile");
+
 	// Try to open a named pipe; wait for it if necessary
 	while (1)
 	{
@@ -51,18 +53,26 @@ DWORD IpcCommunicateWithServer(const IPC_MSGBUF sendMessage, DWORD cbSendMessage
 		if (!WaitNamedPipeW(g_pPxchConfig->szIpcPipeName, 2000)) goto err_wait_pipe;
 	}
 
+	DBGSTR_GP("after createfile");
+
 	dwMode = PIPE_READMODE_MESSAGE;
 	bReturn = SetNamedPipeHandleState(hPipe, &dwMode, NULL, NULL);
 	if (!bReturn) goto err_set_handle_state;
+
+	DBGSTR_GP("after SetNamedPipeHandleState");
 
 	// Request
 	cbToWrite = (DWORD)cbSendMessageSize;
 	bReturn = WriteFile(hPipe, sendMessage, cbToWrite, &cbWritten, NULL);
 	if (!bReturn || cbToWrite != cbWritten) goto err_write;
 
+	DBGSTR_GP("after WriteFile");
+
 	// Read response
 	bReturn = ReadFile(hPipe, responseMessage, IPC_BUFSIZE, pcbResponseMessageSize, NULL);
 	if (!bReturn) goto err_read;
+
+	DBGSTR_GP("after ReadFile");
 
 	CloseHandle(hPipe);
 	return 0;
@@ -166,6 +176,7 @@ DWORD RemoteCopyExecute(HANDLE hProcess, INJECT_REMOTE_DATA* pRemoteData)
 	DWORD dwErrorCode;
 	DWORD dwReturn;
 	HANDLE hRemoteThread;
+	DWORD dwRemoteTid;
 
 	RLOGV(L"CreateProcessW: Before Code Computation. %p %p", pCode, pAfterCode);
 
@@ -210,10 +221,10 @@ DWORD RemoteCopyExecute(HANDLE hProcess, INJECT_REMOTE_DATA* pRemoteData)
 	RLOGV(L"CreateProcessW: Before CreateRemoteThread(ReadProcessMemory finished). " WPRDW, 0);
 
 	// Create remote thread in target process to execute the code
-	hRemoteThread = CreateRemoteThread(hProcess, NULL, 0, pTargetCode, pTargetData, 0, NULL);
+	hRemoteThread = CreateRemoteThread(hProcess, NULL, 0, pTargetCode, pTargetData, 0, &dwRemoteTid);
 	if (!hRemoteThread) goto err_create_remote_thread;
 
-	RLOGV(L"CreateProcessW: After CreateRemoteThread(). " WPRDW, 0);
+	RLOGV(L"CreateProcessW: After CreateRemoteThread(). Tid: " WPRDW, dwRemoteTid);
 
 	// Wait for the thread to exit
 	if ((dwReturn = WaitForSingleObject(hRemoteThread, INFINITE)) != WAIT_OBJECT_0) goto err_wait;
@@ -342,14 +353,6 @@ DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi)
 	if (remoteData.dwErrorCode != 0) {
 		RLOGE(L"Error: Remote thread error: %ls!", FormatErrorToStr(remoteData.dwErrorCode));
 		return remoteData.dwErrorCode;
-	}
-
-	if (GetCurrentProcessId() == g_pPxchConfig->dwMasterProcessId) {
-		if (fpSavePointer) {
-			// Direct child is not able to do ipc, for the server is not setup at this time.
-			// Thus master process has to save its pointer
-			fpSavePointer(pPi->dwProcessId, remoteData.pSavedProxychainsConfig, remoteData.pSavedRemoteData);
-		}
 	}
 
 	return 0;
@@ -530,7 +533,7 @@ PXCHDLL_API DWORD __stdcall InitHookForMain(PROXYCHAINS_CONFIG* pPxchConfig)
 
 PXCHDLL_API DWORD __stdcall InitHook(INJECT_REMOTE_DATA* pRemoteData)
 {
-	DWORD dwErrorCode;
+	DWORD dwErrorCode = 0;
 
 	g_pPxchConfig = &pRemoteData->pxchConfig;
 	g_pRemoteData = pRemoteData;
@@ -575,7 +578,7 @@ PXCHDLL_API DWORD __stdcall InitHook(INJECT_REMOTE_DATA* pRemoteData)
 	
 	DBGCHR('E');
 	// For non-direct descandant
-	dwErrorCode = IpcClientRegisterChildProcess();
+	// dwErrorCode = IpcClientRegisterChildProcess();
 	if (dwErrorCode) {
 		char tmpLogLine[100];
 		StringCchPrintfA(tmpLogLine, 100, "IPC Error: %u", dwErrorCode);

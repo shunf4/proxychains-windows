@@ -65,7 +65,7 @@ PXCHDLL_API DWORD __stdcall InitHookForMain(PROXYCHAINS_CONFIG *pConfig);
 PXCHDLL_API BOOL g_bCurrentlyInWinapiCall;
 PXCHDLL_API void UninitHook(void);
 
-PXCHDLL_API DWORD(*fpSavePointer)(DWORD dwPid, PROXYCHAINS_CONFIG * pPxchConfig, INJECT_REMOTE_DATA * pRemoteData);
+PXCHDLL_API HANDLE g_hIpcServerSemaphore;
 
 //DECLARE_PROXY_FUNC(CreateProcessA);
 DECLARE_PROXY_FUNC(CreateProcessW);

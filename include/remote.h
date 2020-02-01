@@ -3,7 +3,7 @@
 #ifndef __PXCH_REMOTE_H__
 #define __PXCH_REMOTE_H__
 
-// #define PXCHDEBUG_REMOTEFUNCTION
+#define PXCHDEBUG_REMOTEFUNCTION
 
 #ifdef PXCHDEBUG_REMOTEFUNCTION
 #define DBGCHR(ch) do { pRemoteData->fpOutputDebugStringA(pRemoteData->chDebugOutput + ((ch) - 'A') * 2); } while(0)
