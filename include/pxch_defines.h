@@ -20,14 +20,14 @@
 #define WPRDW L"%" PREFIX_L(PRIdword)
 
 // In characters -- start
-#define MAX_DLL_PATH_BUFSIZE 1024
-#define MAX_CONFIG_FILE_PATH_BUFSIZE 1024
+#define MAX_DLL_PATH_BUFSIZE 512
+#define MAX_CONFIG_FILE_PATH_BUFSIZE 512
 #define MAX_DLL_FILE_NAME_BUFSIZE 64
 #define MAX_DLL_FUNC_NAME_BUFSIZE 64
 #define MAX_IPC_PIPE_NAME_BUFSIZE 128
 #define MAX_COMMAND_EXEC_PATH_BUFSIZE 512
-#define MAX_COMMAND_LINE_BUFSIZE 65536
-#define MAX_REMOTE_LOG_BUFSIZE 1024
+#define MAX_COMMAND_LINE_BUFSIZE 1024
+#define MAX_REMOTE_LOG_BUFSIZE 256
 #define MAX_HOSTNAME_BUFSIZE 256
 // In characters -- end
 
@@ -40,7 +40,7 @@ typedef struct _PROXYCHAINS_CONFIG {
 #endif
 	WCHAR szIpcPipeName[MAX_IPC_PIPE_NAME_BUFSIZE];
 	WCHAR szConfigPath[MAX_CONFIG_FILE_PATH_BUFSIZE];
-	WCHAR szDllPath[MAX_DLL_PATH_BUFSIZE];
+	WCHAR szHookDllPath[MAX_DLL_PATH_BUFSIZE];
 	WCHAR szMinHookDllPath[MAX_DLL_PATH_BUFSIZE];
 	WCHAR szCommandLine[MAX_COMMAND_LINE_BUFSIZE];
 } PROXYCHAINS_CONFIG;
@@ -50,27 +50,31 @@ typedef HMODULE(WINAPI* FpGetModuleHandleW)(LPCWSTR);
 typedef HMODULE(WINAPI* FpLoadLibraryW)(LPCWSTR);
 typedef FARPROC(WINAPI* FpGetProcAddress)(HMODULE, LPCSTR);
 typedef BOOL (WINAPI* FpFreeLibrary)(HMODULE);
-typedef DWORD (WINAPI* FpGetLastError)(VOID);
+typedef DWORD(WINAPI* FpGetLastError)(VOID);
+typedef VOID (WINAPI* FpOutputDebugStringA)(LPCSTR);
 
 typedef struct _INJECT_REMOTE_DATA {
 	UINT32 uStructSize;
 	UINT32 uEverExecuted;
 
 	DWORD dwParentPid;
-	DWORD dwDebugMode;
+	DWORD dwDebugDepth;
 
 	FpGetModuleHandleW fpGetModuleHandleW;
 	FpLoadLibraryW fpLoadLibraryW;
 	FpGetProcAddress fpGetProcAddress;
 	FpFreeLibrary fpFreeLibrary;
 	FpGetLastError fpGetLastError;
+	FpOutputDebugStringA fpOutputDebugStringA;
 
-	struct _INJECT_REMOTE_DATA* pSavedGlobalRemoteData;
-	PROXYCHAINS_CONFIG* pSavedGlobalProxychainsConfig;
+	struct _INJECT_REMOTE_DATA* pSavedRemoteData;
+	PROXYCHAINS_CONFIG* pSavedProxychainsConfig;
 
 	CHAR szInitFuncName[MAX_DLL_FUNC_NAME_BUFSIZE];
 	CHAR szCIWCVarName[MAX_DLL_FUNC_NAME_BUFSIZE];
+	char chDebugOutput[40];
 	WCHAR szCygwin1ModuleName[MAX_DLL_FILE_NAME_BUFSIZE];
+	WCHAR szHookDllModuleName[MAX_DLL_FILE_NAME_BUFSIZE];
 
 	DWORD dwErrorCode;
 	PROXYCHAINS_CONFIG pxchConfig;

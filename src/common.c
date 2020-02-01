@@ -2,7 +2,6 @@
 #include <strsafe.h>
 #include "pxch_defines.h"
 #include "common.h"
-#include "log.h"
 #include "ipc.h"
 
 WCHAR szErrorMessage[MAX_ERROR_MESSAGE_BUFSIZE];

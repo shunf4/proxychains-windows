@@ -111,8 +111,10 @@ DWORD ChildProcessExitedCallbackWorker(PVOID lpParameter, BOOLEAN TimerOrWaitFir
 		free(entry);
 
 		if (g_tabPerProcess == NULL) {
-			LOGI(L"All children exited.");
+			LOGI(L"All windows descendant process exited.");
+#ifndef __CYGWIN__
 			exit(0);
+#endif
 		}
 
 		goto after_proc;
@@ -313,7 +315,8 @@ DWORD ServerLoop(PROXYCHAINS_CONFIG* pPxchConfig, HANDLE hProcess)
 				int iChildPid = 0;
 				while ((iChildPid = waitpid((pid_t)(-1), 0, WNOHANG)) > 0) { bChild = TRUE; }
 				if (bChild) {
-					LOGI(L"Direct child Process Terminated (between WaitForMultipleObjects()).");
+					LOGI(L"Cygwin child process exited (between WaitForMultipleObjects()).");
+					exit(0);
 				}
 				continue;
 			}
@@ -518,18 +521,18 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG* pPxchConfig)
 	StringCchPrintfW(pPxchConfig->szIpcPipeName, _countof(pPxchConfig->szIpcPipeName), L"\\\\.\\pipe\\proxychains_" WPRDW L"_%" PREFIX_L(PRIu64) L"", GetCurrentProcessId(), uli.QuadPart);
 	pPxchConfig->testNum = 1234;
 
-	dwRet = GetModuleFileNameW(NULL, pPxchConfig->szDllPath, MAX_DLL_PATH_BUFSIZE);
+	dwRet = GetModuleFileNameW(NULL, pPxchConfig->szHookDllPath, MAX_DLL_PATH_BUFSIZE);
 	if (dwRet == 0) goto err_insuf_buf;
 	if (dwRet == MAX_DLL_PATH_BUFSIZE) goto err_insuf_buf;
 
-	if (!PathRemoveFileSpecW(pPxchConfig->szDllPath)) goto err_insuf_buf;
+	if (!PathRemoveFileSpecW(pPxchConfig->szHookDllPath)) goto err_insuf_buf;
 
-	if (FAILED(StringCchCatW(pPxchConfig->szDllPath, MAX_DLL_PATH_BUFSIZE, L"\\"))) goto err_insuf_buf;
-	if (FAILED(StringCchCopyW(pPxchConfig->szMinHookDllPath, MAX_DLL_PATH_BUFSIZE, pPxchConfig->szDllPath))) goto err_insuf_buf;
-	if (FAILED(StringCchCatW(pPxchConfig->szDllPath, MAX_DLL_PATH_BUFSIZE, g_szDllFileName))) goto err_insuf_buf;
+	if (FAILED(StringCchCatW(pPxchConfig->szHookDllPath, MAX_DLL_PATH_BUFSIZE, L"\\"))) goto err_insuf_buf;
+	if (FAILED(StringCchCopyW(pPxchConfig->szMinHookDllPath, MAX_DLL_PATH_BUFSIZE, pPxchConfig->szHookDllPath))) goto err_insuf_buf;
+	if (FAILED(StringCchCatW(pPxchConfig->szHookDllPath, MAX_DLL_PATH_BUFSIZE, g_szDllFileName))) goto err_insuf_buf;
 	if (FAILED(StringCchCatW(pPxchConfig->szMinHookDllPath, MAX_DLL_PATH_BUFSIZE, g_szMinHookDllFileName))) goto err_insuf_buf;
 
-	if (!PathFileExistsW(pPxchConfig->szDllPath)) goto err_dll_not_exist;
+	if (!PathFileExistsW(pPxchConfig->szHookDllPath)) goto err_dll_not_exist;
 	if (!PathFileExistsW(pPxchConfig->szMinHookDllPath)) pPxchConfig->szMinHookDllPath[0] = L'\0';
 
 	return 0;
@@ -751,7 +754,7 @@ int wmain(int argc, WCHAR* argv[])
 	if ((dwError = InitData()) != NOERROR) goto err;
 	if ((dwError = LoadConfiguration(&config)) != NOERROR) goto err;
 
-	LOGI(L"DLL Path: %ls", config.szDllPath);
+	LOGI(L"DLL Path: %ls", config.szHookDllPath);
 	LOGI(L"MinHook DLL Path: %ls", config.szMinHookDllPath);
 
 	InitHookForMain(&config);
@@ -782,7 +785,8 @@ err:
 void handle_sigchld(int sig)
 {
 	while (waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
-	LOGI(L"Child Process Terminated.");
+	LOGI(L"Cygwin child process exited.");
+	exit(0);
 }
 
 void handle_sigint(int sig)
@@ -805,7 +809,6 @@ int main(int argc, char* const argv[], char* const envp[])
 	g_pPxchConfig = &config;
 	fpSavePointer = MasterSavePointerForChild;
 
-	signal(SIGINT, handle_sigint);
 	setvbuf(stderr, NULL, _IOFBF, 65536);
 
 	for (i = 0; i < argc; i++) {
@@ -819,7 +822,7 @@ int main(int argc, char* const argv[], char* const envp[])
 	if ((dwError = InitData()) != NOERROR) goto err;
 	if ((dwError = LoadConfiguration(&config)) != NOERROR) goto err;
 
-	LOGI(L"DLL Path: %ls", config.szDllPath);
+	LOGI(L"DLL Path: %ls", config.szHookDllPath);
 	LOGI(L"MinHook DLL Path: %ls", config.szMinHookDllPath);
 
 	InitHookForMain(&config);
@@ -833,6 +836,7 @@ int main(int argc, char* const argv[], char* const envp[])
 	iReturn = posix_spawnp(&child_pid, argv[iCommandStart], NULL, NULL, &argv[iCommandStart], envp);
 	LOGD(L"Spawn ret: %d; CYGPID: " WPRDW L"", iReturn, child_pid);
 
+	// signal(SIGINT, handle_sigint);
 	signal(SIGCHLD, handle_sigchld);
 	ServerLoop(g_pPxchConfig, INVALID_HANDLE_VALUE);
 

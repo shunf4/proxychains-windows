@@ -30,12 +30,6 @@ PXCHDLL_API BOOL g_bCurrentlyInWinapiCall = FALSE;
 DWORD IpcCommunicateWithServer(const IPC_MSGBUF sendMessage, DWORD cbSendMessageSize, IPC_MSGBUF responseMessage, DWORD* pcbResponseMessageSize)
 {
 	HANDLE hPipe;
-	// WCHAR szMessage[IPC_BUFSIZE];
-	// WCHAR* pMessageEnd;
-	// WCHAR chReadBuf[IPC_BUFSIZE];
-	// DWORD cbRead;
-	// DWORD cchRead;
-	//WCHAR chWriteBuf[IPC_BUFSIZE];
 	DWORD cbToWrite;
 	DWORD cbWritten;
 	DWORD dwMode;
@@ -44,8 +38,6 @@ DWORD IpcCommunicateWithServer(const IPC_MSGBUF sendMessage, DWORD cbSendMessage
 
 	*pcbResponseMessageSize = 0;
 	SetMsgInvalid(responseMessage);
-
-	// StringCchPrintfExW(szMessage, _countof(szMessage), &pMessageEnd, NULL, 0, L"WINPID " WPRDW L" Injected", GetCurrentProcessId());
 
 	// Try to open a named pipe; wait for it if necessary
 	while (1)
@@ -147,15 +139,14 @@ DWORD IpcClientRestoreData()
 	RLOGD(L"g_pPxchConfig was %p", g_pPxchConfig);
 	RLOGD(L"g_pRemoteData was %p", g_pRemoteData);
 
-	// g_pPxchConfig = childData.pSavedPxchConfig;
-	// g_pRemoteData = childData.pSavedRemoteData;
+	g_pPxchConfig = childData.pSavedPxchConfig;
+	g_pRemoteData = childData.pSavedRemoteData;
 
 	RLOGD(L"g_pPxchConfig restored to %p", g_pPxchConfig);
 	RLOGD(L"g_pRemoteData restored to %p", g_pRemoteData);
 	
 	return 0;
 }
-
 
 DWORD RemoteCopyExecute(HANDLE hProcess, INJECT_REMOTE_DATA* pRemoteData)
 {
@@ -164,18 +155,20 @@ DWORD RemoteCopyExecute(HANDLE hProcess, INJECT_REMOTE_DATA* pRemoteData)
 	void* pTargetBuf;
 	LPTHREAD_START_ROUTINE pTargetCode;
 	void* pTargetData;
-	SIZE_T cbCodeSize;
-	SIZE_T cbCodeSizeAligned;
+	SSIZE_T cbCodeSize;
+	SSIZE_T cbCodeSizeAligned;
 	SIZE_T cbWritten;
 	SIZE_T cbRead;
 	DWORD dwErrorCode;
 	DWORD dwReturn;
 	HANDLE hRemoteThread;
 
+	RLOGD(L"CreateProcessW: Before Code Computation. %p %p", pCode, pAfterCode);
+
 	if (*(BYTE*)pCode == 0xE9) {
 		// LOGE(L"Function body is a JMP instruction! This is usually caused by \"incremental linking\". Try to disable that.");
 		// return ERROR_INVALID_FUNCTION;
-		// LOGW(L"Function body is a JMP instruction! This is usually caused by \"incremental linking\". Try to disable that.");
+		LOGW(L"Function body is a JMP instruction! This is usually caused by \"incremental linking\". Try to disable that.");
 		pCode = (void*)((char*)pCode + *(DWORD*)((char*)pCode + 1) + 5);
 	}
 
@@ -183,35 +176,62 @@ DWORD RemoteCopyExecute(HANDLE hProcess, INJECT_REMOTE_DATA* pRemoteData)
 		pAfterCode = (void*)((char*)pAfterCode + *(DWORD*)((char*)pAfterCode + 1) + 5);
 	}
 
+	RLOGD(L"CreateProcessW: Before Code Computation (After fix). %p %p", pCode, pAfterCode);
+
 	cbCodeSize = ((char*)pAfterCode - (char*)pCode);
 	cbCodeSizeAligned = (cbCodeSize + (sizeof(LONG_PTR) - 1)) & ~(sizeof(LONG_PTR) - 1);
+
+	RLOGD(L"CreateProcessW: Before VirtualAllocEx. %lld %lld", cbCodeSize, cbCodeSizeAligned);
 
 	// Allocate memory (code + data) in remote process
 	pTargetBuf = VirtualAllocEx(hProcess, NULL, cbCodeSizeAligned + sizeof(INJECT_REMOTE_DATA), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 	if (!pTargetBuf) goto err_alloc;
 
+	RLOGD(L"CreateProcessW: After VirtualAllocEx. " WPRDW, 0);
+
 	// Write code
 	pTargetCode = pTargetBuf;
 	if (!WriteProcessMemory(hProcess, pTargetCode, pCode, cbCodeSize, &cbWritten) || cbWritten != cbCodeSize) goto err_write_code;
+
+	RLOGD(L"CreateProcessW: After Write Code. " WPRDW, 0);
 
 	// Write data
 	pTargetData = (char *)pTargetBuf + cbCodeSizeAligned;
 	if (!WriteProcessMemory(hProcess, pTargetData, pRemoteData, sizeof(INJECT_REMOTE_DATA), &cbWritten) || cbWritten != sizeof(INJECT_REMOTE_DATA)) goto err_write_data;
 
+	RLOGD(L"CreateProcessW: Before CreateRemoteThread. " WPRDW, 0);
+
+	if (!ReadProcessMemory(hProcess, pTargetData, pRemoteData, sizeof(INJECT_REMOTE_DATA), &cbRead) || cbRead != sizeof(INJECT_REMOTE_DATA)) goto err_read_data_0;
+
+	RLOGD(L"CreateProcessW: Before CreateRemoteThread(ReadProcessMemory finished). " WPRDW, 0);
+
 	// Create remote thread in target process to execute the code
 	hRemoteThread = CreateRemoteThread(hProcess, NULL, 0, pTargetCode, pTargetData, 0, NULL);
 	if (!hRemoteThread) goto err_create_remote_thread;
 
+	RLOGD(L"CreateProcessW: After CreateRemoteThread(). " WPRDW, 0);
+
 	// Wait for the thread to exit
 	if ((dwReturn = WaitForSingleObject(hRemoteThread, INFINITE)) != WAIT_OBJECT_0) goto err_wait;
 
+	RLOGD(L"CreateProcessW: After WaitForSingleObject(). " WPRDW, 0);
 	dwReturn = -1;
 	if (!GetExitCodeThread(hRemoteThread, &dwReturn)) {
 		RLOGE(L"GetExitCodeThread() Error: %ls", FormatErrorToStr(GetLastError()));
 	}
 
+	if (dwReturn != 0) {
+		RLOGE(L"Error: Remote thread exit code: %lx", dwReturn);
+	}
+
 	// Copy back data
+	FillMemory(pRemoteData, sizeof(INJECT_REMOTE_DATA), 0xFF);
 	if (!ReadProcessMemory(hProcess, pTargetData, pRemoteData, sizeof(INJECT_REMOTE_DATA), &cbRead) || cbRead != sizeof(INJECT_REMOTE_DATA)) goto err_read_data;
+
+	if (pRemoteData->uEverExecuted != 1) {
+		RLOGE(L"Error: Remote thread never executed! (%u)", pRemoteData->uEverExecuted);
+		//return ERROR_FUNCTION_NOT_CALLED;
+	}
 
 	// Validate return value
 	if (dwReturn != pRemoteData->dwErrorCode) {
@@ -246,6 +266,11 @@ err_wait:
 	RLOGE(L"WaitForSingleObject() Failed: " WPRDW L", %ls", dwReturn, FormatErrorToStr(dwErrorCode));
 	goto ret_close;
 
+err_read_data_0:
+	dwErrorCode = GetLastError();
+	RLOGE(L"ReadProcessMemory()(First time) Failed to read data: %ls", FormatErrorToStr(dwErrorCode));
+	goto ret_free;
+
 err_read_data:
 	dwErrorCode = GetLastError();
 	RLOGE(L"ReadProcessMemory() Failed to read data: %ls", FormatErrorToStr(dwErrorCode));
@@ -261,11 +286,19 @@ ret_free:
 
 DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi)
 {
-	HANDLE hProcess = pPi->hProcess;
+	HANDLE hProcess;
 	INJECT_REMOTE_DATA remoteData;
 	DWORD dwReturn;
 
+	LOGD(L"CreateProcessW: Entering InjectTargetProcess. %llu", sizeof(remoteData));
+
+	hProcess = pPi->hProcess;
+	RLOGD(L"CreateProcessW: Before CopyMemory. " WPRDW, 0);
+
 	CopyMemory(&remoteData.pxchConfig, g_pPxchConfig, sizeof(PROXYCHAINS_CONFIG));
+
+	RLOGD(L"CreateProcessW: After CopyMemory. " WPRDW, 0);
+
 	remoteData.dwErrorCode = -1;
 	remoteData.dwParentPid = GetCurrentProcessId();
 	remoteData.fpFreeLibrary = FreeLibrary;
@@ -273,21 +306,28 @@ DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi)
 	remoteData.fpGetProcAddress = GetProcAddress;
 	remoteData.fpLoadLibraryW = LoadLibraryW;
 	remoteData.fpGetLastError = GetLastError;
-	remoteData.pSavedGlobalProxychainsConfig = NULL;
-	remoteData.pSavedGlobalRemoteData = NULL;
-	remoteData.dwDebugMode = g_pRemoteData ? g_pRemoteData->dwDebugMode + 1 : 1;
+	remoteData.fpOutputDebugStringA = OutputDebugStringA;
+	remoteData.pSavedProxychainsConfig = NULL;
+	remoteData.pSavedRemoteData = NULL;
+	remoteData.dwDebugDepth = g_pRemoteData ? g_pRemoteData->dwDebugDepth + 1 : 1;
+
+	RLOGD(L"CreateProcessW: After remoteData assignment. " WPRDW, 0);
 
 	StringCchCopyA(remoteData.szInitFuncName, _countof(remoteData.szInitFuncName), g_pRemoteData ? g_pRemoteData->szInitFuncName : "InitHook");
 	StringCchCopyA(remoteData.szCIWCVarName, _countof(remoteData.szCIWCVarName), g_pRemoteData ? g_pRemoteData->szCIWCVarName : "g_bCurrentlyInWinapiCall");
+	CopyMemory(remoteData.chDebugOutput, g_pRemoteData ? g_pRemoteData->chDebugOutput : "A\0B\0C\0D\0E\0F\0G\0H\0I\0J\0K\0L\0M\0N\0O\0P\0Q\0R\0S\0T\0", sizeof(remoteData.chDebugOutput));
 	StringCchCopyW(remoteData.szCygwin1ModuleName, _countof(remoteData.szCygwin1ModuleName), g_pRemoteData ? g_pRemoteData->szCygwin1ModuleName : L"cygwin1.dll");
 	remoteData.uEverExecuted = 0;
 	remoteData.uStructSize = sizeof(INJECT_REMOTE_DATA);
 
+	RLOGD(L"CreateProcessW: After StringCchCopy. " WPRDW, 0);
 
 	dwReturn = RemoteCopyExecute(hProcess, &remoteData);
+
 	if (dwReturn != 0) {
 		return dwReturn;
 	}
+	RLOGD(L"CreateProcessW: After RemoteCopyExecute. " WPRDW, 0);
 
 	if (remoteData.uEverExecuted == 0) {
 		RLOGE(L"Error: Remote thread never executed!");
@@ -301,12 +341,10 @@ DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi)
 
 	if (GetCurrentProcessId() == g_pPxchConfig->dwMasterProcessId) {
 		if (fpSavePointer) {
-			// fpSavePointer(pPi->dwProcessId, remoteData.pSavedGlobalProxychainsConfig, remoteData.pSavedGlobalRemoteData);
+			// Direct child is not able to do ipc, for the server is not setup at this time.
+			// Thus master process has to save its pointer
+			fpSavePointer(pPi->dwProcessId, remoteData.pSavedProxychainsConfig, remoteData.pSavedRemoteData);
 		}
-	}
-	else {
-		// Seems no need to implement
-		// IpcSavePointer(GetCurrentProcessId(), remoteData.pSavedGlobalProxychainsConfig, remoteData.pSavedGlobalRemoteData);
 	}
 
 	return 0;
@@ -330,7 +368,7 @@ PROXY_FUNC(CreateProcessA)
 
 	if (!bRet) goto err_orig;
 
-	dwReturn = InjectTargetProcess(processInformation.hProcess);
+	dwReturn = InjectTargetProcess(&processInformation);
 	if (!(dwCreationFlags & CREATE_SUSPENDED)) {
 		ResumeThread(processInformation.hThread);
 	}
@@ -356,28 +394,36 @@ PROXY_FUNC(CreateProcessW)
 	DWORD dwReturn = 0;
 	PROCESS_INFORMATION processInformation;
 
-	// g_bCurrentlyInWinapiCall = TRUE;
+	g_bCurrentlyInWinapiCall = TRUE;
 
 	// For cygwin: cygwin fork() will duplicate the data in child process, including pointer g_*.
-	// IpcClientRestoreData();
+	IpcClientRestoreData();
 
-	// RLOGI(L"(In CreateProcessW) g_pRemoteData->dwDebugMode = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugMode : -1);
+	RLOGI(L"(In CreateProcessW) g_pRemoteData->dwDebugDepth = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
 
-	RLOGV(L"CreateProcessW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s", lpApplicationName, lpCommandLine, (UINT64)lpProcessAttributes, (UINT64)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory);
+	RLOGD(L"CreateProcessW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s", lpApplicationName, lpCommandLine, (UINT64)lpProcessAttributes, (UINT64)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory);
 
 	bRet = fpCreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &processInformation);
 	dwErrorCode = GetLastError();
+
+	RLOGD(L"CreateProcessW: Created.(%u) Child process id: " WPRDW, bRet, processInformation.dwProcessId);
 
 	if (lpProcessInformation) {
 		CopyMemory(lpProcessInformation, &processInformation, sizeof(PROCESS_INFORMATION));
 	}
 
+	RLOGD(L"CreateProcessW: Copied.");
 	if (!bRet) goto err_orig;
+	
+	RLOGD(L"CreateProcessW: After jmp to err_orig.");
 
 #ifdef __CYGWIN__
 	g_pPxchConfig->pidCygwinSoleChildProc = cygwin_winpid_to_pid(processInformation.dwProcessId);
 #endif
+	RLOGD(L"CreateProcessW: Before InjectTargetProcess.");
 	dwReturn = InjectTargetProcess(&processInformation);
+
+	RLOGD(L"CreateProcessW: Injected. " WPRDW, dwReturn);
 
 	if (!(dwCreationFlags & CREATE_SUSPENDED)) {
 		ResumeThread(processInformation.hThread);
@@ -386,19 +432,19 @@ PROXY_FUNC(CreateProcessW)
 	RLOGD(L"I've Injected WINPID " WPRDW, processInformation.dwProcessId);
 	
 	if (dwReturn != 0) goto err_inject;
-	//g_bCurrentlyInWinapiCall = FALSE;
+	g_bCurrentlyInWinapiCall = FALSE;
 	return 1;
 
 err_orig:
 	RLOGE(L"CreateProcessW Error: " WPRDW L", %ls", bRet, FormatErrorToStr(dwErrorCode));
 	SetLastError(dwErrorCode);
-	//g_bCurrentlyInWinapiCall = FALSE;
+	g_bCurrentlyInWinapiCall = FALSE;
 	return bRet;
 
 err_inject:
-	RLOGE(L"Inject Error: %ls", FormatErrorToStr(dwErrorCode));
+	RLOGE(L"Inject Error: %ls", FormatErrorToStr(dwReturn));
 	SetLastError(dwReturn);
-	//g_bCurrentlyInWinapiCall = FALSE;
+	g_bCurrentlyInWinapiCall = FALSE;
 	return 1;
 }
 
@@ -424,12 +470,16 @@ PXCHDLL_API DWORD __stdcall InitHook(INJECT_REMOTE_DATA* pRemoteData)
 	// CREATE_HOOK(CreateProcessA);
 	CREATE_HOOK(CreateProcessW);
 
-	// RLOGI(L"g_pRemoteData->dwDebugMode = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugMode : -1);
-	//if (g_pRemoteData->dwDebugMode < 2) {
-	MH_EnableHook(MH_ALL_HOOKS);
-	//}
+	RLOGI(L"(In InitHook) g_pRemoteData->dwDebugDepth = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
 
-	/*do {
+	if (g_pRemoteData->dwDebugDepth < 2) {
+		MH_EnableHook(MH_ALL_HOOKS);
+	}
+	else {
+		RLOGI(L"(In InitHook) g_pRemoteData->dwDebugDepth = " WPRDW L", skipping MH_EnableHook", g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
+	}
+
+	if (1) do {
 		HMODULE hWs2_32;
 		HMODULE hWsock32;
 		HMODULE hCygwin1;
@@ -442,14 +492,15 @@ PXCHDLL_API DWORD __stdcall InitHook(INJECT_REMOTE_DATA* pRemoteData)
 		RLOGI(L"ws2_32.dll  connect(): %p", hWs2_32 ? pRemoteData->fpGetProcAddress(hWs2_32, "connect") : NULL);
 		RLOGI(L"wsock32.dll connect(): %p", hWsock32 ? pRemoteData->fpGetProcAddress(hWsock32, "connect") : NULL);
 		RLOGI(L"cygwin1.dll connect(): %p", hCygwin1 ? pRemoteData->fpGetProcAddress(hCygwin1, "connect") : NULL);
-	} while (0);*/
+	} while (0);
 	
-	// IpcClientRegisterChildProcess();
+	// For non-direct descandant
+	IpcClientRegisterChildProcess();
 
-
-	// pRemoteData->pSavedGlobalProxychainsConfig = g_pPxchConfig;
-	// pRemoteData->pSavedGlobalRemoteData = g_pRemoteData;
-	// RLOGI(L"I'm WINPID " WPRDW L" Hooked!", log_pid);
+	// For direct child
+	pRemoteData->pSavedProxychainsConfig = g_pPxchConfig;
+	pRemoteData->pSavedRemoteData = g_pRemoteData;
+	RLOGI(L"I'm WINPID " WPRDW L" Hooked!", log_pid);
 	return 0;
 }
 
