@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include <Shlwapi.h>
 #ifdef __CYGWIN__
 #include <strsafe.h>
@@ -177,30 +177,34 @@ DWORD QueryChildStorage(REPORTED_CHILD_DATA* pChildData)
 DWORD HandleMessage(int i, IPC_INSTANCE* pipc)
 {
 	IPC_MSGBUF* pMsg = (IPC_MSGBUF*)pipc->chReadBuf;
+	OutputDebugStringA("s:start handlemessage");
 
 	if (MsgIsType(WSTR, pMsg)) {
+		OutputDebugStringA("s:message is wstr");
 		WCHAR sz[IPC_BUFSIZE / sizeof(WCHAR)];
 		MessageToWstr(sz, *pMsg, pipc->cbRead);
-		fwprintf(stderr, L"%ls", sz);
-		fflush(stderr);
+		StdWprintf(STD_ERROR_HANDLE, L"%ls", sz);
+		StdFlush(STD_ERROR_HANDLE);
 
 		goto after_handling_resp_ok;
 	}
 
 	if (MsgIsType(CHILDDATA, pMsg)) {
+		OutputDebugStringA("s:message is childdata");
 		REPORTED_CHILD_DATA childData;
-		LOGV(L"Message is CHILDDATA");
+		// LOGV(L"Message is CHILDDATA");
 		MessageToChildData(&childData, *pMsg, pipc->cbRead);
-		LOGD(L"Child process pid " WPRDW L" created.", childData.dwPid);
-		LOGV(L"RegisterNewChildProcess...");
+		// LOGD(L"Child process pid " WPRDW L" created.", childData.dwPid);
+		// LOGV(L"RegisterNewChildProcess...");
 		RegisterNewChildProcess(&childData);
-		LOGV(L"RegisterNewChildProcess done.");
+		// LOGV(L"RegisterNewChildProcess done.");
 		goto after_handling_resp_ok;
 	}
 
 	if (MsgIsType(QUERYSTORAGE, pMsg)) {
+		OutputDebugStringA("s:message is querystorage");
 		REPORTED_CHILD_DATA childData = { 0 };
-		LOGV(L"Message is QUERYSTORAGE");
+		// LOGV(L"Message is QUERYSTORAGE");
 		MessageToQueryStorage(&childData.dwPid, *pMsg, pipc->cbRead);
 		QueryChildStorage(&childData);
 		ChildDataToMessage(pipc->chWriteBuf, &pipc->cbToWrite, &childData);
@@ -320,48 +324,56 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 		exit(dwErrorCode);
 	}
 	// CloseHandle(g_hIpcServerSemaphore);
-	LOGV(L"ServerLoop: Signaled semaphore.");
+	OutputDebugStringA("s:signal1");
+	// LOGV(L"ServerLoop: Signaled semaphore.");
+	OutputDebugStringA("s:signal");
 
 	while (1) {
+		OutputDebugStringA("s:before wait");
 #ifndef __CYGWIN__
-			dwWait = WaitForMultipleObjects(IPC_INSTANCE_NUM, hEvents, FALSE, INFINITE);
+		dwWait = WaitForMultipleObjects(IPC_INSTANCE_NUM, hEvents, FALSE, INFINITE);
 #else
-			dwWait = WaitForMultipleObjects(IPC_INSTANCE_NUM, hEvents, FALSE, 100);
-			if (dwWait == WAIT_TIMEOUT) {
-				BOOL bChild = FALSE;
-				int iChildPid = 0;
-				while ((iChildPid = waitpid((pid_t)(-1), 0, WNOHANG)) > 0) { bChild = TRUE; }
-				if (bChild) {
-					LOGI(L"Cygwin child process exited (between WaitForMultipleObjects()).");
-					IF_CYGWIN_EXIT(0);
-				}
-				continue;
+		dwWait = WaitForMultipleObjects(IPC_INSTANCE_NUM, hEvents, FALSE, 100);
+		if (dwWait == WAIT_TIMEOUT) {
+			BOOL bChild = FALSE;
+			int iChildPid = 0;
+			while ((iChildPid = waitpid((pid_t)(-1), 0, WNOHANG)) > 0) { bChild = TRUE; }
+			if (bChild) {
+				// LOGI(L"Cygwin child process exited (between WaitForMultipleObjects()).");
+				IF_CYGWIN_EXIT(0);
 			}
+			continue;
+		}
 #endif
+		OutputDebugStringA("s:after wait");
 		i = dwWait - WAIT_OBJECT_0;
 		if (i < 0 || i >= IPC_INSTANCE_NUM) goto err_wait_out_of_range;
 
 		// If this pipe is just awaken from pending state
 		if (ipc[i].bPending) {
+			OutputDebugStringA("s:before GetOverlappedResult");
 			bReturn = GetOverlappedResult(ipc[i].hPipe, &ipc[i].oOverlap, &cbReturn, FALSE);
+			OutputDebugStringA("s:after GetOverlappedResult");
 
 			switch (ipc[i].dwState) {
 			case IPC_STATE_CONNECTING:
 				if (!bReturn) goto err_connect_overlapped_error;
-				LOGV(L"[IPC%03d] named pipe connected.", i);
+				OutputDebugStringA("s:connected");
+				// LOGV(L"[IPC%03d] named pipe connected.", i);
 				ipc[i].dwState = IPC_STATE_READING;
+				OutputDebugStringA("s:after set dwState");
 				break;
 
 			case IPC_STATE_READING:
 				if (!bReturn || cbReturn == 0) {
 					dwErrorCode = GetLastError();
 					if (dwErrorCode != ERROR_BROKEN_PIPE) {
-						LOGE(L"[IPC%03d] GetOverlappedResult() error(" WPRDW L") or read 0 bytes(" WPRDW L"), disconnect and reconnecting", i, dwErrorCode, cbReturn);
+						// LOGE(L"[IPC%03d] GetOverlappedResult() error(" WPRDW L") or read 0 bytes(" WPRDW L"), disconnect and reconnecting", i, dwErrorCode, cbReturn);
 					}
 					if ((dwErrorCode = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwErrorCode;
 					continue;
 				}
-				LOGV(L"[IPC%03d] ReadFile() received msglen = " WPRDW L"", i, cbReturn);
+				// LOGV(L"[IPC%03d] ReadFile() received msglen = " WPRDW L"", i, cbReturn);
 				ipc[i].cbRead = cbReturn;
 				ipc[i].dwState = IPC_STATE_WRITING;
 				break;
@@ -370,17 +382,17 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 				if (!bReturn || cbReturn != ipc[i].cbToWrite) {
 					dwErrorCode = GetLastError();
 					if (dwErrorCode != ERROR_BROKEN_PIPE) {
-						LOGE(L"[IPC%03d] GetOverlappedResult() error(" WPRDW L") or wrote " WPRDW L" bytes (!= " WPRDW L" as expected), disconnect and reconnecting", i, dwErrorCode, cbReturn, ipc[i].cbToWrite);
+						// LOGE(L"[IPC%03d] GetOverlappedResult() error(" WPRDW L") or wrote " WPRDW L" bytes (!= " WPRDW L" as expected), disconnect and reconnecting", i, dwErrorCode, cbReturn, ipc[i].cbToWrite);
 					}
 					if ((dwErrorCode = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwErrorCode;
 					continue;
 				}
-				LOGV(L"[IPC%03d] WriteFile() sent msglen = " WPRDW L"", i, cbReturn);
+				// LOGV(L"[IPC%03d] WriteFile() sent msglen = " WPRDW L"", i, cbReturn);
 				ipc[i].dwState = IPC_STATE_READING;
 				break;
 
 			default:
-				LOGE(L"[IPC%03d] Invalid pipe state: " WPRDW L"", i, ipc[i].dwState);
+				// LOGE(L"[IPC%03d] Invalid pipe state: " WPRDW L"", i, ipc[i].dwState);
 				return ERROR_INVALID_STATE;
 			}
 		}
@@ -388,11 +400,13 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 		// Last operation has finished, now dwState stores what to do next
 		switch (ipc[i].dwState) {
 		case IPC_STATE_READING:
+			OutputDebugStringA("s:before ReadFile");
 			bReturn = ReadFile(ipc[i].hPipe, ipc[i].chReadBuf, IPC_BUFSIZE, &ipc[i].cbRead, &ipc[i].oOverlap);
+			OutputDebugStringA("s:after ReadFile");
 
 			// Finished instantly
 			if (bReturn && ipc[i].cbRead != 0) {
-				LOGV(L"[IPC%03d] ReadFile() received msglen = " WPRDW L" (immediately)", i, ipc[i].cbRead);
+				// LOGV(L"[IPC%03d] ReadFile() received msglen = " WPRDW L" (immediately)", i, ipc[i].cbRead);
 				ipc[i].bPending = FALSE;
 				ipc[i].dwState = IPC_STATE_WRITING;
 				continue;
@@ -406,28 +420,30 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 			}
 
 			if (dwErrorCode != ERROR_BROKEN_PIPE) {
-				LOGE(L"[IPC%03d] ReadFile() error: %ls or has read 0 bytes; disconnecting and reconnecting", i, FormatErrorToStr(dwErrorCode));
+				// LOGE(L"[IPC%03d] ReadFile() error: %ls or has read 0 bytes; disconnecting and reconnecting", i, FormatErrorToStr(dwErrorCode));
 			}
 			if ((dwErrorCode = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwErrorCode;
 			break;
 
 		case IPC_STATE_WRITING:
+			OutputDebugStringA("s:before handlemessage");
 			dwErrorCode = HandleMessage(i, &ipc[i]);
-			LOGV(L"HandleMessage done.");
+			OutputDebugStringA("s:after handlemessage");
+			// LOGV(L"HandleMessage done.");
 
 			if (dwErrorCode != NO_ERROR) {
-				LOGE(L"[IPC%03d] Handle message error: %ls; disconnecting and reconnecting", i, FormatErrorToStr(dwErrorCode));
+				// LOGE(L"[IPC%03d] Handle message error: %ls; disconnecting and reconnecting", i, FormatErrorToStr(dwErrorCode));
 				if ((dwErrorCode = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwErrorCode;
 				break;
 			}
 
-			LOGV(L"[IPC%03d] Writing pipe...", i);
+			// LOGV(L"[IPC%03d] Writing pipe...", i);
 			bReturn = WriteFile(ipc[i].hPipe, ipc[i].chWriteBuf, ipc[i].cbToWrite, &cbReturn, &ipc[i].oOverlap);
-			LOGV(L"[IPC%03d] Written pipe.", i);
+			// LOGV(L"[IPC%03d] Written pipe.", i);
 
 			// Finished instantly
 			if (bReturn && cbReturn == ipc[i].cbToWrite) {
-				LOGV(L"[IPC%03d] WriteFile() sent msglen = " WPRDW L" (immediately)", i, cbReturn);
+				// LOGV(L"[IPC%03d] WriteFile() sent msglen = " WPRDW L" (immediately)", i, cbReturn);
 				ipc[i].bPending = FALSE;
 				ipc[i].dwState = IPC_STATE_READING;
 				continue;
@@ -441,13 +457,13 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 			}
 
 			if (dwErrorCode != ERROR_BROKEN_PIPE) {
-				LOGE(L"[IPC%03d] Write() error: %ls or wrote unexpected bytes(" WPRDW L", different from " WPRDW L" as expected); disconnecting and reconnecting", i, FormatErrorToStr(dwErrorCode), cbReturn, ipc[i].cbToWrite);
+				// LOGE(L"[IPC%03d] Write() error: %ls or wrote unexpected bytes(" WPRDW L", different from " WPRDW L" as expected); disconnecting and reconnecting", i, FormatErrorToStr(dwErrorCode), cbReturn, ipc[i].cbToWrite);
 			}
 			if ((dwErrorCode = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwErrorCode;
 			break;
 
 		default:
-			LOGE(L"[IPC%03d] Invalid pipe state: " WPRDW L"", i, ipc[i].dwState);
+			// LOGE(L"[IPC%03d] Invalid pipe state: " WPRDW L"", i, ipc[i].dwState);
 			return ERROR_INVALID_STATE;
 		}
 	}
@@ -751,11 +767,7 @@ int wmain(int argc, WCHAR* argv[])
 
 	setvbuf(stderr, NULL, _IOFBF, 65536);
 
-#ifdef __CYGWIN__
-	LOGI(L"Locale: %s", setlocale(LC_ALL, ""));
-#else
 	LOGI(L"Locale: %S", setlocale(LC_ALL, ""));
-#endif
 	SetConsoleCtrlHandler(CtrlHandler, TRUE);
 	
 	if ((dwError = InitData()) != NOERROR) goto err;
@@ -875,12 +887,12 @@ int main(int argc, char* const argv[], char* const envp[])
 	DWORD dwTid;
 	int iCommandStart;
 	int i;
+
 	// char* spawn_argv[] = { "bash.exe", NULL };
 	WCHAR** wargv = malloc(argc * sizeof(WCHAR*));
 	const void* ctx[2];
 
 	g_pPxchConfig = &config;
-
 	setvbuf(stderr, NULL, _IOFBF, 65536);
 
 	for (i = 0; i < argc; i++) {
@@ -889,7 +901,7 @@ int main(int argc, char* const argv[], char* const envp[])
 		MultiByteToWideChar(CP_UTF8, 0, argv[i], -1, wargv[i], iNeededChars);
 	}
 
-	LOGI(L"Locale: %s", setlocale(LC_ALL, ""));
+	LOGI(L"Locale: %S", setlocale(LC_ALL, ""));
 
 	if ((dwError = InitData()) != NOERROR) goto err;
 	if ((dwError = LoadConfiguration(&config)) != NOERROR) goto err;
@@ -904,7 +916,7 @@ int main(int argc, char* const argv[], char* const envp[])
 	LOGI(L"Config Path: %ls", config.szConfigPath);
 	LOGI(L"Pipe name: %ls", config.szIpcPipeName);
 	LOGI(L"Quiet: %ls", config.bQuiet ? L"Y" : L"N");
-	LOGI(L"argv[iCommandStart]: %s", argv[iCommandStart]);
+	LOGI(L"argv[iCommandStart]: %S", argv[iCommandStart]);
 
 	if (CreateThread(0, 0, &ServerLoop, g_pPxchConfig, 0, &dwTid) == NULL) goto err_get;
 	LOGI(L"IPC Server Tid: " WPRDW, dwTid);

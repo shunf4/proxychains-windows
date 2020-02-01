@@ -39,18 +39,18 @@ cygwin_strsafe/strsafe.o : $(SRC_PREFIX)cygwin_strsafe/strsafe.c cygwin_strsafe/
 dll/remote_function/remote_function.o : $(SRC_PREFIX)dll/remote_function/remote_function.c dll/remote_function/remote_function.d
 	$(CC) $(CFLAGS_REMOTE_FUNCTION) $(DEPFLAGS_IN_PREREQ) -c -o$@ $<
 	
-$(DLL_PATH) : $(SRC_PREFIX)dll/dllmain.c dll/remote_function/remote_function.o common.o cygwin_strsafe/strsafe.o dll/dllmain.d
+$(DLL_PATH) : $(SRC_PREFIX)dll/dllmain.c dll/remote_function/remote_function.o common.o cygwin_strsafe/strsafe.o log.o dll/dllmain.d
 	$(CC) $(CFLAGS) $(DEPFLAGS_IN_PREREQ) -DPXCHDLL_EXPORTS -shared -o$@ \
 		-Wl,--out-implib=$(DLL_IMPLIB_PATH) \
-		$(filter %.c %.o %.a,$^) -L$(LIB_PREFIX) -lntdllcrt -lMinHookx64
+		$(filter %.c %.o %.a %.lib,$^) -L$(LIB_PREFIX) -lntdllcrt -lMinHookx64
 		
 	#	-Wl,--export-all-symbols \
 	#	-Wl,--enable-auto-import \
 	
 $(DLL_IMPLIB_PATH) : $(DLL_PATH)
 
-$(EXEC_PATH) : $(SRC_PREFIX)exe/main.c common.o log.o cygwin_strsafe/strsafe.o $(DLL_IMPLIB_PATH) exe/main.d
-	$(CC) $(CFLAGS) $(DEPFLAGS_IN_PREREQ) -o$@ $(filter %.c %.o %.a,$^) -lntdllcrt -lkernel32 -lshlwapi -lcygwin
+$(EXEC_PATH) : $(SRC_PREFIX)exe/main.c common.o log.o cygwin_strsafe/strsafe.o log.o $(DLL_IMPLIB_PATH) exe/main.d
+	$(CC) $(CFLAGS) $(DEPFLAGS_IN_PREREQ) -o$@ $(filter %.c %.o %.a %.lib,$^) -lntdllcrt -lkernel32 -lshlwapi -lcygwin
 
 .PHONY : clean
 

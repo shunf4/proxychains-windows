@@ -5,6 +5,7 @@
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <iphlpapi.h>
+#include <strsafe.h>
 #include <iostream>
 
 #pragma comment(lib, "Ws2_32.lib")
@@ -13,7 +14,16 @@ int main()
     WSADATA wsaData;
     HMODULE hDll;
     LPVOID fpConnect;
+
+    const char* pstr = "\xe5\x86\xaf\xe8\x88\x9c";
+    WCHAR xxx[100];
     setlocale(LC_ALL, "");
+    printf(pstr);
+    printf("\n");
+    StringCchPrintfW(xxx, 100, L"%S", pstr);
+    printf("%#02x\n", xxx[0]);
+
+    exit(0);
     printf("哈哈哈\n");
     printf("connect(): %p\n", connect);
 

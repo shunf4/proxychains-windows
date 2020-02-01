@@ -578,7 +578,7 @@ PXCHDLL_API DWORD __stdcall InitHook(INJECT_REMOTE_DATA* pRemoteData)
 	
 	DBGCHR('E');
 	// For non-direct descandant
-	// dwErrorCode = IpcClientRegisterChildProcess();
+	dwErrorCode = IpcClientRegisterChildProcess();
 	if (dwErrorCode) {
 		char tmpLogLine[100];
 		StringCchPrintfA(tmpLogLine, 100, "IPC Error: %u", dwErrorCode);
