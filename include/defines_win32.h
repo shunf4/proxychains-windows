@@ -1,30 +1,12 @@
 #pragma once
 
-#ifndef __PXCH_DEFINES_H__
-#define __PXCH_DEFINES_H__
-
-#include "stdafx.h"
-#include "dll.h"
-
-// In characters -- start
-#define MAX_DLL_PATH_BUFSIZE 512
-#define MAX_CONFIG_FILE_PATH_BUFSIZE 512
-#define MAX_DLL_FILE_NAME_BUFSIZE 64
-#define MAX_DLL_FUNC_NAME_BUFSIZE 64
-#define MAX_IPC_PIPE_NAME_BUFSIZE 128
-#define MAX_COMMAND_EXEC_PATH_BUFSIZE 512
-#define MAX_COMMAND_LINE_BUFSIZE 1024
-#define MAX_REMOTE_LOG_BUFSIZE 256
-#define MAX_HOSTNAME_BUFSIZE 256
-// In characters -- end
+#include "includes_win32.h"
+#include "defines_generic.h"
 
 typedef struct _PROXYCHAINS_CONFIG {
 	DWORD testNum;
 	DWORD dwMasterProcessId;
 	BOOL bQuiet;
-#ifdef __CYGWIN__
-	pid_t pidCygwinSoleChildProc;
-#endif
 	WCHAR szIpcPipeName[MAX_IPC_PIPE_NAME_BUFSIZE];
 	WCHAR szConfigPath[MAX_CONFIG_FILE_PATH_BUFSIZE];
 	WCHAR szHookDllPath[MAX_DLL_PATH_BUFSIZE];
@@ -40,9 +22,10 @@ typedef BOOL (WINAPI* FpFreeLibrary)(HMODULE);
 typedef DWORD(WINAPI* FpGetLastError)(VOID);
 typedef VOID (WINAPI* FpOutputDebugStringA)(LPCSTR);
 
+
 typedef struct _INJECT_REMOTE_DATA {
-	UINT32 uStructSize;
-	UINT32 uEverExecuted;
+	PXCH_UINT32 uStructSize;
+	PXCH_UINT32 uEverExecuted;
 
 	DWORD dwParentPid;
 	DWORD dwDebugDepth;
@@ -55,11 +38,13 @@ typedef struct _INJECT_REMOTE_DATA {
 	FpOutputDebugStringA fpOutputDebugStringA;
 
 	struct _INJECT_REMOTE_DATA* pSavedRemoteData;
-	PROXYCHAINS_CONFIG* pSavedProxychainsConfig;
+	PROXYCHAINS_CONFIG* pSavedPxchConfig;
 
 	CHAR szInitFuncName[MAX_DLL_FUNC_NAME_BUFSIZE];
 	CHAR szCIWCVarName[MAX_DLL_FUNC_NAME_BUFSIZE];
+
 	char chDebugOutput[40];
+
 	WCHAR szCygwin1ModuleName[MAX_DLL_FILE_NAME_BUFSIZE];
 	WCHAR szHookDllModuleName[MAX_DLL_FILE_NAME_BUFSIZE];
 
@@ -68,20 +53,7 @@ typedef struct _INJECT_REMOTE_DATA {
 
 } INJECT_REMOTE_DATA;
 
-#ifdef __CYGWIN__
-static const WCHAR g_szHookDllFileName[] = L"cygproxychains_hook.dll";
-#else
-static const WCHAR g_szHookDllFileName[] = L"proxychains_hook.dll";
-#endif
-static const WCHAR g_szMinHookDllFileName[] = L"MinHook.x64.dll";
+
 extern PXCHDLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;
+extern PXCHDLL_API BOOL g_bCurrentlyInWinapiCall;
 
-#ifdef __CYGWIN__
-#define IF_CYGWIN_EXIT(code) do {exit(0);} while(0)
-#define IF_WIN32_EXIT(code) do {} while(0)
-#else
-#define IF_CYGWIN_EXIT(code) do {} while(0)
-#define IF_WIN32_EXIT(code) do {exit(0);} while(0)
-#endif
-
-#endif

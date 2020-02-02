@@ -1,7 +1,6 @@
 #pragma once
 
-#ifndef __PXCH_REMOTE_H__
-#define __PXCH_REMOTE_H__
+#include "includes_win32.h"
 
 #define PXCHDEBUG_REMOTEFUNCTION
 
@@ -15,4 +14,6 @@
 #define DBGSTR_GP(str) do {  } while(0)
 #endif
 
-#endif
+// MSVC arranges these functions in alphabetical order
+DWORD __stdcall LoadHookDll(LPVOID * pArg);
+void* LoadHookDll_End(void);

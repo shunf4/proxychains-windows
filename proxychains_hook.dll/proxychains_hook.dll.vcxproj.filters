@@ -18,36 +18,60 @@
     <ClCompile Include="..\src\dll\dllmain.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\stdafx.c">
+    <ClCompile Include="..\src\dll\remote_function\remote_function.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\dll\remote_function\remote_function.c">
+    <ClCompile Include="..\src\dll\hook_win32.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\dll\hook_cygwin_msvcstub.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\log_func_impl.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\pxch_hook.h">
+    <ClInclude Include="..\include\MinHook.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\stdafx.h">
+    <ClInclude Include="..\include\remote_win32.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\common.h">
+    <ClInclude Include="..\include\common_generic.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\dll.h">
+    <ClInclude Include="..\include\common_win32.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\pxch_defines.h">
+    <ClInclude Include="..\include\defines_generic.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\log.h">
+    <ClInclude Include="..\include\defines_win32.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\ipc.h">
+    <ClInclude Include="..\include\hookdll_generic.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\remote.h">
+    <ClInclude Include="..\include\hookdll_win32.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\include_generic.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\includes_win32.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\ipc_generic.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\ipc_win32.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\log_generic.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\log_win32.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

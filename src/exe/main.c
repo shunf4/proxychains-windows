@@ -1,17 +1,16 @@
-﻿#include "stdafx.h"
+﻿#define PXCH_DO_NOT_INCLUDE_STRSAFE_NOW
+#include "includes_win32.h"
 #include <Shlwapi.h>
-#ifdef __CYGWIN__
-#include <strsafe.h>
-#endif
-#include <locale.h>
 #include <ShellAPI.h>
 #include <Sddl.h>
 
-#include "pxch_defines.h"
-#include "pxch_hook.h"
-#include "common.h"
-#include "log.h"
-#include "ipc.h"
+#include <strsafe.h>
+
+#include "log_win32.h"
+#include "hookdll_win32.h"
+#include "uthash.h"
+
+
 
 #ifndef __CYGWIN__
 #pragma comment(lib, "Shlwapi.lib")
@@ -339,7 +338,7 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 			int iChildPid = 0;
 			while ((iChildPid = waitpid((pid_t)(-1), 0, WNOHANG)) > 0) { bChild = TRUE; }
 			if (bChild) {
-				// LOGI(L"Cygwin child process exited (between WaitForMultipleObjects()).");
+				// LOGI(L"Cygwin child process exited (between WaitForMultipleObjects()). Master exiting");
 				IF_CYGWIN_EXIT(0);
 			}
 			continue;
@@ -827,7 +826,7 @@ int wmain(int argc, WCHAR* argv[])
 err_get:
 	dwError = GetLastError();
 err:
-	PrintErrorToFile(stderr, dwError);
+	fwprintf(stderr, L"Error: %ls\n", FormatErrorToStr(dwError));
 	return dwError;
 }
 
@@ -836,7 +835,7 @@ err:
 void handle_sigchld(int sig)
 {
 	while (waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
-	LOGI(L"Cygwin child process exited.");
+	LOGI(L"Cygwin child process exited. Master exiting");
 
 	IF_CYGWIN_EXIT(0);
 }
@@ -989,7 +988,7 @@ int main(int argc, char* const argv[], char* const envp[])
 err_get:
 	dwError = GetLastError();
 err:
-	PrintErrorToFile(stderr, dwError);
+	fwprintf(stderr, L"Error: %ls\n", FormatErrorToStr(dwError));
 	return dwError;
 }
 #endif

@@ -18,33 +18,45 @@
     <ClCompile Include="..\src\exe\main.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\stdafx.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\common.h">
+    <ClInclude Include="..\include\ipc_generic.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\dll.h">
+    <ClInclude Include="..\include\ipc_win32.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\pxch_defines.h">
+    <ClInclude Include="..\include\log_generic.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\pxch_hook.h">
+    <ClInclude Include="..\include\log_win32.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\stdafx.h">
+    <ClInclude Include="..\include\uthash.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\log.h">
+    <ClInclude Include="..\include\common_generic.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\ipc.h">
+    <ClInclude Include="..\include\common_win32.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\remote.h">
+    <ClInclude Include="..\include\defines_generic.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\defines_win32.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\hookdll_generic.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\hookdll_win32.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\include_generic.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\includes_win32.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

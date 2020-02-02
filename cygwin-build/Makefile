@@ -2,18 +2,17 @@ SRC_PREFIX = ../src/
 INCLUDE_PREFIX = ../include/
 LIB_PREFIX = ../lib/
 
-AUTO_SRCS = $(sort $(wildcard $(SRC_PREFIX)exe/*.c)) $(sort $(wildcard $(SRC_PREFIX)dll/*.c)) $(sort $(wildcard $(SRC_PREFIX)*.c))
-SRCS = $(AUTO_SRCS) $(SRC_PREFIX)cygwin_strsafe/strsafe.c $(SRC_PREFIX)dll/remote_function/remote_function.c
-#SRCS = $(sort $(wildcard $(SRC_PREFIX)dll/*.c)) $(sort $(wildcard $(SRC_PREFIX)*.c))
-#SRCS = $(sort $(wildcard $(SRC_PREFIX)exe/*.c)) $(sort $(wildcard $(SRC_PREFIX)*.c))
-AUTO_OBJS = $(patsubst $(SRC_PREFIX)%,%,$(AUTO_SRCS:.c=.o))
+SRCS = $(sort $(wildcard $(SRC_PREFIX)cygwin_strsafe/*.c)) $(sort $(wildcard $(SRC_PREFIX)exe/*.c)) $(sort $(wildcard $(SRC_PREFIX)dll/*.c)) $(sort $(wildcard $(SRC_PREFIX)dll/remote_function/*.c)) $(sort $(wildcard $(SRC_PREFIX)*.c))
 OBJS = $(patsubst $(SRC_PREFIX)%,%,$(SRCS:.c=.o))
+
+SPECIAL_SRCS = $(SRC_PREFIX)dll/dllmain.c
+
+AUTO_SRCS = $(filter-out $(SPECIAL_SRCS),$(SRCS))
+AUTO_OBJS = $(patsubst $(SRC_PREFIX)%,%,$(AUTO_SRCS:.c=.o))
 
 DEPS = $(patsubst $(SRC_PREFIX)%,%,$(SRCS:.c=.d))
 
-CFLAGS = -Wall -g -D_UNICODE -DUNICODE -D__STRSAFE__NO_INLINE -D__CRT_STRSAFE_IMPL -I$(INCLUDE_PREFIX)
-CFLAGS_REMOTE_FUNCTION = -Wall -g -D_UNICODE -DUNICODE -D__STRSAFE__NO_INLINE -D__CRT_STRSAFE_IMPL -I$(INCLUDE_PREFIX)
-CFLAGS_STRSAFE = -fgnu89-inline -Wall -Werror -g -D_UNICODE -DUNICODE -I$(INCLUDE_PREFIX)
+CFLAGS = -fgnu89-inline -Wall -g -D_UNICODE -DUNICODE -I$(INCLUDE_PREFIX)
 DEPFLAGS_STEM = -MT $@ -MMD -MP -MF $*.d
 DEPFLAGS_IN_PREREQ = -MT $@ -MMD -MP -MF $(filter %.d,$^)
 
@@ -33,24 +32,16 @@ $(AUTO_OBJS) : %.o : $(SRC_PREFIX)%.c %.d
 	
 $(DEPS) : 
 	
-cygwin_strsafe/strsafe.o : $(SRC_PREFIX)cygwin_strsafe/strsafe.c cygwin_strsafe/strsafe.d
-	$(CC) $(CFLAGS_STRSAFE) $(DEPFLAGS_IN_PREREQ) -c -o$@ $<
-	
-dll/remote_function/remote_function.o : $(SRC_PREFIX)dll/remote_function/remote_function.c dll/remote_function/remote_function.d
-	$(CC) $(CFLAGS_REMOTE_FUNCTION) $(DEPFLAGS_IN_PREREQ) -c -o$@ $<
-	
-$(DLL_PATH) : $(SRC_PREFIX)dll/dllmain.c dll/remote_function/remote_function.o common.o cygwin_strsafe/strsafe.o log.o dll/dllmain.d
-	$(CC) $(CFLAGS) $(DEPFLAGS_IN_PREREQ) -DPXCHDLL_EXPORTS -shared -o$@ \
-		-Wl,--out-implib=$(DLL_IMPLIB_PATH) \
-		$(filter %.c %.o %.a %.lib,$^) -L$(LIB_PREFIX) -lntdllcrt -lMinHookx64
+$(DLL_PATH) : $(SRC_PREFIX)dll/dllmain.c $(SRC_PREFIX)log_func_impl.c dll/hook_cygwin.o dll/hook_win32.o dll/remote_function/remote_function.o common.o ipc_message.o log.o cygwin_strsafe/strsafe.o dll/dllmain.d
+	$(CC) $(CFLAGS) $(DEPFLAGS_IN_PREREQ) -shared -DPXCHDLL_EXPORTS -o$@ -Wl,--out-implib=$(DLL_IMPLIB_PATH) -L$(LIB_PREFIX) $(filter %.c %.o %.a %.lib,$^) -lntdllcrt -lMinHookx64 -lws2_32
 		
-	#	-Wl,--export-all-symbols \
-	#	-Wl,--enable-auto-import \
+#	-Wl,--export-all-symbols \
+#	-Wl,--enable-auto-import \
 	
 $(DLL_IMPLIB_PATH) : $(DLL_PATH)
 
-$(EXEC_PATH) : $(SRC_PREFIX)exe/main.c common.o log.o cygwin_strsafe/strsafe.o log.o $(DLL_IMPLIB_PATH) exe/main.d
-	$(CC) $(CFLAGS) $(DEPFLAGS_IN_PREREQ) -o$@ $(filter %.c %.o %.a %.lib,$^) -lntdllcrt -lkernel32 -lshlwapi -lcygwin
+$(EXEC_PATH) : exe/main.o common.o ipc_message.o log.o cygwin_strsafe/strsafe.o $(DLL_IMPLIB_PATH)
+	$(CC) -o$@ $^ -lntdllcrt -lkernel32 -lshlwapi -ladvapi32 -lcygwin
 
 .PHONY : clean
 

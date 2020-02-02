@@ -1,4 +1,17 @@
-﻿#include "stdafx.h"
+﻿#include "log_win32.h"
 
-#include "common.h"
-#include "log.h"
+#if PXCHLOG_LEVEL >= PXCHLOG_LEVEL_CRITICAL
+SYSTEMTIME log_time;
+WCHAR log_szLogLine[PXCHLOG_IPC_BUFSIZE] = { 0 };
+SYSTEMTIME log_time;
+IPC_MSGBUF log_msg;
+IPC_MSGBUF log_respMsg;
+DWORD log_cbMsgSize;
+DWORD log_cbRespMsgSize;
+DWORD log_pid;
+
+#ifdef __CYGWIN__
+pid_t log_cyg_pid;
+#endif
+
+#endif

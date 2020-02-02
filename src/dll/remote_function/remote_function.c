@@ -1,7 +1,5 @@
-﻿#include "stdafx.h"
-#include "pxch_defines.h"
-#include "pxch_hook.h"
-#include "remote.h"
+﻿#include "defines_win32.h"
+#include "remote_win32.h"
 
 DWORD __stdcall LoadHookDll(LPVOID* pArg)
 {
@@ -10,11 +8,7 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 	HMODULE hHookDllModule;
 	HMODULE hMinHookDllModule = NULL;
 	FARPROC fpInitFunc;
-	FARPROC fpSetCurrentlyInWinapiCall;
-
-#if defined(__CYGWIN__) && 0
-	return 0;
-#endif
+	LPVOID pbCurrentlyInWinapiCall;
 
 	DBGCHR('A');
 
@@ -25,15 +19,17 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 
 	DBGCHR('B');
 
+#ifndef __CYGWIN__
 	do {
 		HMODULE hCygwinModule;
 
 		hCygwinModule = pRemoteData->fpGetModuleHandleW(pRemoteData->szCygwin1ModuleName);
-		if (hCygwinModule && PXCHDLL_NOT_SUPPORTING_CYGWIN) {
+		if (hCygwinModule) {
 			pRemoteData->dwErrorCode = ERROR_NOT_SUPPORTED;
 			return ERROR_NOT_SUPPORTED;
 		}
 	} while (0);
+#endif
 
 	DBGCHR('C');
 
@@ -66,9 +62,9 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 	DBGCHR('F');
 
 	pRemoteData->dwErrorCode = ERROR_PROC_NOT_FOUND;
-	fpSetCurrentlyInWinapiCall = pRemoteData->fpGetProcAddress(hHookDllModule, pRemoteData->szCIWCVarName);
-	if (!fpSetCurrentlyInWinapiCall) goto err_getprocaddress;
-	*(BOOL*)fpSetCurrentlyInWinapiCall = TRUE;
+	pbCurrentlyInWinapiCall = pRemoteData->fpGetProcAddress(hHookDllModule, pRemoteData->szCIWCVarName);
+	if (!pbCurrentlyInWinapiCall) goto err_getprocaddress;
+	*(BOOL*)pbCurrentlyInWinapiCall = TRUE;
 
 	DBGCHR('G');
 
@@ -88,7 +84,7 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 	DBGCHR('J');
 
 	pRemoteData->dwErrorCode = 0;
-	*(BOOL*)fpSetCurrentlyInWinapiCall = FALSE;
+	*(BOOL*)pbCurrentlyInWinapiCall = FALSE;
 
 	DBGCHR('K');
 

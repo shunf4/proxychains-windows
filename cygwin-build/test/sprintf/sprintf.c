@@ -6,6 +6,7 @@
 int main()
 {
     const char* pstr = "\xe5\x86\xaf\xe8\x88\x9c";
+    __VALIST
     wchar_t xxx[100];
     setlocale(LC_ALL, "");
     printf(pstr);
