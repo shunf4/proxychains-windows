@@ -767,7 +767,7 @@ int wmain(int argc, WCHAR* argv[])
 
 	setvbuf(stderr, NULL, _IOFBF, 65536);
 
-	LOGI(L"Locale: %S", setlocale(LC_ALL, ""));
+	LOGI(L"Locale: " WPRS, setlocale(LC_ALL, ""));
 	SetConsoleCtrlHandler(CtrlHandler, TRUE);
 	
 	if ((dwError = InitData()) != NOERROR) goto err;
@@ -901,7 +901,7 @@ int main(int argc, char* const argv[], char* const envp[])
 		MultiByteToWideChar(CP_UTF8, 0, argv[i], -1, wargv[i], iNeededChars);
 	}
 
-	LOGI(L"Locale: %S", setlocale(LC_ALL, ""));
+	LOGI(L"Locale: " WPRS, setlocale(LC_ALL, ""));
 
 	if ((dwError = InitData()) != NOERROR) goto err;
 	if ((dwError = LoadConfiguration(&config)) != NOERROR) goto err;
@@ -916,7 +916,7 @@ int main(int argc, char* const argv[], char* const envp[])
 	LOGI(L"Config Path: %ls", config.szConfigPath);
 	LOGI(L"Pipe name: %ls", config.szIpcPipeName);
 	LOGI(L"Quiet: %ls", config.bQuiet ? L"Y" : L"N");
-	LOGI(L"argv[iCommandStart]: %S", argv[iCommandStart]);
+	LOGI(L"argv[iCommandStart]: " WPRS, argv[iCommandStart]);
 
 	if (CreateThread(0, 0, &ServerLoop, g_pPxchConfig, 0, &dwTid) == NULL) goto err_get;
 	LOGI(L"IPC Server Tid: " WPRDW, dwTid);

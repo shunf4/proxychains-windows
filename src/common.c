@@ -1,34 +1,37 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include <strsafe.h>
 #include "pxch_defines.h"
 #include "common.h"
 #include "ipc.h"
 
 WCHAR szErrorMessage[MAX_ERROR_MESSAGE_BUFSIZE];
-static WCHAR szFwprintfWBuf[MAX_FWPRINTF_BUFSIZE];
+static WCHAR szFwprintfWbuf[MAX_FWPRINTF_BUFSIZE];
 static CHAR szFwprintfBuf[MAX_FWPRINTF_BUFSIZE];
 
 VOID StdWprintf(DWORD dwStdHandle, const WCHAR* fmt, ...)
 {
 	HANDLE h;
-	STRSAFE_LPWSTR pEnd;
+	STRSAFE_LPWSTR pEnd = szFwprintfWbuf;
 	int iBufSize;
 	DWORD cbWritten;
 
-	szFwprintfWBuf[0] = L'\0';
+	szFwprintfWbuf[0] = L'\0';
 	szFwprintfBuf[0] = '\0';
 
-    va_list arg_ptr;
-    va_start(arg_ptr, fmt);
-	StringCchVPrintfExW(szFwprintfWBuf, _countof(szFwprintfWBuf), &pEnd, NULL, 0, fmt, arg_ptr);
-    va_end(arg_ptr);
+    va_list args;
+    va_start(args, fmt);
+#ifdef __CYGWIN__
+	pEnd = szFwprintfWbuf + newlib_vswprintf(szFwprintfWbuf, _countof(szFwprintfWbuf), fmt, args);
+#else
+	StringCchVPrintfExW(szFwprintfWbuf, _countof(szFwprintfWbuf), &pEnd, NULL, 0, fmt, args);
+#endif
+    va_end(args);
 
-	/*hh = CreateFileW(L"a.txt", FILE_APPEND_DATA, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (hh && hh != INVALID_HANDLE_VALUE) { WriteFile(hh, szFwprintfWBuf, (int)(pEnd - szFwprintfWBuf) * sizeof(WCHAR), &cbWritten, NULL); CloseHandle(hh); }*/
+	if (pEnd < szFwprintfWbuf) pEnd = szFwprintfWbuf;
 
-	if (szFwprintfWBuf[_countof(szFwprintfWBuf) - 2]) szFwprintfWBuf[_countof(szFwprintfWBuf) - 2] = L'\n';
-	szFwprintfWBuf[_countof(szFwprintfWBuf) - 1] = L'\0';
-	iBufSize = WideCharToMultiByte(CP_ACP, 0, szFwprintfWBuf, (int)(pEnd - szFwprintfWBuf), szFwprintfBuf, _countof(szFwprintfBuf), NULL, NULL);
+	if (szFwprintfWbuf[_countof(szFwprintfWbuf) - 2]) szFwprintfWbuf[_countof(szFwprintfWbuf) - 2] = L'\n';
+	szFwprintfWbuf[_countof(szFwprintfWbuf) - 1] = L'\0';
+	iBufSize = WideCharToMultiByte(CP_ACP, 0, szFwprintfWbuf, (int)(pEnd - szFwprintfWbuf), szFwprintfBuf, _countof(szFwprintfBuf), NULL, NULL);
 	szFwprintfBuf[_countof(szFwprintfBuf) - 1] = '\0';
 
 	h = GetStdHandle(dwStdHandle);

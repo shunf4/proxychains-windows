@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 
 #include "pxch_defines.h"
 #include "pxch_hook.h"
@@ -372,7 +372,7 @@ PROXY_FUNC(CreateProcessA)
 		CopyMemory(lpProcessInformation, &processInformation, sizeof(PROCESS_INFORMATION));
 	}
 
-	LOGI(L"CreateProcessA: %S, %S", lpApplicationName, lpCommandLine);
+	LOGI(L"CreateProcessA: " WPRS L", " WPRS, lpApplicationName, lpCommandLine);
 
 	if (!bRet) goto err_orig;
 

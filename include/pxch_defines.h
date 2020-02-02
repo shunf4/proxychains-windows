@@ -6,19 +6,6 @@
 #include "stdafx.h"
 #include "dll.h"
 
-#ifdef _LP64
-#define PRIdword  "u"
-#define PRIudword "u"
-#else
-#define PRIdword  "lu"
-#define PRIudword "lu"
-#endif
-
-#define _PREFIX_L(s) L ## s
-#define PREFIX_L(s) _PREFIX_L(s)
-
-#define WPRDW L"%" PREFIX_L(PRIdword)
-
 // In characters -- start
 #define MAX_DLL_PATH_BUFSIZE 512
 #define MAX_CONFIG_FILE_PATH_BUFSIZE 512

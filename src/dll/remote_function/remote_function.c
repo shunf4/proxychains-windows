@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "pxch_defines.h"
 #include "pxch_hook.h"
 #include "remote.h"
