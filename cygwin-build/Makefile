@@ -40,7 +40,7 @@ $(DLL_PATH) : $(SRC_PREFIX)dll/dllmain.c $(SRC_PREFIX)log_func_impl.c dll/hook_c
 	
 $(DLL_IMPLIB_PATH) : $(DLL_PATH)
 
-$(EXEC_PATH) : exe/main.o common.o ipc_message.o log.o cygwin_strsafe/strsafe.o $(DLL_IMPLIB_PATH)
+$(EXEC_PATH) : exe/main.o exe/args_and_config.o exe/ipc_proc_bookkeeping.o common.o ipc_message.o log.o cygwin_strsafe/strsafe.o $(DLL_IMPLIB_PATH)
 	$(CC) -o$@ $^ -lntdllcrt -lkernel32 -lshlwapi -ladvapi32 -lcygwin
 
 .PHONY : clean

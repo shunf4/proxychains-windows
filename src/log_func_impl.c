@@ -5,7 +5,7 @@ void pxchlog_ipc_func_e(const wchar_t* prefix_fmt, const wchar_t* fmt, ...)
     va_list args;
 
     PXCHLOG_IPC_PID_QUERY();
-    if (log_pid == g_pPxchConfig->dwMasterProcessId) {
+    if (g_pPxchConfig && log_pid == g_pPxchConfig->dwMasterProcessId) {
         GetLocalTime(&log_time);
         StdWprintf(STD_ERROR_HANDLE, prefix_fmt, PXCHLOG_IPC_PID_VALUE, log_time.wYear, log_time.wMonth, log_time.wDay, log_time.wHour, log_time.wMinute, log_time.wSecond);
         va_start(args, fmt);
@@ -36,7 +36,7 @@ void pxchlog_ipc_func(const wchar_t* prefix_fmt, const wchar_t* fmt, ...)
     va_list args;
 
     PXCHLOG_IPC_PID_QUERY();
-    if (log_pid == g_pPxchConfig->dwMasterProcessId) {
+    if (g_pPxchConfig && log_pid == g_pPxchConfig->dwMasterProcessId) {
         GetLocalTime(&log_time);
         StdWprintf(STD_OUTPUT_HANDLE, prefix_fmt, PXCHLOG_IPC_PID_VALUE, log_time.wYear, log_time.wMonth, log_time.wDay, log_time.wHour, log_time.wMinute, log_time.wSecond);
         va_start(args, fmt);

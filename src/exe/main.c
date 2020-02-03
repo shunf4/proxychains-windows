@@ -1,6 +1,5 @@
 ﻿#define PXCH_DO_NOT_INCLUDE_STRSAFE_NOW
 #include "includes_win32.h"
-#include <Shlwapi.h>
 #include <ShellAPI.h>
 #include <Sddl.h>
 
@@ -8,13 +7,7 @@
 
 #include "log_win32.h"
 #include "hookdll_win32.h"
-#include "uthash.h"
-
-
-
-#ifndef __CYGWIN__
-#pragma comment(lib, "Shlwapi.lib")
-#endif
+#include "proc_bookkeeping_win32.h"
 
 #ifdef __CYGWIN__
 #include <unistd.h>
@@ -24,205 +17,8 @@
 #include <spawn.h>
 #endif
 
-typedef int IP_ADDRESS;
 
-typedef DWORD pid_key_t;
-typedef struct _ip_dl_element_t {
-	IP_ADDRESS ip;
-	struct _ip_dl_element_t* prev;
-	struct _ip_dl_element_t* next;
-} ip_dl_element_t;
-
-typedef struct {
-	REPORTED_CHILD_DATA data;
-	ip_dl_element_t* fakeIps;
-
-	UT_hash_handle hh;
-} tab_per_process_t;
-
-static tab_per_process_t* g_tabPerProcess;
-HANDLE g_hDataMutex;
-
-typedef struct {
-	IP_ADDRESS ip;	// Key
-	WCHAR szHostname[MAX_HOSTNAME_BUFSIZE];
-
-	UT_hash_handle hh;
-} tab_fake_ip_hostname_t;
-
-static tab_fake_ip_hostname_t* g_tabFakeIpHostname;
-
-
-typedef struct _IPC_INSTANCE {
-	OVERLAPPED oOverlap;
-	HANDLE hPipe;
-
-	IPC_MSGBUF chReadBuf;
-	DWORD cbRead;
-
-	IPC_MSGBUF chWriteBuf;
-	DWORD cbToWrite;
-
-	DWORD dwState;
-
-	BOOL bPending;
-
-} IPC_INSTANCE;
-
-#define LOCKED(proc) do { \
-	DWORD dwWaitResult; \
-	DWORD dwErrorCode; \
-	DWORD dwReturn = 0; \
-	 \
-	dwWaitResult = WaitForSingleObject(g_hDataMutex, INFINITE); \
-	switch (dwWaitResult) \
-	{ \
-	case WAIT_OBJECT_0: \
-	{ \
-		LOGV(L"Mutex fetched."); \
-		proc \
-	after_proc: \
-		if (!ReleaseMutex(g_hDataMutex)) { \
-			dwErrorCode = GetLastError(); \
-			LOGC(L"Release mutex error: %ls", FormatErrorToStr(dwErrorCode)); \
-			exit(dwErrorCode); \
-		} \
-		return dwReturn; \
-	} \
-	 \
-	case WAIT_ABANDONED: \
-		LOGC(L"Mutex abandoned!"); \
-		exit(ERROR_ABANDONED_WAIT_0); \
-		break; \
-	 \
-	default: \
-		dwErrorCode = GetLastError(); \
-		LOGW(L"Wait for mutex error: " WPRDW L", %ls", dwWaitResult, FormatErrorToStr(dwErrorCode)); \
-		return dwErrorCode; \
-	} \
-} while(0)
-
-
-DWORD ChildProcessExitedCallbackWorker(PVOID lpParameter, BOOLEAN TimerOrWaitFired)
-{
-	LOCKED({
-		tab_per_process_t * entry = (tab_per_process_t*)lpParameter;
-		HASH_DELETE(hh, g_tabPerProcess, entry);
-		LOGI(L"Child process pid " WPRDW L" exited.", entry->data.dwPid);
-		HeapFree(GetProcessHeap(), 0, entry);
-
-		if (g_tabPerProcess == NULL) {
-			LOGI(L"All windows descendant process exited.");
-			IF_WIN32_EXIT(0);
-		}
-
-		goto after_proc;
-	});
-}
-
-
-VOID CALLBACK ChildProcessExitedCallback(
-	_In_ PVOID   lpParameter,
-	_In_ BOOLEAN TimerOrWaitFired
-)
-{
-	ChildProcessExitedCallbackWorker(lpParameter, TimerOrWaitFired);
-}
-
-DWORD RegisterNewChildProcess(const REPORTED_CHILD_DATA* pChildData)
-{
-	LOCKED({
-		tab_per_process_t* entry;
-		HANDLE hWaitHandle;
-		HANDLE hChildHandle;
-
-		LOGV(L"Before HeapAlloc...");
-		entry = (tab_per_process_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(tab_per_process_t));
-		LOGV(L"After HeapAlloc...");
-		if ((hChildHandle = OpenProcess(SYNCHRONIZE, FALSE, pChildData->dwPid)) == NULL) {
-			dwReturn = GetLastError();
-			LOGC(L"OpenProcess() error: %ls", FormatErrorToStr(dwReturn));
-			goto after_proc;
-		}
-		LOGV(L"After OpenProcess...");
-
-		if (!RegisterWaitForSingleObject(&hWaitHandle, hChildHandle, &ChildProcessExitedCallback, entry, INFINITE, WT_EXECUTELONGFUNCTION | WT_EXECUTEONLYONCE)) {
-			dwReturn = GetLastError();
-			LOGC(L"RegisterWaitForSingleObject() error: %ls", FormatErrorToStr(dwReturn));
-			goto after_proc;
-		}
-		LOGV(L"After RegisterWaitForSingleObject...");
-		entry->data = *pChildData;
-		LOGV(L"After entry->data = *pChildData;");
-		HASH_ADD(hh, g_tabPerProcess, data, sizeof(pid_key_t), entry);
-		LOGV(L"After HASH_ADD");
-		LOGI(L"Registered child pid " WPRDW, pChildData->dwPid);
-	});
-}
-
-DWORD QueryChildStorage(REPORTED_CHILD_DATA* pChildData)
-{
-	LOCKED({
-		tab_per_process_t* entry;
-		HASH_FIND(hh, g_tabPerProcess, &pChildData->dwPid, sizeof(pid_key_t), entry);
-		if (entry) {
-			*pChildData = entry->data;
-		}
-
-		goto after_proc;
-	});
-}
-
-DWORD HandleMessage(int i, IPC_INSTANCE* pipc)
-{
-	IPC_MSGBUF* pMsg = (IPC_MSGBUF*)pipc->chReadBuf;
-	OutputDebugStringA("s:start handlemessage");
-
-	if (MsgIsType(WSTR, pMsg)) {
-		OutputDebugStringA("s:message is wstr");
-		WCHAR sz[IPC_BUFSIZE / sizeof(WCHAR)];
-		MessageToWstr(sz, *pMsg, pipc->cbRead);
-		StdWprintf(STD_ERROR_HANDLE, L"%ls", sz);
-		StdFlush(STD_ERROR_HANDLE);
-
-		goto after_handling_resp_ok;
-	}
-
-	if (MsgIsType(CHILDDATA, pMsg)) {
-		OutputDebugStringA("s:message is childdata");
-		REPORTED_CHILD_DATA childData;
-		// LOGV(L"Message is CHILDDATA");
-		MessageToChildData(&childData, *pMsg, pipc->cbRead);
-		// LOGD(L"Child process pid " WPRDW L" created.", childData.dwPid);
-		// LOGV(L"RegisterNewChildProcess...");
-		RegisterNewChildProcess(&childData);
-		// LOGV(L"RegisterNewChildProcess done.");
-		goto after_handling_resp_ok;
-	}
-
-	if (MsgIsType(QUERYSTORAGE, pMsg)) {
-		OutputDebugStringA("s:message is querystorage");
-		REPORTED_CHILD_DATA childData = { 0 };
-		// LOGV(L"Message is QUERYSTORAGE");
-		MessageToQueryStorage(&childData.dwPid, *pMsg, pipc->cbRead);
-		QueryChildStorage(&childData);
-		ChildDataToMessage(pipc->chWriteBuf, &pipc->cbToWrite, &childData);
-		goto ret;
-	}
-
-	goto after_handling_not_recognized;
-
-after_handling_resp_ok:
-	WstrToMessage(pipc->chWriteBuf, &pipc->cbToWrite, L"OK");
-	return 0;
-
-after_handling_not_recognized:
-	WstrToMessage(pipc->chWriteBuf, &pipc->cbToWrite, L"NOT RECOGNIZED");
-	return 0;
-
-ret:
-	return 0;
-}
+DWORD HandleMessage(int i, IPC_INSTANCE* pipc);
 
 DWORD ConnectToNewClient(HANDLE hPipe, LPOVERLAPPED lpo)
 {
@@ -323,12 +119,9 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 		exit(dwErrorCode);
 	}
 	// CloseHandle(g_hIpcServerSemaphore);
-	OutputDebugStringA("s:signal1");
-	// LOGV(L"ServerLoop: Signaled semaphore.");
-	OutputDebugStringA("s:signal");
+	LOGV(L"ServerLoop: Signaled semaphore.");
 
 	while (1) {
-		OutputDebugStringA("s:before wait");
 #ifndef __CYGWIN__
 		dwWait = WaitForMultipleObjects(IPC_INSTANCE_NUM, hEvents, FALSE, INFINITE);
 #else
@@ -338,41 +131,36 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 			int iChildPid = 0;
 			while ((iChildPid = waitpid((pid_t)(-1), 0, WNOHANG)) > 0) { bChild = TRUE; }
 			if (bChild) {
-				// LOGI(L"Cygwin child process exited (between WaitForMultipleObjects()). Master exiting");
+				LOGI(L"Cygwin child process exited (between WaitForMultipleObjects()). Master exiting");
 				IF_CYGWIN_EXIT(0);
 			}
 			continue;
 		}
 #endif
-		OutputDebugStringA("s:after wait");
 		i = dwWait - WAIT_OBJECT_0;
 		if (i < 0 || i >= IPC_INSTANCE_NUM) goto err_wait_out_of_range;
 
 		// If this pipe is just awaken from pending state
 		if (ipc[i].bPending) {
-			OutputDebugStringA("s:before GetOverlappedResult");
 			bReturn = GetOverlappedResult(ipc[i].hPipe, &ipc[i].oOverlap, &cbReturn, FALSE);
-			OutputDebugStringA("s:after GetOverlappedResult");
 
 			switch (ipc[i].dwState) {
 			case IPC_STATE_CONNECTING:
 				if (!bReturn) goto err_connect_overlapped_error;
-				OutputDebugStringA("s:connected");
-				// LOGV(L"[IPC%03d] named pipe connected.", i);
+				LOGV(L"[IPC%03d] named pipe connected.", i);
 				ipc[i].dwState = IPC_STATE_READING;
-				OutputDebugStringA("s:after set dwState");
 				break;
 
 			case IPC_STATE_READING:
 				if (!bReturn || cbReturn == 0) {
 					dwErrorCode = GetLastError();
 					if (dwErrorCode != ERROR_BROKEN_PIPE) {
-						// LOGE(L"[IPC%03d] GetOverlappedResult() error(" WPRDW L") or read 0 bytes(" WPRDW L"), disconnect and reconnecting", i, dwErrorCode, cbReturn);
+						LOGE(L"[IPC%03d] GetOverlappedResult() error(" WPRDW L") or read 0 bytes(" WPRDW L"), disconnect and reconnecting", i, dwErrorCode, cbReturn);
 					}
 					if ((dwErrorCode = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwErrorCode;
 					continue;
 				}
-				// LOGV(L"[IPC%03d] ReadFile() received msglen = " WPRDW L"", i, cbReturn);
+				LOGV(L"[IPC%03d] ReadFile() received msglen = " WPRDW L"", i, cbReturn);
 				ipc[i].cbRead = cbReturn;
 				ipc[i].dwState = IPC_STATE_WRITING;
 				break;
@@ -381,17 +169,17 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 				if (!bReturn || cbReturn != ipc[i].cbToWrite) {
 					dwErrorCode = GetLastError();
 					if (dwErrorCode != ERROR_BROKEN_PIPE) {
-						// LOGE(L"[IPC%03d] GetOverlappedResult() error(" WPRDW L") or wrote " WPRDW L" bytes (!= " WPRDW L" as expected), disconnect and reconnecting", i, dwErrorCode, cbReturn, ipc[i].cbToWrite);
+						LOGE(L"[IPC%03d] GetOverlappedResult() error(" WPRDW L") or wrote " WPRDW L" bytes (!= " WPRDW L" as expected), disconnect and reconnecting", i, dwErrorCode, cbReturn, ipc[i].cbToWrite);
 					}
 					if ((dwErrorCode = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwErrorCode;
 					continue;
 				}
-				// LOGV(L"[IPC%03d] WriteFile() sent msglen = " WPRDW L"", i, cbReturn);
+				LOGV(L"[IPC%03d] WriteFile() sent msglen = " WPRDW L"", i, cbReturn);
 				ipc[i].dwState = IPC_STATE_READING;
 				break;
 
 			default:
-				// LOGE(L"[IPC%03d] Invalid pipe state: " WPRDW L"", i, ipc[i].dwState);
+				LOGE(L"[IPC%03d] Invalid pipe state: " WPRDW L"", i, ipc[i].dwState);
 				return ERROR_INVALID_STATE;
 			}
 		}
@@ -399,13 +187,11 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 		// Last operation has finished, now dwState stores what to do next
 		switch (ipc[i].dwState) {
 		case IPC_STATE_READING:
-			OutputDebugStringA("s:before ReadFile");
 			bReturn = ReadFile(ipc[i].hPipe, ipc[i].chReadBuf, IPC_BUFSIZE, &ipc[i].cbRead, &ipc[i].oOverlap);
-			OutputDebugStringA("s:after ReadFile");
 
 			// Finished instantly
 			if (bReturn && ipc[i].cbRead != 0) {
-				// LOGV(L"[IPC%03d] ReadFile() received msglen = " WPRDW L" (immediately)", i, ipc[i].cbRead);
+				LOGV(L"[IPC%03d] ReadFile() received msglen = " WPRDW L" (immediately)", i, ipc[i].cbRead);
 				ipc[i].bPending = FALSE;
 				ipc[i].dwState = IPC_STATE_WRITING;
 				continue;
@@ -419,30 +205,28 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 			}
 
 			if (dwErrorCode != ERROR_BROKEN_PIPE) {
-				// LOGE(L"[IPC%03d] ReadFile() error: %ls or has read 0 bytes; disconnecting and reconnecting", i, FormatErrorToStr(dwErrorCode));
+				LOGE(L"[IPC%03d] ReadFile() error: %ls or has read 0 bytes; disconnecting and reconnecting", i, FormatErrorToStr(dwErrorCode));
 			}
 			if ((dwErrorCode = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwErrorCode;
 			break;
 
 		case IPC_STATE_WRITING:
-			OutputDebugStringA("s:before handlemessage");
 			dwErrorCode = HandleMessage(i, &ipc[i]);
-			OutputDebugStringA("s:after handlemessage");
-			// LOGV(L"HandleMessage done.");
+			LOGV(L"HandleMessage done.");
 
 			if (dwErrorCode != NO_ERROR) {
-				// LOGE(L"[IPC%03d] Handle message error: %ls; disconnecting and reconnecting", i, FormatErrorToStr(dwErrorCode));
+				LOGE(L"[IPC%03d] Handle message error: %ls; disconnecting and reconnecting", i, FormatErrorToStr(dwErrorCode));
 				if ((dwErrorCode = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwErrorCode;
 				break;
 			}
 
-			// LOGV(L"[IPC%03d] Writing pipe...", i);
+			LOGV(L"[IPC%03d] Writing pipe...", i);
 			bReturn = WriteFile(ipc[i].hPipe, ipc[i].chWriteBuf, ipc[i].cbToWrite, &cbReturn, &ipc[i].oOverlap);
-			// LOGV(L"[IPC%03d] Written pipe.", i);
+			LOGV(L"[IPC%03d] Written pipe.", i);
 
 			// Finished instantly
 			if (bReturn && cbReturn == ipc[i].cbToWrite) {
-				// LOGV(L"[IPC%03d] WriteFile() sent msglen = " WPRDW L" (immediately)", i, cbReturn);
+				LOGV(L"[IPC%03d] WriteFile() sent msglen = " WPRDW L" (immediately)", i, cbReturn);
 				ipc[i].bPending = FALSE;
 				ipc[i].dwState = IPC_STATE_READING;
 				continue;
@@ -456,13 +240,13 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 			}
 
 			if (dwErrorCode != ERROR_BROKEN_PIPE) {
-				// LOGE(L"[IPC%03d] Write() error: %ls or wrote unexpected bytes(" WPRDW L", different from " WPRDW L" as expected); disconnecting and reconnecting", i, FormatErrorToStr(dwErrorCode), cbReturn, ipc[i].cbToWrite);
+				LOGE(L"[IPC%03d] Write() error: %ls or wrote unexpected bytes(" WPRDW L", different from " WPRDW L" as expected); disconnecting and reconnecting", i, FormatErrorToStr(dwErrorCode), cbReturn, ipc[i].cbToWrite);
 			}
 			if ((dwErrorCode = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwErrorCode;
 			break;
 
 		default:
-			// LOGE(L"[IPC%03d] Invalid pipe state: " WPRDW L"", i, ipc[i].dwState);
+			LOGE(L"[IPC%03d] Invalid pipe state: " WPRDW L"", i, ipc[i].dwState);
 			return ERROR_INVALID_STATE;
 		}
 	}
@@ -527,262 +311,47 @@ BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
 	}
 }
 
-DWORD LoadConfiguration(PROXYCHAINS_CONFIG* pPxchConfig)
+DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig);
+
+DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCommandStart);
+
+DWORD Init(void)
 {
-	DWORD dwRet;
-	FILETIME ft;
-	ULARGE_INTEGER uli;
-	//SIZE_T dirLength = 0;
-
-	pPxchConfig->dwMasterProcessId = GetCurrentProcessId();
-	GetSystemTimeAsFileTime(&ft);
-	uli.HighPart = ft.dwHighDateTime;
-	uli.LowPart = ft.dwLowDateTime;
-	StringCchPrintfW(pPxchConfig->szIpcPipeName, _countof(pPxchConfig->szIpcPipeName), L"\\\\.\\pipe\\proxychains_" WPRDW L"_%" PREFIX_L(PRIu64) L"", GetCurrentProcessId(), uli.QuadPart);
-	pPxchConfig->testNum = 1234;
-
-	dwRet = GetModuleFileNameW(NULL, pPxchConfig->szHookDllPath, MAX_DLL_PATH_BUFSIZE);
-	if (dwRet == 0) goto err_insuf_buf;
-	if (dwRet == MAX_DLL_PATH_BUFSIZE) goto err_insuf_buf;
-
-	if (!PathRemoveFileSpecW(pPxchConfig->szHookDllPath)) goto err_insuf_buf;
-
-	if (FAILED(StringCchCatW(pPxchConfig->szHookDllPath, MAX_DLL_PATH_BUFSIZE, L"\\"))) goto err_insuf_buf;
-	if (FAILED(StringCchCopyW(pPxchConfig->szMinHookDllPath, MAX_DLL_PATH_BUFSIZE, pPxchConfig->szHookDllPath))) goto err_insuf_buf;
-	if (FAILED(StringCchCatW(pPxchConfig->szHookDllPath, MAX_DLL_PATH_BUFSIZE, g_szHookDllFileName))) goto err_insuf_buf;
-	if (FAILED(StringCchCatW(pPxchConfig->szMinHookDllPath, MAX_DLL_PATH_BUFSIZE, g_szMinHookDllFileName))) goto err_insuf_buf;
-
-	if (!PathFileExistsW(pPxchConfig->szHookDllPath)) goto err_dll_not_exist;
-	if (!PathFileExistsW(pPxchConfig->szMinHookDllPath)) pPxchConfig->szMinHookDllPath[0] = L'\0';
-
-	return 0;
-
-	//err_other:
-	//	return GetLastError();
-err_insuf_buf:
-	return ERROR_INSUFFICIENT_BUFFER;
-
-err_dll_not_exist:
-	return ERROR_FILE_NOT_FOUND;
-}
-
-BOOL ArgHasSpecialChar(WCHAR* sz)
-{
-	WCHAR* p = sz;
-	while (*p) {
-		if (*p == L'\t') return TRUE;
-		if (*p == L'\n') return TRUE;
-		if (*p == L'\v') return TRUE;
-		if (*p == L'\"') return TRUE;
-		p++;
-	}
-	return FALSE;
-}
-
-DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCommandStart)
-{
-	int i;
-	int iCountCommands = 0;
-	BOOL bOptionFile = FALSE;
-	int iOptionPrefixLen;
-	BOOL bOptionHasValue;
-	BOOL bOptionsEnd = FALSE;
-	BOOL bForceQuote = FALSE;
-	DWORD dwErrorCode;
-	WCHAR* pWchar;
-	WCHAR* pCommandLine;
-
-	pConfig->szConfigPath[0] = L'\0';
-	pConfig->szCommandLine[0] = L'\0';
-	pCommandLine = pConfig->szCommandLine;
-
-	for (i = 1; i < argc; i++) {
-		pWchar = argv[i];
-		if (!bOptionsEnd) {
-
-		option_value_following:
-			if (bOptionFile) {
-				if (FAILED(StringCchCopyW(pConfig->szConfigPath, _countof(pConfig->szConfigPath), pWchar))) goto err_insuf_buf;
-				bOptionFile = FALSE;
-				continue;
-			}
-
-			bOptionHasValue = FALSE;
-
-			if (wcsncmp(pWchar, L"-f", 2) == 0) {
-				bOptionFile = TRUE;
-				iOptionPrefixLen = 2;
-				bOptionHasValue = TRUE;
-			}
-			else if (wcsncmp(pWchar, L"-q", 2) == 0) {
-				pConfig->bQuiet = TRUE;
-				continue;
-			}
-			else {
-				bOptionsEnd = TRUE;
-				i--;
-				continue;
-			}
-
-			if (bOptionHasValue) {
-				if (wcslen(pWchar) > iOptionPrefixLen) {
-					pWchar += 2;
-					goto option_value_following;
-				}
-				else continue;
-			}
-		}
-		// else
-		// Option Ends, Command starts
-#ifdef __CYGWIN__
-		* piCommandStart = i;
-		return 0;
-#endif
-		iCountCommands++;
-		if (iCountCommands > 1) {
-			if (_countof(pConfig->szCommandLine) - (pCommandLine - pConfig->szCommandLine) - 1 < 1) {
-				goto err_insuf_buf;
-			}
-			*(pCommandLine++) = L' ';
-		}
-		else {
-			WCHAR szExecPath[MAX_COMMAND_EXEC_PATH_BUFSIZE];
-			if (SearchPath(NULL, pWchar, NULL, _countof(szExecPath), szExecPath, NULL) == 0) {
-				if (SearchPath(NULL, pWchar, L".exe", _countof(szExecPath), szExecPath, NULL) == 0) {
-					goto err_get_exec_path;
-				}
-			}
-			pWchar = szExecPath;
-		}
-
-		if (!bForceQuote && *pWchar != L'\0' && !ArgHasSpecialChar(pWchar)) {
-			if (FAILED(StringCchCopyEx(pCommandLine, _countof(pConfig->szCommandLine) - (pCommandLine - pConfig->szCommandLine), pWchar, &pCommandLine, NULL, 0))) goto err_insuf_buf;
-		}
-		else {
-			if (_countof(pConfig->szCommandLine) - (pCommandLine - pConfig->szCommandLine) - 1 < 1) {
-				goto err_insuf_buf;
-			}
-			*(pCommandLine++) = L'"';
-
-			while (*pWchar) {
-				UINT32 uCountBackslashes = 0;
-				while (*pWchar && *pWchar == L'\\') {
-					pWchar++;
-					uCountBackslashes++;
-				}
-				if (*pWchar == L'\0') {
-					UINT32 u;
-					uCountBackslashes *= 2;
-					for (u = 0; u < uCountBackslashes; u++) {
-						if (_countof(pConfig->szCommandLine) - (pCommandLine - pConfig->szCommandLine) - 1 < 1) {
-							goto err_insuf_buf;
-						}
-						*(pCommandLine++) = L'\\';
-					}
-				}
-				else if (*pWchar == L'"') {
-					UINT32 u;
-					uCountBackslashes *= 2;
-					uCountBackslashes += 1;
-					for (u = 0; u < uCountBackslashes + 1; u++) {
-						if (_countof(pConfig->szCommandLine) - (pCommandLine - pConfig->szCommandLine) - 1 < 1) {
-							goto err_insuf_buf;
-						}
-						if (u != uCountBackslashes) {
-							*(pCommandLine++) = L'\\';
-						}
-						else {
-							*(pCommandLine++) = L'"';
-						}
-					}
-				}
-				else {
-					UINT32 u;
-					for (u = 0; u < uCountBackslashes + 1; u++) {
-						if (_countof(pConfig->szCommandLine) - (pCommandLine - pConfig->szCommandLine) - 1 < 1) {
-							goto err_insuf_buf;
-						}
-						if (u != uCountBackslashes) {
-							*(pCommandLine++) = L'\\';
-						}
-						else {
-							*(pCommandLine++) = *pWchar;
-						}
-					}
-				}
-
-				if (*pWchar == L'\0') {
-					break;
-				}
-				pWchar++;
-			}
-			if (_countof(pConfig->szCommandLine) - (pCommandLine - pConfig->szCommandLine) - 1 < 1) {
-				goto err_insuf_buf;
-			}
-			*(pCommandLine++) = L'"';
-		}
-	}
-	*pCommandLine = L'\0';
-
-	if (iCountCommands == 0) {
-		return ERROR_INVALID_COMMAND_LINE;
-	}
-
-	return 0;
-
-err_insuf_buf:
-	LOGE(L"Error when parsing args: Insufficient Buffer");
-	return ERROR_INSUFFICIENT_BUFFER;
-
-err_get_exec_path:
-	dwErrorCode = GetLastError();
-	LOGE(L"Error when parsing args: SearchPath() Failed: %ls", FormatErrorToStr(dwErrorCode));
-	return dwErrorCode;
-}
-
-DWORD InitData(void)
-{
-	g_tabPerProcess = NULL;
-	g_tabFakeIpHostname = NULL;
-
-	if ((g_hDataMutex = CreateMutexW(NULL, FALSE, NULL)) == NULL) return GetLastError();
-	if ((g_hIpcServerSemaphore = CreateSemaphoreW(NULL, 0, 1, NULL)) == NULL) return GetLastError();
-
+	g_dwCurrentProcessIdForVerify = GetCurrentProcessId();
 	return 0;
 }
+
+DWORD InitProcessBookkeeping(void);
 
 #ifndef __CYGWIN__
 
 int wmain(int argc, WCHAR* argv[])
 {
-	PROXYCHAINS_CONFIG config = { 0 };
 	DWORD dwError;
 	DWORD dwTid;
 	STARTUPINFO startupInfo = { 0 };
 	PROCESS_INFORMATION processInformation = { 0 };
 	int iCommandStart;
 
-	g_pPxchConfig = &config;
-
 	setvbuf(stderr, NULL, _IOFBF, 65536);
-
 	LOGI(L"Locale: " WPRS, setlocale(LC_ALL, ""));
-	SetConsoleCtrlHandler(CtrlHandler, TRUE);
-	
-	if ((dwError = InitData()) != NOERROR) goto err;
-	if ((dwError = LoadConfiguration(&config)) != NOERROR) goto err;
+	if ((dwError = Init()) != NOERROR) goto err;
 
-	LOGI(L"DLL Path: %ls", config.szHookDllPath);
-	LOGI(L"MinHook DLL Path: %ls", config.szMinHookDllPath);
+	if ((dwError = InitProcessBookkeeping()) != NOERROR) goto err;
 
-	InitHookForMain(&config);
+	if ((dwError = LoadConfiguration(&g_pPxchConfig)) != NOERROR) goto err;
+
+	LOGI(L"DLL Path: %ls", g_pPxchConfig->szHookDllPath);
+	LOGI(L"MinHook DLL Path: %ls", g_pPxchConfig->szMinHookDllPath);
+
+	InitHookForMain(g_pPxchConfig);
 
 	if ((dwError = ParseArgs(g_pPxchConfig, argc, argv, &iCommandStart)) != NOERROR) goto err;
 
-	LOGI(L"Config Path: %ls", config.szConfigPath);
-	LOGI(L"Pipe name: %ls", config.szIpcPipeName);
-	LOGI(L"Quiet: %ls", config.bQuiet ? L"Y" : L"N");
-	LOGI(L"Command Line: %ls", config.szCommandLine);
+	LOGI(L"Config Path: %ls", g_pPxchConfig->szConfigPath);
+	LOGI(L"Pipe name: %ls", g_pPxchConfig->szIpcPipeName);
+	LOGI(L"Quiet: %ls", g_pPxchConfig->iIsQuiet ? L"Y" : L"N");
+	LOGI(L"Command Line: %ls", g_pPxchConfig->szCommandLine);
 
 	if (CreateThread(0, 0, &ServerLoop, g_pPxchConfig, 0, &dwTid) == NULL) goto err_get;
 	LOGI(L"IPC Server Tid: " WPRDW, dwTid);
@@ -819,7 +388,9 @@ int wmain(int argc, WCHAR* argv[])
 		}
 	}
 
-	if (!ProxyCreateProcessW(NULL, config.szCommandLine, 0, 0, 1, 0, 0, 0, &startupInfo, &processInformation)) goto err_get;
+	if (!ProxyCreateProcessW(NULL, g_pPxchConfig->szCommandLine, 0, 0, 1, 0, 0, 0, &startupInfo, &processInformation)) goto err_get;
+
+	SetConsoleCtrlHandler(CtrlHandler, TRUE);
 	Sleep(INFINITE);
 	return 0;
 
@@ -840,7 +411,8 @@ void handle_sigchld(int sig)
 	IF_CYGWIN_EXIT(0);
 }
 
-void handle_sigint(int sig)
+
+static inline int handle_sigint_worker(int sig)
 {
 	// Once hooked, a cygwin program cannot handle Ctrl-C signal.
 	// Thus we have to implement this to kill everything forked
@@ -851,18 +423,29 @@ void handle_sigint(int sig)
 
 	LOGW(L"[PX:Ctrl-C]");
 	fflush(stderr);
-	HASH_ITER(hh, g_tabPerProcess, current, tmp) {
-		HASH_DELETE(hh, g_tabPerProcess, current);
-		h = OpenProcess(SYNCHRONIZE | PROCESS_TERMINATE, TRUE, current->data.dwPid);
-		if ((h != NULL || h != INVALID_HANDLE_VALUE) && TerminateProcess(h, 0)) {
-			LOGW(L"Killed WINPID " WPRDW, current->data.dwPid);
+
+	LOCKED({
+		HASH_ITER(hh, g_tabPerProcess, current, tmp) {
+			HASH_DELETE(hh, g_tabPerProcess, current);
+			h = OpenProcess(SYNCHRONIZE | PROCESS_TERMINATE, TRUE, current->data.dwPid);
+			if ((h != NULL || h != INVALID_HANDLE_VALUE) && TerminateProcess(h, 0)) {
+				LOGW(L"Killed WINPID " WPRDW, current->data.dwPid);
+			}
+			else {
+				LOGW(L"Unable to kill WINPID " WPRDW, current->data.dwPid);
+			}
+			HeapFree(GetProcessHeap(), 0, current);
 		}
-		else {
-			LOGW(L"Unable to kill WINPID " WPRDW, current->data.dwPid);
-		}
-		HeapFree(GetProcessHeap(), 0, current);
-	}
-	IF_CYGWIN_EXIT(0);
+		IF_CYGWIN_EXIT(0);
+
+		goto after_proc;
+	});
+}
+
+
+void handle_sigint(int sig)
+{
+	handle_sigint_worker(sig);
 }
 
 DWORD WINAPI CygwinSpawn(LPVOID lpParam)
@@ -881,7 +464,6 @@ DWORD WINAPI CygwinSpawn(LPVOID lpParam)
 
 int main(int argc, char* const argv[], char* const envp[])
 {
-	PROXYCHAINS_CONFIG config = { 0 };
 	DWORD dwError = 0;
 	DWORD dwTid;
 	int iCommandStart;
@@ -891,7 +473,6 @@ int main(int argc, char* const argv[], char* const envp[])
 	WCHAR** wargv = malloc(argc * sizeof(WCHAR*));
 	const void* ctx[2];
 
-	g_pPxchConfig = &config;
 	setvbuf(stderr, NULL, _IOFBF, 65536);
 
 	for (i = 0; i < argc; i++) {
@@ -902,19 +483,20 @@ int main(int argc, char* const argv[], char* const envp[])
 
 	LOGI(L"Locale: " WPRS, setlocale(LC_ALL, ""));
 
-	if ((dwError = InitData()) != NOERROR) goto err;
-	if ((dwError = LoadConfiguration(&config)) != NOERROR) goto err;
+	if ((dwError = Init()) != NOERROR) goto err;
+	if ((dwError = InitProcessBookkeeping()) != NOERROR) goto err;
+	if ((dwError = LoadConfiguration(&g_pPxchConfig)) != NOERROR) goto err;
 
-	LOGI(L"DLL Path: %ls", config.szHookDllPath);
-	LOGI(L"MinHook DLL Path: %ls", config.szMinHookDllPath);
+	LOGI(L"DLL Path: %ls", g_pPxchConfig->szHookDllPath);
+	LOGI(L"MinHook DLL Path: %ls", g_pPxchConfig->szMinHookDllPath);
 
-	InitHookForMain(&config);
+	InitHookForMain(g_pPxchConfig);
 
 	if ((dwError = ParseArgs(g_pPxchConfig, argc, wargv, &iCommandStart)) != NOERROR) goto err;
 
-	LOGI(L"Config Path: %ls", config.szConfigPath);
-	LOGI(L"Pipe name: %ls", config.szIpcPipeName);
-	LOGI(L"Quiet: %ls", config.bQuiet ? L"Y" : L"N");
+	LOGI(L"Config Path: %ls", g_pPxchConfig->szConfigPath);
+	LOGI(L"Pipe name: %ls", g_pPxchConfig->szIpcPipeName);
+	LOGI(L"Quiet: %ls", g_pPxchConfig->iIsQuiet ? L"Y" : L"N");
 	LOGI(L"argv[iCommandStart]: " WPRS, argv[iCommandStart]);
 
 	if (CreateThread(0, 0, &ServerLoop, g_pPxchConfig, 0, &dwTid) == NULL) goto err_get;
@@ -956,7 +538,7 @@ int main(int argc, char* const argv[], char* const envp[])
 	ctx[1] = envp;
 
 	// if (CreateThread(0, 0, &CygwinSpawn, ctx, 0, &dwTid) == NULL) goto err_get;
-	// LOGI(L"Cygwin spawn Tid: " WPRDW, dwTid);
+	LOGI(L"Cygwin spawn Tid: " WPRDW, dwTid);
 	
 	CygwinSpawn(ctx);
 	// i = posix_spawnp(&child_pid, &argv[iCommandStart], NULL, NULL, p_argv_command_start, p_envp);

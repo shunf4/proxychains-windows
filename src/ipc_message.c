@@ -5,7 +5,7 @@ PXCH_UINT32 WstrToMessage(IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, 
 	IPC_MSGHDR_WSTR* pHdr = (IPC_MSGHDR_WSTR*)chMessageBuf;
 	PWCHAR szWstrEnd;
 
-	pHdr->u32Tag = IPC_MSGTYPE_WSTR;
+	pHdr->dwTag = IPC_MSGTYPE_WSTR;
 	if (FAILED(StringCchCopyExW((PWSTR)(chMessageBuf + sizeof(IPC_MSGHDR_WSTR)), (sizeof(IPC_MSGBUF) - sizeof(IPC_MSGHDR_WSTR)) / sizeof(WCHAR), szWstr, &szWstrEnd, NULL, 0))) goto err_copy;
 	pHdr->cchLength = (DWORD)(((char*)szWstrEnd - (chMessageBuf + sizeof(IPC_MSGHDR_WSTR))) / sizeof(WCHAR));
 	*pcbMessageSize = (DWORD)((char*)szWstrEnd - chMessageBuf);
@@ -32,7 +32,7 @@ DWORD ChildDataToMessage(IPC_MSGBUF chMessageBuf, DWORD* pcbMessageSize, const R
 {
 	IPC_MSGHDR_CHILDDATA* pHdr = (IPC_MSGHDR_CHILDDATA*)chMessageBuf;
 
-	pHdr->u32Tag = IPC_MSGTYPE_CHILDDATA;
+	pHdr->dwTag = IPC_MSGTYPE_CHILDDATA;
 	CopyMemory(&pHdr->childData, pChildData, sizeof(REPORTED_CHILD_DATA));
 	*pcbMessageSize = sizeof(IPC_MSGHDR_CHILDDATA);
 	return 0;
@@ -50,7 +50,7 @@ DWORD QueryStorageToMessage(IPC_MSGBUF chMessageBuf, DWORD* pcbMessageSize, DWOR
 {
 	IPC_MSGHDR_QUERYSTORAGE* pHdr = (IPC_MSGHDR_QUERYSTORAGE*)chMessageBuf;
 
-	pHdr->u32Tag = IPC_MSGTYPE_QUERYSTORAGE;
+	pHdr->dwTag = IPC_MSGTYPE_QUERYSTORAGE;
 	pHdr->dwChildPid = dwChildPid;
 	*pcbMessageSize = sizeof(IPC_MSGHDR_QUERYSTORAGE);
 	return 0;

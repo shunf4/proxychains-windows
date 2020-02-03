@@ -40,6 +40,9 @@
         "hookdll_cygwin.h": "c",
         "hookdll_win32.h": "c",
         "inttypes.h": "c",
-        "locale.h": "c"
+        "locale.h": "c",
+        "shellapi.h": "c",
+        "proc_bookkeeping_win32.h": "c",
+        "sddl.h": "c"
     }
 }

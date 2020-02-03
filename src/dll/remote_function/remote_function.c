@@ -4,7 +4,7 @@
 DWORD __stdcall LoadHookDll(LPVOID* pArg)
 {
 	// Arrays are not allowed here
-	INJECT_REMOTE_DATA* pRemoteData = (INJECT_REMOTE_DATA*)pArg;
+	PXCH_INJECT_REMOTE_DATA* pRemoteData = (PXCH_INJECT_REMOTE_DATA*)pArg;
 	HMODULE hHookDllModule;
 	HMODULE hMinHookDllModule = NULL;
 	FARPROC fpInitFunc;
@@ -12,10 +12,10 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 
 	DBGCHR('A');
 
-	if (pRemoteData->uStructSize != sizeof(INJECT_REMOTE_DATA)) {
+	if (pRemoteData->dwSize != sizeof(PXCH_INJECT_REMOTE_DATA) + PXCHCONFIG_EXTRA_SIZE(&pRemoteData->pxchConfig)) {
 		return ERROR_INCORRECT_SIZE;
 	}
-	pRemoteData->uEverExecuted = 1;
+	pRemoteData->dwEverExecuted = 1;
 
 	DBGCHR('B');
 
@@ -36,8 +36,8 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 	if (pRemoteData->pxchConfig.szMinHookDllPath[0] != L'\0') {
 		hMinHookDllModule = pRemoteData->fpLoadLibraryW(pRemoteData->pxchConfig.szMinHookDllPath);
 		if (!hMinHookDllModule) {
-			pRemoteData->dwErrorCode = pRemoteData->fpGetLastError();
-			return pRemoteData->dwErrorCode;
+			// pRemoteData->dwErrorCode = pRemoteData->fpGetLastError();
+			// return pRemoteData->dwErrorCode;
 		}
 	}
 
@@ -75,7 +75,7 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 	DBGCHR('H');
 
 	pRemoteData->dwErrorCode = ERROR_FUNCTION_FAILED;
-	pRemoteData->dwErrorCode = ((DWORD(__stdcall*)(INJECT_REMOTE_DATA*))fpInitFunc)(pRemoteData);
+	pRemoteData->dwErrorCode = ((DWORD(__stdcall*)(PXCH_INJECT_REMOTE_DATA*))fpInitFunc)(pRemoteData);
 	
 	DBGCHR('I');
 

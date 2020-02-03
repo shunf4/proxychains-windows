@@ -15,7 +15,6 @@ int main()
     HMODULE hDll;
     LPVOID fpConnect;
 
-
     const char* pstr = "\xe5\x86\xaf\xe8\x88\x9c";
     WCHAR xxx[100];
     setlocale(LC_ALL, "");

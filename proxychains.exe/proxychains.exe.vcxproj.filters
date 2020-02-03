@@ -18,6 +18,12 @@
     <ClCompile Include="..\src\exe\main.c">
       <Filter>Sources</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\exe\args_and_config.c">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\exe\ipc_proc_bookkeeping.c">
+      <Filter>Sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\ipc_generic.h">
@@ -57,6 +63,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\include\includes_win32.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\proc_bookkeeping_win32.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

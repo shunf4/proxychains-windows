@@ -27,6 +27,7 @@ extern IPC_MSGBUF log_respMsg;
 extern DWORD log_cbMsgSize;
 extern DWORD log_cbRespMsgSize;
 extern DWORD log_pid;
+extern wchar_t log_ods_buf[PXCHLOG_ODS_BUFSIZE];
 
 #ifdef __CYGWIN__
 extern pid_t log_cyg_pid;
@@ -89,7 +90,7 @@ static void __attribute__((unused)) suppress_unused_variables(void)
 #define PXCHLOG_IPC(level, fmt, ...) \
 	do { \
 		PXCHLOG_IPC_PID_QUERY(); \
-		if (log_pid == g_pPxchConfig->dwMasterProcessId) {\
+		if (g_pPxchConfig && log_pid == g_pPxchConfig->dwMasterProcessId) {\
 			PXCHLOG_REAL(PXCHLOG_CONCAT_FMT(level, fmt), ##__VA_ARGS__); \
 		} else { \
 			PXCHLOG_IPC_REAL(PXCHLOG_IPC_CONCAT_FMT(level, fmt), ##__VA_ARGS__); \
@@ -99,7 +100,7 @@ static void __attribute__((unused)) suppress_unused_variables(void)
 #define PXCHLOG_IPC_E(level, fmt, ...) \
 	do { \
 		PXCHLOG_IPC_PID_QUERY(); \
-		if (log_pid == g_pPxchConfig->dwMasterProcessId) {\
+		if (g_pPxchConfig && log_pid == g_pPxchConfig->dwMasterProcessId) {\
 			PXCHLOG_REAL_E(PXCHLOG_CONCAT_FMT(level, fmt), ##__VA_ARGS__); \
 		} else { \
 			PXCHLOG_IPC_REAL(PXCHLOG_IPC_CONCAT_FMT(level, fmt), ##__VA_ARGS__); \
@@ -109,6 +110,12 @@ static void __attribute__((unused)) suppress_unused_variables(void)
 #define PXCHLOG(level, fmt, ...) PXCHLOG_REAL(PXCHLOG_CONCAT_FMT(level, fmt), ##__VA_ARGS__)
 
 #define PXCHLOG_E(level, fmt, ...) PXCHLOG_REAL_E(PXCHLOG_CONCAT_FMT(level, fmt), ##__VA_ARGS__)
+
+#if PXCHLOG_LEVEL >= PXCHLOG_LEVEL_DEBUG
+#define ODBGSTRLOG(fmt, ...) do {StringCchPrintfW(log_ods_buf, _countof(log_ods_buf), fmt, ##__VA_ARGS__); OutputDebugStringW(log_ods_buf);} while(0)
+#else
+#define ODBGSTRLOG(...)
+#endif
 
 #if PXCHLOG_LEVEL >= PXCHLOG_LEVEL_CRITICAL
 #define LOGC(fmt, ...) PXCHLOG_E(C, fmt, ##__VA_ARGS__)

@@ -32,6 +32,8 @@
 
 #define IPC_MSGTAG_INVALID 0x0
 
+#define MsgInit(x) *((PXCH_UINT32*)(x)) = 0
+
 #define MsgIsC2S(x) (((*(PXCH_UINT32*)(x)) & IPC_MSGDIRECTION_MASK) == IPC_MSGDIRECTION_CLIENTTOSERVER)
 #define MsgIsS2C(x) (((*(PXCH_UINT32*)(x)) & IPC_MSGDIRECTION_MASK) == IPC_MSGDIRECTION_SERVERTOCLIENT)
 #define MsgIsType(type, x) (((*(PXCH_UINT32*)(x)) & IPC_MSGTYPE_MASK) == IPC_MSGTYPE_##type)
@@ -46,7 +48,7 @@ typedef char IPC_MSGBUF[IPC_BUFSIZE];
 
 #pragma pack(push, 1)
 typedef struct _IPC_MSGHDR_WSTR {
-	PXCH_UINT32 u32Tag;
+	PXCH_UINT32 dwTag;
 	PXCH_UINT32 cchLength;
 } IPC_MSGHDR_WSTR;
 

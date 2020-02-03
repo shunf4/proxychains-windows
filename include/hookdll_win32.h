@@ -3,7 +3,7 @@
 #include "defines_win32.h"
 #include "hookdll_generic.h"
 
-PXCHDLL_API DWORD __stdcall InitHook(INJECT_REMOTE_DATA * pData);
+PXCHDLL_API DWORD __stdcall InitHook(PXCH_INJECT_REMOTE_DATA * pData);
 PXCHDLL_API DWORD __stdcall InitHookForMain(PROXYCHAINS_CONFIG * pConfig);
 PXCHDLL_API void UninitHook(void);
 PXCHDLL_API HANDLE g_hIpcServerSemaphore;
