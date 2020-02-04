@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <spawn.h>
+#include <limits.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
 
@@ -19,7 +20,7 @@ int main(int argc, char*const*const argv, char*const*const envp)
 
     signal(SIGINT, handle_sigint);
 
-    connect
+    SHRT_MAX
 
     pause();
     return 0;

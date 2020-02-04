@@ -406,8 +406,7 @@ err:
 void handle_sigchld(int sig)
 {
 	while (waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
-	LOGI(L"Cygwin child process exited. Master exiting");
-
+	LOGI(L"Cygwin child process exited.");
 	IF_CYGWIN_EXIT(0);
 }
 
@@ -427,12 +426,12 @@ static inline int handle_sigint_worker(int sig)
 	LOCKED({
 		HASH_ITER(hh, g_tabPerProcess, current, tmp) {
 			HASH_DELETE(hh, g_tabPerProcess, current);
-			h = OpenProcess(SYNCHRONIZE | PROCESS_TERMINATE, TRUE, current->data.dwPid);
+			h = OpenProcess(SYNCHRONIZE | PROCESS_TERMINATE, TRUE, current->Data.dwPid);
 			if ((h != NULL || h != INVALID_HANDLE_VALUE) && TerminateProcess(h, 0)) {
-				LOGW(L"Killed WINPID " WPRDW, current->data.dwPid);
+				LOGW(L"Killed WINPID " WPRDW, current->Data.dwPid);
 			}
 			else {
-				LOGW(L"Unable to kill WINPID " WPRDW, current->data.dwPid);
+				LOGW(L"Unable to kill WINPID " WPRDW, current->Data.dwPid);
 			}
 			HeapFree(GetProcessHeap(), 0, current);
 		}

@@ -29,3 +29,5 @@
 
 extern FP_ORIGINAL_FUNC2(Cygwin1, connect);
 DECLARE_HOOK_FUNC2(Cygwin1, connect);
+
+PXCH_UINT32 RestoreChildData();

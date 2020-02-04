@@ -47,7 +47,7 @@ PXCHDLL_API HANDLE g_hIpcServerSemaphore;
 	LPPROCESS_INFORMATION lpProcessInformation)
 
 #define Ws2_32_connect_SIGN(inside_identifier) int (__stdcall inside_identifier)(\
-	/* SOCKET */UINT_PTR s,\
+	/* SOCKET */PXCH_UINT_PTR s,\
 	const /*struct sockaddr*/ void* name,\
 	int namelen)
 
@@ -58,8 +58,11 @@ DECLARE_HOOK_FUNC(CreateProcessW);
 extern FP_ORIGINAL_FUNC(CreateProcessAsUserW);
 DECLARE_HOOK_FUNC(CreateProcessAsUserW);
 
-
 extern FP_ORIGINAL_FUNC2(Ws2_32, connect);
 DECLARE_HOOK_FUNC2(Ws2_32, connect);
 
 // DECLARE_PROXY_FUNC2(Wsock32, connect);
+
+PXCHDLL_API int Ws2_32DirectConnect(PXCH_UINT_PTR s, const PXCH_PROXY_DATA* pProxy /* Mostly myself */, const PXCH_HOST_PORT* pHostPort, int iAddrLen);
+PXCHDLL_API int Ws2_32Socks5Connect(PXCH_UINT_PTR s, const PXCH_PROXY_DATA* pProxy /* Mostly myself */, const PXCH_HOST_PORT* pHostPort, int iAddrLen);
+PXCHDLL_API int Ws2_32Socks5Handshake(PXCH_UINT_PTR s, const PXCH_PROXY_DATA* pProxy /* Mostly myself */);

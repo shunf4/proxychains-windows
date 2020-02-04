@@ -63,8 +63,9 @@ typedef struct _ip_dl_element_t {
 } ip_dl_element_t;
 
 typedef struct {
-	REPORTED_CHILD_DATA data;
-	ip_dl_element_t* fakeIps;
+	REPORTED_CHILD_DATA Data;
+	ip_dl_element_t* FakeIps;
+	HANDLE hProcess;
 
 	UT_hash_handle hh;
 } tab_per_process_t;

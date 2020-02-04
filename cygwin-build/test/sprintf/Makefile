@@ -6,7 +6,7 @@ all : $(BINS)
 .PHONY : clean
 
 _sprintf : sprintf.c
-	$(CC) -g -o_$(basename $^) $^
+	$(CC) -O2 -o_$(basename $^) $^
 
 clean :
 	$(RM) _*

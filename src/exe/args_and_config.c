@@ -1,25 +1,37 @@
 ﻿#define PXCH_DO_NOT_INCLUDE_STRSAFE_NOW
+#define PXCH_DO_NOT_INCLUDE_STD_HEADERS_NOW
 #include "includes_win32.h"
 #include <Shlwapi.h>
-
+#include <Winsock2.h>
+#include <wchar.h>
+#include <inttypes.h>
 #include <strsafe.h>
 
 #include "defines_win32.h"
 #include "log_win32.h"
+#include "hookdll_win32.h"
 
 #ifndef __CYGWIN__
 #pragma comment(lib, "Shlwapi.lib")
+#pragma comment(lib, "Ws2_32.lib")
 #endif
 
 DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig)
 {
+	WSADATA wsaData;
 	DWORD dwRet;
 	FILETIME ft;
 	ULARGE_INTEGER uli;
 	PROXYCHAINS_CONFIG* pPxchConfig;
+	int iRuleNum;
+	int iProxyNum;
 	//SIZE_T dirLength = 0;
 
-	pPxchConfig = *ppPxchConfig = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(PROXYCHAINS_CONFIG) + PXCHCONFIG_EXTRA_SIZE_BY_N(0, 1));
+	WSAStartup(MAKEWORD(2, 2), &wsaData);
+
+	iRuleNum = 2;
+	iProxyNum = 1;
+	pPxchConfig = *ppPxchConfig = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(PROXYCHAINS_CONFIG) + PXCHCONFIG_EXTRA_SIZE_BY_N(iProxyNum, iRuleNum));
 
 	pPxchConfig->dwMasterProcessId = GetCurrentProcessId();
 
@@ -42,19 +54,50 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig)
 	if (!PathFileExistsW(pPxchConfig->szHookDllPath)) goto err_dll_not_exist;
 	if (!PathFileExistsW(pPxchConfig->szMinHookDllPath)) StringCchCopyW(pPxchConfig->szMinHookDllPath, MAX_DLL_PATH_BUFSIZE, g_szMinHookDllFileName);
 
-	pPxchConfig->dwProxyNum = 1;
+	pPxchConfig->dwProxyNum = iProxyNum;
 	pPxchConfig->cbProxyListOffset = sizeof(PROXYCHAINS_CONFIG);
-	pPxchConfig->dwRuleNum = 0;
+	pPxchConfig->dwRuleNum = iRuleNum;
 	pPxchConfig->cbRuleListOffset = sizeof(PROXYCHAINS_CONFIG) + (sizeof(PXCH_PROXY_DATA) * pPxchConfig->dwProxyNum);
 
 	{
 		PXCH_PROXY_DATA* proxy = &PXCHCONFIG_PROXY_ARR(pPxchConfig)[0];
+		ProxyInit(*proxy);
 		SetProxyType(SOCKS5, *proxy);
-		SetHostType(HOSTNAME, proxy->Socks5.Host);
-		proxy->Socks5.wPort = 1079;
+		SetHostType(IPV4, proxy->Socks5.HostPort);
+		proxy->Socks5.iSockLen = sizeof(proxy->Socks5.HostPort);
+		WSAStringToAddressW(L"127.0.0.1:1079", AF_INET, NULL, (LPSOCKADDR)&proxy->Socks5.HostPort, &proxy->Socks5.iSockLen);
 		proxy->Socks5.szUsername[0] = '\0';
 		proxy->Socks5.szPassword[0] = '\0';
+		proxy->Socks5.Ws2_32FpConnect = &Ws2_32Socks5Connect;
+		proxy->Socks5.Ws2_32FpHandshake = &Ws2_32Socks5Handshake;
 	}
+
+	{
+		PXCH_RULE* rule = &PXCHCONFIG_RULE_ARR(pPxchConfig)[0];
+		int iSockLen = sizeof(PXCH_IP_ADDRESS);
+		RuleInit(*rule);
+		SetRuleType(IP_CIDR, *rule);
+
+		ZeroMemory(&rule->HostAddress, sizeof(rule->HostAddress));
+		SetHostType(IPV4, rule->HostAddress);
+		WSAStringToAddressW(L"127.0.0.1", AF_INET, NULL, (LPSOCKADDR)&rule->HostAddress.IpPort, &iSockLen);
+		rule->dwCidrPrefixLength = 32;
+		rule->iWillProxy = FALSE;
+	}
+
+	{
+		PXCH_RULE* rule = &PXCHCONFIG_RULE_ARR(pPxchConfig)[1];
+		int iSockLen = sizeof(PXCH_IP_ADDRESS);
+		RuleInit(*rule);
+		SetRuleType(IP_CIDR, *rule);
+
+		ZeroMemory(&rule->HostAddress, sizeof(rule->HostAddress));
+		SetHostType(IPV4, rule->HostAddress);
+		WSAStringToAddressW(L"0.0.0.0", AF_INET, NULL, (LPSOCKADDR)&rule->HostAddress.IpPort, &iSockLen);
+		rule->dwCidrPrefixLength = 0;
+		rule->iWillProxy = TRUE;
+	}
+
 	return 0;
 
 	//err_other:

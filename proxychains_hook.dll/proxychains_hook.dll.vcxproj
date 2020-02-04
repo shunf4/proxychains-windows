@@ -192,6 +192,7 @@
     <ClInclude Include="..\include\log_generic.h" />
     <ClInclude Include="..\include\log_win32.h" />
     <ClInclude Include="..\include\MinHook.h" />
+    <ClInclude Include="..\include\proxy_core.h" />
     <ClInclude Include="..\include\remote_win32.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

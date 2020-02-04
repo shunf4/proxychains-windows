@@ -12,26 +12,6 @@
 int main()
 {
     WSADATA wsaData;
-    HMODULE hDll;
-    LPVOID fpConnect;
-
-    const char* pstr = "\xe5\x86\xaf\xe8\x88\x9c";
-    WCHAR xxx[100];
-    setlocale(LC_ALL, "");
-    printf(pstr);
-    printf("\n");
-    StringCchPrintfW(xxx, 100, L"%S", pstr);
-    printf("%#02x\n", xxx[0]);
-
-    exit(0);
-    printf("哈哈哈\n");
-    printf("connect(): %p\n", connect);
-
-    hDll = GetModuleHandleW(L"Ws2_32.dll");
-    fpConnect = GetProcAddress(hDll, "connect");
-
-    printf("connect(): %p\n", connect);
-    printf("GetProcAddress(connect): %p\n", fpConnect);
 
     int iResult;
     iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);     // Initialize Winsock 2.2
@@ -42,6 +22,7 @@ int main()
 
     struct addrinfo hints;
     ::ZeroMemory(&hints, sizeof(hints));
+    
     hints.ai_family = PF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
@@ -69,6 +50,16 @@ int main()
         closesocket(ConnectSocket);
         ConnectSocket = INVALID_SOCKET;
     }
+
+    Sleep(1000);
+
+    fd_set fds;
+    FD_ZERO(&fds);
+    FD_SET(ConnectSocket, &fds);
+
+    printf("Waiting...\n");
+    iResult = select(-1, NULL, &fds, NULL, NULL);
+    printf("Waiting done. %d, %u\n", iResult, WSAGetLastError());
 
     freeaddrinfo(addrsResult);
 

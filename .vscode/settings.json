@@ -43,6 +43,10 @@
         "locale.h": "c",
         "shellapi.h": "c",
         "proc_bookkeeping_win32.h": "c",
-        "sddl.h": "c"
+        "sddl.h": "c",
+        "ws2tcpip.h": "c",
+        "windef.h": "c",
+        "minwindef.h": "c",
+        "proxy_core.h": "c"
     }
 }

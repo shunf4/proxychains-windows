@@ -74,5 +74,8 @@
     <ClInclude Include="..\include\log_win32.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\proxy_core.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

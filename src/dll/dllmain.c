@@ -171,7 +171,7 @@ err_mapviewoffile:
 }
 
 
-DWORD IpcClientRestoreData()
+PXCH_UINT32 RestoreChildData()
 {
 	// Restore child process essential data overwritten by Cygwin fork().
 
@@ -189,7 +189,7 @@ DWORD IpcClientRestoreData()
 	if ((dwErrorCode = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) return dwErrorCode;
 	if ((dwErrorCode = MessageToChildData(&childData, chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) return dwErrorCode;*/
 
-	DWORD dwErrorCode;
+	PXCH_UINT32 dwErrorCode;
 
 	HANDLE hMapFile;
 	HANDLE hMapFileWhenCreated;
@@ -505,7 +505,7 @@ PROXY_FUNC(CreateProcessW)
 	g_bCurrentlyInWinapiCall = TRUE;
 
 	// For cygwin: cygwin fork() will duplicate the data in child process, including pointer g_*.
-	IpcClientRestoreData();
+	RestoreChildData();
 
 	IPCLOGI(L"(In CreateProcessW) g_pRemoteData->dwDebugDepth = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
 
@@ -562,7 +562,7 @@ PROXY_FUNC(CreateProcessAsUserW)
 	g_bCurrentlyInWinapiCall = TRUE;
 
 	// For cygwin: cygwin fork() will duplicate the data in child process, including pointer g_*.
-	IpcClientRestoreData();
+	RestoreChildData();
 
 	IPCLOGI(L"(In CreateProcessAsUserW) g_pRemoteData->dwDebugDepth = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
 

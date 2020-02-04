@@ -32,7 +32,7 @@ $(AUTO_OBJS) : %.o : $(SRC_PREFIX)%.c %.d
 	
 $(DEPS) : 
 	
-$(DLL_PATH) : $(SRC_PREFIX)dll/dllmain.c $(SRC_PREFIX)log_func_impl.c dll/hook_cygwin.o dll/hook_win32.o dll/remote_function/remote_function.o common.o ipc_message.o log.o cygwin_strsafe/strsafe.o dll/dllmain.d
+$(DLL_PATH) : $(SRC_PREFIX)dll/dllmain.c $(SRC_PREFIX)log_func_impl.c $(SRC_PREFIX)dll/hook_win32.c $(SRC_PREFIX)dll/hook_cygwin.c dll/remote_function/remote_function.o common.o ipc_message.o log.o cygwin_strsafe/strsafe.o dll/dllmain.d
 	$(CC) $(CFLAGS) $(DEPFLAGS_IN_PREREQ) -shared -DPXCHDLL_EXPORTS -o$@ -Wl,--out-implib=$(DLL_IMPLIB_PATH) -L$(LIB_PREFIX) $(filter %.c %.o %.a %.lib,$^) -lntdllcrt -lMinHookx64 -lws2_32
 		
 #	-Wl,--export-all-symbols \
@@ -41,7 +41,7 @@ $(DLL_PATH) : $(SRC_PREFIX)dll/dllmain.c $(SRC_PREFIX)log_func_impl.c dll/hook_c
 $(DLL_IMPLIB_PATH) : $(DLL_PATH)
 
 $(EXEC_PATH) : exe/main.o exe/args_and_config.o exe/ipc_proc_bookkeeping.o common.o ipc_message.o log.o cygwin_strsafe/strsafe.o $(DLL_IMPLIB_PATH)
-	$(CC) -o$@ $^ -lntdllcrt -lkernel32 -lshlwapi -ladvapi32 -lcygwin
+	$(CC) -o$@ $^ -lntdllcrt -lkernel32 -lshlwapi -ladvapi32 -lcygwin -lws2_32
 
 .PHONY : clean
 

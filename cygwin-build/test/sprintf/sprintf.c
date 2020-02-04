@@ -1,18 +1,20 @@
 #include <stdio.h>
-#include <locale.h>
-#include <wchar.h>
-#include <stdlib.h>
+#include <inttypes.h>
 
-int main()
+uint32_t swap_words(uint32_t arg)
 {
-    const char* pstr = "\xe5\x86\xaf\xe8\x88\x9c";
-    __VALIST
-    wchar_t xxx[100];
-    setlocale(LC_ALL, "");
-    printf(pstr);
-    printf("\n");
-    vswprintf(xxx, 100, L"%s", pstr);
-    printf("%#02x\n", xxx[0]);
+    uint16_t* const sp = (uint16_t*)&arg;
+    uint16_t hi = sp[0];
+    uint16_t lo = sp[1];
+    sp[1] = hi;
+    sp[0] = lo;
+    return arg;
+}
 
-    exit(0);
+int main() {
+    uint32_t x = 0xffff0000;
+    uint32_t y = swap_words(x);
+    printf("%x\n", x);
+    printf("%x\n", y);
+    return 0;
 }

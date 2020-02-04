@@ -32,6 +32,7 @@
 
 #define IPC_MSGTAG_INVALID 0x0
 
+// These are UB. Hope they work well
 #define MsgInit(x) *((PXCH_UINT32*)(x)) = 0
 
 #define MsgIsC2S(x) (((*(PXCH_UINT32*)(x)) & IPC_MSGDIRECTION_MASK) == IPC_MSGDIRECTION_CLIENTTOSERVER)

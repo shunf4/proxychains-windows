@@ -13,8 +13,12 @@ DWORD ChildProcessExitedCallbackWorker(PVOID lpParameter, BOOLEAN TimerOrWaitFir
 {
 	LOCKED({
 		tab_per_process_t * entry = (tab_per_process_t*)lpParameter;
+		DWORD dwExitCode = UINT32_MAX;
 		HASH_DELETE(hh, g_tabPerProcess, entry);
-		LOGI(L"Child process pid " WPRDW L" exited.", entry->data.dwPid);
+		if (!GetExitCodeProcess(entry->hProcess, &dwExitCode)) {
+			LOGE(L"GetExitCodeProcess() error: %ls", FormatErrorToStr(GetLastError()));
+		}
+		LOGI(L"Child process " WPRDW L" pid " WPRDW L" exited (%#010x).", entry->hProcess, entry->Data.dwPid, dwExitCode);
 		HeapFree(GetProcessHeap(), 0, entry);
 
 		if (g_tabPerProcess == NULL) {
@@ -45,12 +49,20 @@ DWORD RegisterNewChildProcess(const REPORTED_CHILD_DATA* pChildData)
 		LOGV(L"Before HeapAlloc...");
 		entry = (tab_per_process_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(tab_per_process_t));
 		LOGV(L"After HeapAlloc...");
-		if ((hChildHandle = OpenProcess(SYNCHRONIZE, FALSE, pChildData->dwPid)) == NULL) {
+		if ((hChildHandle = OpenProcess(SYNCHRONIZE | PROCESS_QUERY_INFORMATION, FALSE, pChildData->dwPid)) == NULL) {
 			dwReturn = GetLastError();
+			if (dwReturn == ERROR_ACCESS_DENIED) {
+				if ((hChildHandle = OpenProcess(SYNCHRONIZE, FALSE, pChildData->dwPid)) == NULL) {
+					dwReturn = GetLastError();
+				} else {
+					goto after_open_process;
+				}
+			}
 			LOGC(L"OpenProcess() error: %ls", FormatErrorToStr(dwReturn));
 			goto after_proc;
 		}
-		LOGV(L"After OpenProcess...");
+	after_open_process:
+		LOGD(L"After OpenProcess(" WPRDW L")...", hChildHandle);
 
 		if (!RegisterWaitForSingleObject(&hWaitHandle, hChildHandle, &ChildProcessExitedCallback, entry, INFINITE, WT_EXECUTELONGFUNCTION | WT_EXECUTEONLYONCE)) {
 			dwReturn = GetLastError();
@@ -58,9 +70,10 @@ DWORD RegisterNewChildProcess(const REPORTED_CHILD_DATA* pChildData)
 			goto after_proc;
 		}
 		LOGV(L"After RegisterWaitForSingleObject...");
-		entry->data = *pChildData;
-		LOGV(L"After entry->data = *pChildData;");
-		HASH_ADD(hh, g_tabPerProcess, data, sizeof(pid_key_t), entry);
+		entry->Data = *pChildData;
+		entry->hProcess = hChildHandle;
+		LOGV(L"After entry->Data = *pChildData;");
+		HASH_ADD(hh, g_tabPerProcess, Data, sizeof(pid_key_t), entry);
 		LOGV(L"After HASH_ADD");
 		LOGI(L"Registered child pid " WPRDW, pChildData->dwPid);
 	});
@@ -72,7 +85,7 @@ DWORD QueryChildStorage(REPORTED_CHILD_DATA* pChildData)
 		tab_per_process_t* entry;
 		HASH_FIND(hh, g_tabPerProcess, &pChildData->dwPid, sizeof(pid_key_t), entry);
 		if (entry) {
-			*pChildData = entry->data;
+			*pChildData = entry->Data;
 		}
 
 		goto after_proc;
