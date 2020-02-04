@@ -509,7 +509,7 @@ PROXY_FUNC(CreateProcessW)
 
 	IPCLOGI(L"(In CreateProcessW) g_pRemoteData->dwDebugDepth = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
 
-	IPCLOGV(L"CreateProcessW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s", lpApplicationName, lpCommandLine, (UINT64)lpProcessAttributes, (UINT64)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory);
+	IPCLOGD(L"CreateProcessW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s", lpApplicationName, lpCommandLine, (UINT64)lpProcessAttributes, (UINT64)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory);
 
 	bRet = orig_fpCreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &processInformation);
 	dwErrorCode = GetLastError();
@@ -566,7 +566,7 @@ PROXY_FUNC(CreateProcessAsUserW)
 
 	IPCLOGI(L"(In CreateProcessAsUserW) g_pRemoteData->dwDebugDepth = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
 
-	IPCLOGV(L"CreateProcessAsUserW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s", lpApplicationName, lpCommandLine, (UINT64)lpProcessAttributes, (UINT64)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory);
+	IPCLOGD(L"CreateProcessAsUserW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s", lpApplicationName, lpCommandLine, (UINT64)lpProcessAttributes, (UINT64)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory);
 
 	bRet = orig_fpCreateProcessAsUserW(hToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &processInformation);
 	dwErrorCode = GetLastError();
@@ -650,6 +650,7 @@ PXCHDLL_API DWORD __stdcall InitHook(PXCH_INJECT_REMOTE_DATA* pRemoteData)
 		HMODULE hWsock32;
 		HMODULE hCygwin1;
 		LPVOID pWs2_32_connect = NULL;
+		LPVOID pWs2_32_WSAConnect = NULL;
 		LPVOID pWsock32_connect = NULL;
 		LPVOID pCygwin1_connect = NULL;
 
@@ -657,15 +658,20 @@ PXCHDLL_API DWORD __stdcall InitHook(PXCH_INJECT_REMOTE_DATA* pRemoteData)
 		LoadLibraryW(L"wsock32.dll");
 		LoadLibraryW(L"cygwin1.dll");
 
-		if ((hWs2_32 = pRemoteData->fpGetModuleHandleW(L"ws2_32.dll"))) { pWs2_32_connect = pRemoteData->fpGetProcAddress(hWs2_32, "connect"); }
+		if ((hWs2_32 = pRemoteData->fpGetModuleHandleW(L"ws2_32.dll"))) {
+			pWs2_32_connect = pRemoteData->fpGetProcAddress(hWs2_32, "connect");
+			pWs2_32_WSAConnect = pRemoteData->fpGetProcAddress(hWs2_32, "WSAConnect");
+		}
 		if ((hWsock32 = pRemoteData->fpGetModuleHandleW(L"wsock32.dll"))) { pWsock32_connect = pRemoteData->fpGetProcAddress(hWsock32, "connect"); }
 		if ((hCygwin1 = pRemoteData->fpGetModuleHandleW(L"cygwin1.dll"))) { pCygwin1_connect = pRemoteData->fpGetProcAddress(hCygwin1, "connect"); }
 
 		IPCLOGI(L"ws2_32.dll  connect(): %p", pWs2_32_connect);
+		IPCLOGI(L"ws2_32.dll  WSAConnect(): %p", pWs2_32_WSAConnect);
 		IPCLOGI(L"wsock32.dll connect(): %p", pWsock32_connect);
 		// IPCLOGI(L"mswsock.dll connect(): %p", hMswsock ? pRemoteData->fpGetProcAddress(hMswsock, "connect") : NULL);
 		IPCLOGI(L"cygwin1.dll connect(): %p", pCygwin1_connect);
 
+		CREATE_HOOK3_IFNOTNULL(Ws2_32, WSAConnect, pWs2_32_WSAConnect);
 		CREATE_HOOK3_IFNOTNULL(Ws2_32, connect, pWs2_32_connect);
 		CREATE_HOOK3_IFNOTNULL(Cygwin1, connect, pCygwin1_connect);
 	} while (0);

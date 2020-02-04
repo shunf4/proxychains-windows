@@ -46,6 +46,7 @@ int main()
     }
 
     iResult = connect(ConnectSocket, firstAddr.ai_addr, (int)firstAddr.ai_addrlen);
+    printf("%d %u %u\n", iResult, WSAGetLastError(), GetLastError());
     if (iResult == SOCKET_ERROR) {
         closesocket(ConnectSocket);
         ConnectSocket = INVALID_SOCKET;

@@ -15,6 +15,11 @@
 
 static PXCH_PROXY_DIRECT_DATA g_proxyDirect;
 static WCHAR g_HostPrintBuf[100];
+typedef struct _PXCH_WS2_32_TEMP_DATA {
+	DWORD iConnectLastError;
+	DWORD iConnectWSALastError;
+	int iConnectReturn;
+} PXCH_WS2_32_TEMP_DATA;
 
 static const WCHAR* FormatHostPortToStr(const void* pHostPort, int iSockLen)
 {
@@ -30,16 +35,18 @@ static const WCHAR* FormatHostPortToStr(const void* pHostPort, int iSockLen)
 	return g_HostPrintBuf;
 }
 
-int Ws2_32BlockConnect(PXCH_UINT_PTR s, const void* pAddr, int iAddrLen)
+int Ws2_32BlockConnect(void* pTempData, PXCH_UINT_PTR s, const void* pAddr, int iAddrLen)
 {
 	int iReturn;
 	int iWSALastError;
 	int iLastError;
 	fd_set wfds;
+	PXCH_WS2_32_TEMP_DATA* pWs2_32TempData = pTempData;
 
-	iReturn = orig_fpWs2_32_connect(s, pAddr, iAddrLen);
-	iWSALastError = WSAGetLastError();
-	iLastError = GetLastError();
+	pWs2_32TempData->iConnectReturn = iReturn = orig_fpWs2_32_connect(s, pAddr, iAddrLen);
+	pWs2_32TempData->iConnectWSALastError = iWSALastError = WSAGetLastError();
+	pWs2_32TempData->iConnectLastError = iLastError = GetLastError();
+
 	if (iReturn) {
 		if (iWSALastError == WSAEWOULDBLOCK) {
 			FUNCIPCLOGD(L"connect(): this socket is nonblocking and it didn't finish instantly.");
@@ -55,6 +62,8 @@ int Ws2_32BlockConnect(PXCH_UINT_PTR s, const void* pAddr, int iAddrLen)
 	if (iReturn == SOCKET_ERROR) goto err_select;
 	if (iReturn != 1 || !FD_ISSET(s, &wfds)) goto err_select_unexpected;
 
+	WSASetLastError(NO_ERROR);
+	SetLastError(NO_ERROR);
 	return 0;
 
 err_select_unexpected:
@@ -75,7 +84,7 @@ err_return:
 	return SOCKET_ERROR;
 }
 
-int Ws2_32LoopSend(PXCH_UINT_PTR s, const char* SendBuf, int iLength)
+int Ws2_32LoopSend(void* pTempData, PXCH_UINT_PTR s, const char* SendBuf, int iLength)
 {
 	int iReturn;
 	int iWSALastError;
@@ -129,7 +138,7 @@ err_return:
 	return SOCKET_ERROR;
 }
 
-int Ws2_32LoopRecv(PXCH_UINT_PTR s, char* RecvBuf, int iLength)
+int Ws2_32LoopRecv(void* pTempData, PXCH_UINT_PTR s, char* RecvBuf, int iLength)
 {
 	int iReturn;
 	int iWSALastError;
@@ -183,7 +192,7 @@ err_return:
 	return SOCKET_ERROR;
 }
 
-PXCHDLL_API int Ws2_32DirectConnect(PXCH_UINT_PTR s, const PXCH_PROXY_DATA* pProxy /* Mostly myself */, const PXCH_HOST_PORT* pHostPort, int iAddrLen)
+PXCHDLL_API int Ws2_32DirectConnect(void* pTempData, PXCH_UINT_PTR s, const PXCH_PROXY_DATA* pProxy /* Mostly myself */, const PXCH_HOST_PORT* pHostPort, int iAddrLen)
 {
 	if (HostIsType(HOSTNAME, *pHostPort) || HostIsType(INVALID, *pHostPort)) {
 		FUNCIPCLOGW(L"Error connecting directly: address is hostname or invalid (%#06hx).", *(const PXCH_UINT16*)pHostPort);
@@ -191,10 +200,10 @@ PXCHDLL_API int Ws2_32DirectConnect(PXCH_UINT_PTR s, const PXCH_PROXY_DATA* pPro
 		return SOCKET_ERROR;
 	}
 	FUNCIPCLOGI(L"Ws2_32DirectConnect(%ls)", FormatHostPortToStr(pHostPort, iAddrLen));
-	return Ws2_32BlockConnect(s, pHostPort, iAddrLen);
+	return Ws2_32BlockConnect(pTempData, s, pHostPort, iAddrLen);
 }
 
-PXCHDLL_API int Ws2_32Socks5Connect(PXCH_UINT_PTR s, const PXCH_PROXY_DATA* pProxy /* Mostly myself */, const PXCH_HOST_PORT* pHostPort, int iAddrLen)
+PXCHDLL_API int Ws2_32Socks5Connect(void* pTempData, PXCH_UINT_PTR s, const PXCH_PROXY_DATA* pProxy /* Mostly myself */, const PXCH_HOST_PORT* pHostPort, int iAddrLen)
 {
 	if (!HostIsIp(*pHostPort) && !HostIsType(HOSTNAME, *pHostPort)) {
 		FUNCIPCLOGW(L"Error connecting through Socks5: address is neither hostname nor ip.");
@@ -210,8 +219,8 @@ PXCHDLL_API int Ws2_32Socks5Connect(PXCH_UINT_PTR s, const PXCH_PROXY_DATA* pPro
 	char RecvBuf[256];
 
 	// Handshake
-	if ((iResult = Ws2_32LoopSend(s, "\05\01\00", 3)) == SOCKET_ERROR) goto err_general;
-	if ((iResult = Ws2_32LoopRecv(s, RecvBuf, 2)) == SOCKET_ERROR) goto err_general;
+	if ((iResult = Ws2_32LoopSend(pTempData, s, "\05\01\00", 3)) == SOCKET_ERROR) goto err_general;
+	if ((iResult = Ws2_32LoopRecv(pTempData, s, RecvBuf, 2)) == SOCKET_ERROR) goto err_general;
 	if (RecvBuf[1] != '\00') goto err_data_invalid_1;
 
 	if (HostIsType(IPV4, *pHostPort)) {
@@ -221,8 +230,8 @@ PXCHDLL_API int Ws2_32Socks5Connect(PXCH_UINT_PTR s, const PXCH_PROXY_DATA* pPro
 		CopyMemory(SendBuf, "\05\01\00\x01\xFF\xFF\xFF\xFF\xEE\xEE", 10);
 		CopyMemory(SendBuf + 4, &SockAddrIpv4->sin_addr, 4);
 		CopyMemory(SendBuf + 8, &SockAddrIpv4->sin_port, 2);
-		if ((iResult = Ws2_32LoopSend(s, SendBuf, 10)) == SOCKET_ERROR) goto err_general;
-		if ((iResult = Ws2_32LoopRecv(s, RecvBuf, 10)) == SOCKET_ERROR) goto err_general;
+		if ((iResult = Ws2_32LoopSend(pTempData, s, SendBuf, 10)) == SOCKET_ERROR) goto err_general;
+		if ((iResult = Ws2_32LoopRecv(pTempData, s, RecvBuf, 10)) == SOCKET_ERROR) goto err_general;
 		if (RecvBuf[1] != '\00' || RecvBuf[3] != '\01') goto err_data_invalid_2;
 	} else goto err_not_supported;
 
@@ -249,13 +258,13 @@ err_general:
 	return iResult;
 }
 
-PXCHDLL_API int Ws2_32Socks5Handshake(PXCH_UINT_PTR s, const PXCH_PROXY_DATA* pProxy /* Mostly myself */)
+PXCHDLL_API int Ws2_32Socks5Handshake(void* pTempData, PXCH_UINT_PTR s, const PXCH_PROXY_DATA* pProxy /* Mostly myself */)
 {
 	WSASetLastError(NO_ERROR);
 	return 0;
 }
 
-int Ws2_32GenericConnectTo(PXCH_UINT_PTR s, PPXCH_CHAIN pChain, const PXCH_HOST_PORT* pHostPort, int iAddrLen)
+int Ws2_32GenericConnectTo(void* pTempData, PXCH_UINT_PTR s, PPXCH_CHAIN pChain, const PXCH_HOST_PORT* pHostPort, int iAddrLen)
 {
 	if (*pChain == NULL) {
 		SetProxyType(DIRECT, g_proxyDirect);
@@ -279,18 +288,18 @@ int Ws2_32GenericConnectTo(PXCH_UINT_PTR s, PPXCH_CHAIN pChain, const PXCH_HOST_
 	pChainLastNode = (*pChain)->prev;	// Last
 	pProxy = pChainLastNode->pProxy;
 
-	iReturn = pProxy->CommonHeader.Ws2_32FpConnect(s, pProxy, pHostPort, iAddrLen);
+	iReturn = pProxy->CommonHeader.Ws2_32FpConnect(pTempData, s, pProxy, pHostPort, iAddrLen);
 	return iReturn;
 }
 
-int Ws2_32GenericTunnelTo(PXCH_UINT_PTR s, PPXCH_CHAIN pChain, PXCH_PROXY_DATA* pProxy)
+int Ws2_32GenericTunnelTo(void* pTempData, PXCH_UINT_PTR s, PPXCH_CHAIN pChain, PXCH_PROXY_DATA* pProxy)
 {
 	int iLastError;
 	int iReturn;
 	PXCH_CHAIN_NODE* pNewNode;
 
 	FUNCIPCLOGI(L"Ws2_32GenericConnectTo(%ls)", FormatHostPortToStr(&pProxy->CommonHeader.HostPort, pProxy->CommonHeader.iSockLen));
-	iReturn = Ws2_32GenericConnectTo(s, pChain, &pProxy->CommonHeader.HostPort, pProxy->CommonHeader.iSockLen);
+	iReturn = Ws2_32GenericConnectTo(pTempData, s, pChain, &pProxy->CommonHeader.HostPort, pProxy->CommonHeader.iSockLen);
 	iLastError = WSAGetLastError();
 	if (iReturn) goto err_return;
 
@@ -299,7 +308,7 @@ int Ws2_32GenericTunnelTo(PXCH_UINT_PTR s, PPXCH_CHAIN pChain, PXCH_PROXY_DATA* 
 
 	CDL_APPEND((*pChain), pNewNode);
 
-	iReturn = pNewNode->pProxy->CommonHeader.Ws2_32FpHandshake(s, pProxy);
+	iReturn = pNewNode->pProxy->CommonHeader.Ws2_32FpHandshake(pTempData, s, pProxy);
 	iLastError = WSAGetLastError();
 
 err_return:
@@ -319,6 +328,7 @@ PROXY_FUNC2(Ws2_32, connect)
 	BOOL bWillProxy;
 	PXCH_CHAIN Chain = NULL;
 	PXCH_CHAIN_NODE* ChainNode = NULL;
+	PXCH_WS2_32_TEMP_DATA TempData;
 
 	RestoreChildData();
 
@@ -338,22 +348,26 @@ PROXY_FUNC2(Ws2_32, connect)
 	}
 
 	if (!bWillProxy) {
-		iReturn = Ws2_32DirectConnect(s, NULL, name, namelen);
-		goto record_error_end;
+		iReturn = Ws2_32DirectConnect(&TempData, s, NULL, name, namelen);
+		goto success_revert_connect_errcode_end;
 	}
 
 	for (i = 0; i < g_pPxchConfig->dwProxyNum; i++) {
-		if ((iReturn = Ws2_32GenericTunnelTo(s, &Chain, &PXCHCONFIG_PROXY_ARR(g_pPxchConfig)[i])) == SOCKET_ERROR) goto record_error_end;
+		if ((iReturn = Ws2_32GenericTunnelTo(&TempData, s, &Chain, &PXCHCONFIG_PROXY_ARR(g_pPxchConfig)[i])) == SOCKET_ERROR) goto record_error_end;
 	}
-	if ((iReturn = Ws2_32GenericConnectTo(s, &Chain, name, namelen)) == SOCKET_ERROR) goto record_error_end;
+	if ((iReturn = Ws2_32GenericConnectTo(&TempData, s, &Chain, name, namelen)) == SOCKET_ERROR) goto record_error_end;
 
-	return NO_ERROR;
+success_revert_connect_errcode_end:
+	iWSALastError = TempData.iConnectWSALastError;
+	iLastError = TempData.iConnectLastError;
+	iReturn = TempData.iConnectReturn;
+	goto end;
 
 record_error_end:
 	iWSALastError = WSAGetLastError();
 	iLastError = GetLastError();
 
-	
+end:
 	FUNCIPCLOGI(L"ws2_32.dll connect(%d, %ls, %d) proxied: %d", s, FormatHostPortToStr(name, namelen), namelen, bWillProxy);
 	if (bWillProxy) {
 		CDL_FOREACH(Chain, ChainNode) {
@@ -366,4 +380,10 @@ record_error_end:
 	WSASetLastError(iWSALastError);
 	SetLastError(iLastError);
 	return iReturn;
+}
+
+PROXY_FUNC2(Ws2_32, WSAConnect)
+{
+	FUNCIPCLOGI(L"Ws2_32.dll WSAConnect() called");
+	return orig_fpWs2_32_WSAConnect(s, name, namelen, lpCallerData, lpCalleeData, lpSQOS, lpGQOS);
 }

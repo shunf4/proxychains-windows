@@ -171,10 +171,10 @@ typedef PXCH_HOST_PORT PXCH_HOST;  // port must be zero
 union _PXCH_PROXY_DATA;
 
 // Now that myself (*pProxy) is already connected, do handshake in ways of myself (*pProxy)
-typedef int(*PXCH_WS2_32_FPHANDSHAKE)(PXCH_UINT_PTR s, const union _PXCH_PROXY_DATA* pProxy /* Mostly myself */);
+typedef int(*PXCH_WS2_32_FPHANDSHAKE)(void* pTempData, PXCH_UINT_PTR s, const union _PXCH_PROXY_DATA* pProxy /* Mostly myself */);
 
 // Now that myself (*pProxy) is already connected, and handshake is already done, connect to *pHostPort through myself (*pProxy)
-typedef int(*PXCH_WS2_32_FPCONNECT)(PXCH_UINT_PTR s, const union _PXCH_PROXY_DATA* pProxy /* Mostly myself */, const PXCH_HOST_PORT* pHostPort, int iAddrLen);
+typedef int(*PXCH_WS2_32_FPCONNECT)(void* pTempData, PXCH_UINT_PTR s, const union _PXCH_PROXY_DATA* pProxy /* Mostly myself */, const PXCH_HOST_PORT* pHostPort, int iAddrLen);
 
 typedef struct _PXCH_PROXY_DIRECT_DATA {
 	PXCH_UINT32 dwTag;
