@@ -149,7 +149,7 @@ err_read_data_0:
 
 err_read_data:
 	dwErrorCode = GetLastError();
-	IPCLOGE(L"ReadProcessMemory() Failed to read data(" WPRDW L"/" WPRDW L"): %ls", cbRead, pRemoteData->dwSize, FormatErrorToStr(dwErrorCode));
+	IPCLOGE(L"ReadProcessMemory() Failed to read data(" WPRDW L"/" WPRDW L"): %ls", cbRead, dwRemoteDataSize, FormatErrorToStr(dwErrorCode));
 	goto ret_close;
 
 ret_close:
@@ -234,7 +234,7 @@ PXCHDLL_API DWORD __stdcall InitHookForMain(PROXYCHAINS_CONFIG* pPxchConfig)
 	MH_Initialize();
 	// CREATE_HOOK(CreateProcessA);
 	CREATE_HOOK(CreateProcessW);
-	CREATE_HOOK(CreateProcessAsUserW);
+	// CREATE_HOOK(CreateProcessAsUserW);
 	MH_EnableHook(MH_ALL_HOOKS);
 
 	LOGI(L"Main Program Hooked!");
@@ -253,7 +253,7 @@ PXCHDLL_API DWORD __stdcall InitHook(PXCH_INJECT_REMOTE_DATA* pRemoteData)
 	MH_Initialize();
 	// CREATE_HOOK(CreateProcessA);
 	CREATE_HOOK(CreateProcessW);
-	CREATE_HOOK(CreateProcessAsUserW);
+	// CREATE_HOOK(CreateProcessAsUserW);
 
 	ODBGSTRLOG(L"InitHook: hooked CreateProcess");
 

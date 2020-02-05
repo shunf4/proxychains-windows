@@ -129,6 +129,7 @@ BOOL ArgHasSpecialChar(WCHAR* sz)
 {
 	WCHAR* p = sz;
 	while (*p) {
+		if (*p == L' ') return TRUE;
 		if (*p == L'\t') return TRUE;
 		if (*p == L'\n') return TRUE;
 		if (*p == L'\v') return TRUE;
@@ -198,6 +199,7 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 		* piCommandStart = i;
 		return 0;
 #endif
+		LOGD(L"Argv[%d] = %ls", i, pWchar);
 		iCountCommands++;
 		if (iCountCommands > 1) {
 			if (_countof(pConfig->szCommandLine) - (pCommandLine - pConfig->szCommandLine) - 1 < 1) {
