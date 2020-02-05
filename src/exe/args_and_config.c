@@ -29,7 +29,7 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig)
 
 	WSAStartup(MAKEWORD(2, 2), &wsaData);
 
-	iRuleNum = 2;
+	iRuleNum = 3;
 	iProxyNum = 1;
 	pPxchConfig = *ppPxchConfig = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(PROXYCHAINS_CONFIG) + PXCHCONFIG_EXTRA_SIZE_BY_N(iProxyNum, iRuleNum));
 
@@ -64,39 +64,54 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig)
 		ProxyInit(*proxy);
 		SetProxyType(SOCKS5, *proxy);
 		SetHostType(IPV4, proxy->Socks5.HostPort);
-		proxy->Socks5.iSockLen = sizeof(proxy->Socks5.HostPort);
-		WSAStringToAddressW(L"127.0.0.1:1079", AF_INET, NULL, (LPSOCKADDR)&proxy->Socks5.HostPort, &proxy->Socks5.iSockLen);
+		proxy->Socks5.iAddrLen = sizeof(proxy->Socks5.HostPort);
+		WSAStringToAddressW(L"127.0.0.1:1079", AF_INET, NULL, (LPSOCKADDR)&proxy->Socks5.HostPort, &proxy->Socks5.iAddrLen);
 		proxy->Socks5.szUsername[0] = '\0';
 		proxy->Socks5.szPassword[0] = '\0';
-		proxy->Socks5.Ws2_32FpConnect = &Ws2_32Socks5Connect;
-		proxy->Socks5.Ws2_32FpHandshake = &Ws2_32Socks5Handshake;
+		proxy->Socks5.Ws2_32_FpConnect = &Ws2_32_Socks5Connect;
+		proxy->Socks5.Ws2_32_FpHandshake = &Ws2_32_Socks5Handshake;
 	}
 
 	{
 		PXCH_RULE* rule = &PXCHCONFIG_RULE_ARR(pPxchConfig)[0];
-		int iSockLen = sizeof(PXCH_IP_ADDRESS);
+		int iAddrLen = sizeof(PXCH_IP_ADDRESS);
 		RuleInit(*rule);
 		SetRuleType(IP_CIDR, *rule);
 
 		ZeroMemory(&rule->HostAddress, sizeof(rule->HostAddress));
 		SetHostType(IPV4, rule->HostAddress);
-		WSAStringToAddressW(L"127.0.0.1", AF_INET, NULL, (LPSOCKADDR)&rule->HostAddress.IpPort, &iSockLen);
+		WSAStringToAddressW(L"127.0.0.1", AF_INET, NULL, (LPSOCKADDR)&rule->HostAddress.IpPort, &iAddrLen);
 		rule->dwCidrPrefixLength = 32;
 		rule->iWillProxy = FALSE;
 	}
 
 	{
 		PXCH_RULE* rule = &PXCHCONFIG_RULE_ARR(pPxchConfig)[1];
-		int iSockLen = sizeof(PXCH_IP_ADDRESS);
+		int iAddrLen = sizeof(PXCH_IP_ADDRESS);
 		RuleInit(*rule);
 		SetRuleType(IP_CIDR, *rule);
 
 		ZeroMemory(&rule->HostAddress, sizeof(rule->HostAddress));
 		SetHostType(IPV4, rule->HostAddress);
-		WSAStringToAddressW(L"0.0.0.0", AF_INET, NULL, (LPSOCKADDR)&rule->HostAddress.IpPort, &iSockLen);
+		WSAStringToAddressW(L"10.0.0.0", AF_INET, NULL, (LPSOCKADDR)&rule->HostAddress.IpPort, &iAddrLen);
+		rule->dwCidrPrefixLength = 8;
+		rule->iWillProxy = FALSE;
+	}
+
+	{
+		PXCH_RULE* rule = &PXCHCONFIG_RULE_ARR(pPxchConfig)[iRuleNum - 1];
+		int iAddrLen = sizeof(PXCH_IP_ADDRESS);
+		RuleInit(*rule);
+		SetRuleType(IP_CIDR, *rule);
+
+		ZeroMemory(&rule->HostAddress, sizeof(rule->HostAddress));
+		SetHostType(IPV4, rule->HostAddress);
+		WSAStringToAddressW(L"0.0.0.0", AF_INET, NULL, (LPSOCKADDR)&rule->HostAddress.IpPort, &iAddrLen);
 		rule->dwCidrPrefixLength = 0;
 		rule->iWillProxy = TRUE;
 	}
+
+	
 
 	return 0;
 

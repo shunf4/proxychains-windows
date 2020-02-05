@@ -178,18 +178,18 @@ typedef int(*PXCH_WS2_32_FPCONNECT)(void* pTempData, PXCH_UINT_PTR s, const unio
 
 typedef struct _PXCH_PROXY_DIRECT_DATA {
 	PXCH_UINT32 dwTag;
-	PXCH_WS2_32_FPCONNECT Ws2_32FpConnect;
-	PXCH_WS2_32_FPHANDSHAKE Ws2_32FpHandshake;
+	PXCH_WS2_32_FPCONNECT Ws2_32_FpConnect;
+	PXCH_WS2_32_FPHANDSHAKE Ws2_32_FpHandshake;
 	PXCH_HOST_PORT HostPort;
-	int iSockLen;
+	int iAddrLen;
 } PXCH_PROXY_DIRECT_DATA;
 
 typedef struct _PXCH_PROXY_SOCKS5_DATA {
 	PXCH_UINT32 dwTag;
-	PXCH_WS2_32_FPCONNECT Ws2_32FpConnect;
-	PXCH_WS2_32_FPHANDSHAKE Ws2_32FpHandshake;
+	PXCH_WS2_32_FPCONNECT Ws2_32_FpConnect;
+	PXCH_WS2_32_FPHANDSHAKE Ws2_32_FpHandshake;
 	PXCH_HOST_PORT HostPort;
-	int iSockLen;
+	int iAddrLen;
 
 	PXCH_USERNAME szUsername;
 	PXCH_PASSWORD szPassword;
@@ -201,10 +201,10 @@ typedef union _PXCH_PROXY_DATA {
 
 	struct {
 		PXCH_UINT32 dwTag;
-		PXCH_WS2_32_FPCONNECT Ws2_32FpConnect;
-		PXCH_WS2_32_FPHANDSHAKE Ws2_32FpHandshake;
+		PXCH_WS2_32_FPCONNECT Ws2_32_FpConnect;
+		PXCH_WS2_32_FPHANDSHAKE Ws2_32_FpHandshake;
 		PXCH_HOST_PORT HostPort;
-		int iSockLen;
+		int iAddrLen;
 	} CommonHeader;
 
 	PXCH_PROXY_SOCKS5_DATA Socks5;
@@ -261,3 +261,5 @@ static const wchar_t g_szMinHookDllFileName[] = L"MinHook.x64.dll";
 #else
 static const wchar_t g_szMinHookDllFileName[] = L"MinHook.x86.dll";
 #endif
+
+extern PXCHDLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;

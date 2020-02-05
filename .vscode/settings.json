@@ -47,6 +47,7 @@
         "ws2tcpip.h": "c",
         "windef.h": "c",
         "minwindef.h": "c",
-        "proxy_core.h": "c"
+        "proxy_core.h": "c",
+        "minhook.h": "c"
     }
 }

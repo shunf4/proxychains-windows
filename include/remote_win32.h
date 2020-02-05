@@ -2,9 +2,9 @@
 
 #include "includes_win32.h"
 
-#define PXCHDEBUG_REMOTEFUNCTION
+#define PXCHDEBUG_ODS
 
-#ifdef PXCHDEBUG_REMOTEFUNCTION
+#ifdef PXCHDEBUG_ODS
 #define DBGCHR(ch) do { pRemoteData->fpOutputDebugStringA(pRemoteData->chDebugOutput + ((ch) - 'A') * 2); } while(0)
 #define DBGCHR_GP(ch) do { if (g_pRemoteData) g_pRemoteData->fpOutputDebugStringA(g_pRemoteData->chDebugOutput + ((ch) - 'A') * 2); } while(0)
 #define DBGSTR_GP(str) do { if (g_pRemoteData) g_pRemoteData->fpOutputDebugStringA(str); } while(0)

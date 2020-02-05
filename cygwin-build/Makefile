@@ -2,17 +2,20 @@ SRC_PREFIX = ../src/
 INCLUDE_PREFIX = ../include/
 LIB_PREFIX = ../lib/
 
-SRCS = $(sort $(wildcard $(SRC_PREFIX)cygwin_strsafe/*.c)) $(sort $(wildcard $(SRC_PREFIX)exe/*.c)) $(sort $(wildcard $(SRC_PREFIX)dll/*.c)) $(sort $(wildcard $(SRC_PREFIX)dll/remote_function/*.c)) $(sort $(wildcard $(SRC_PREFIX)*.c))
+DLL_SRCS = $(sort $(sort $(wildcard $(SRC_PREFIX)dll/*.c)) $(sort $(wildcard $(SRC_PREFIX)dll/remote_function/*.c)))
+DLL_OBJS = $(patsubst $(SRC_PREFIX)%,%,$(DLL_SRCS:.c=.o))
+
+NONDLL_SRCS = $(sort $(wildcard $(SRC_PREFIX)cygwin_strsafe/*.c)) $(sort $(wildcard $(SRC_PREFIX)exe/*.c)) $(sort $(wildcard $(SRC_PREFIX)*.c))
+NONDLL_OBJS = $(patsubst $(SRC_PREFIX)%,%,$(NONDLL_SRCS:.c=.o))
+
+SRCS = $(DLL_SRCS) $(NONDLL_SRCS)
 OBJS = $(patsubst $(SRC_PREFIX)%,%,$(SRCS:.c=.o))
-
-SPECIAL_SRCS = $(SRC_PREFIX)dll/dllmain.c
-
-AUTO_SRCS = $(filter-out $(SPECIAL_SRCS),$(SRCS))
-AUTO_OBJS = $(patsubst $(SRC_PREFIX)%,%,$(AUTO_SRCS:.c=.o))
 
 DEPS = $(patsubst $(SRC_PREFIX)%,%,$(SRCS:.c=.d))
 
 CFLAGS = -fgnu89-inline -Wall -g -D_UNICODE -DUNICODE -I$(INCLUDE_PREFIX)
+DLL_CFLAGS = -fgnu89-inline -Wall -g -D_UNICODE -DUNICODE -DPXCHDLL_EXPORTS -I$(INCLUDE_PREFIX)
+
 DEPFLAGS_STEM = -MT $@ -MMD -MP -MF $*.d
 DEPFLAGS_IN_PREREQ = -MT $@ -MMD -MP -MF $(filter %.d,$^)
 
@@ -27,13 +30,16 @@ ALL_EXECS = $(EXEC_PATH)
 
 all : $(ALL_EXECS)
 
-$(AUTO_OBJS) : %.o : $(SRC_PREFIX)%.c %.d
+$(NONDLL_OBJS) : %.o : $(SRC_PREFIX)%.c %.d
 	$(CC) $(CFLAGS) $(DEPFLAGS_STEM) -c -o$@ $<
 	
+$(DLL_OBJS) : %.o : $(SRC_PREFIX)%.c %.d
+	$(CC) $(DLL_CFLAGS) $(DEPFLAGS_STEM) -c -o$@ $<
+
 $(DEPS) : 
 	
-$(DLL_PATH) : $(SRC_PREFIX)dll/dllmain.c $(SRC_PREFIX)log_func_impl.c $(SRC_PREFIX)dll/hook_win32.c $(SRC_PREFIX)dll/hook_cygwin.c dll/remote_function/remote_function.o common.o ipc_message.o log.o cygwin_strsafe/strsafe.o dll/dllmain.d
-	$(CC) $(CFLAGS) $(DEPFLAGS_IN_PREREQ) -shared -DPXCHDLL_EXPORTS -o$@ -Wl,--out-implib=$(DLL_IMPLIB_PATH) -L$(LIB_PREFIX) $(filter %.c %.o %.a %.lib,$^) -lntdllcrt -lMinHookx64 -lws2_32
+$(DLL_PATH) : dll/dllmain.o dll/hook_connect_win32.o dll/hook_connect_cygwin.o dll/hook_createprocess_win32.o dll/hook_installer.o dll/ipc_client_and_child_data.o dll/log_func_impl.o dll/remote_function/remote_function.o common.o ipc_message.o log.o cygwin_strsafe/strsafe.o
+	$(CC) -shared -o$@ -Wl,--out-implib=$(DLL_IMPLIB_PATH) -L$(LIB_PREFIX) $(filter %.c %.o %.a %.lib,$^) -lntdllcrt -lMinHookx64 -lws2_32
 		
 #	-Wl,--export-all-symbols \
 #	-Wl,--enable-auto-import \

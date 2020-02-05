@@ -42,7 +42,5 @@ typedef struct _PXCH_INJECT_REMOTE_DATA {
 } PXCH_INJECT_REMOTE_DATA;
 
 
-extern PXCHDLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;
 extern PXCHDLL_API BOOL g_bCurrentlyInWinapiCall;
 extern PXCHDLL_API DWORD g_dwCurrentProcessIdForVerify;
-

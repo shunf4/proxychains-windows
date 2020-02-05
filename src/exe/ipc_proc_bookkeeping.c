@@ -18,7 +18,7 @@ DWORD ChildProcessExitedCallbackWorker(PVOID lpParameter, BOOLEAN TimerOrWaitFir
 		if (!GetExitCodeProcess(entry->hProcess, &dwExitCode)) {
 			LOGE(L"GetExitCodeProcess() error: %ls", FormatErrorToStr(GetLastError()));
 		}
-		LOGI(L"Child process " WPRDW L" pid " WPRDW L" exited (%#010x).", entry->hProcess, entry->Data.dwPid, dwExitCode);
+		LOGI(L"Child process winpid " WPRDW L" exited (%#010x).", entry->Data.dwPid, dwExitCode);
 		HeapFree(GetProcessHeap(), 0, entry);
 
 		if (g_tabPerProcess == NULL) {
@@ -146,7 +146,6 @@ DWORD InitProcessBookkeeping(void)
 	g_tabFakeIpHostname = NULL;
 
 	if ((g_hDataMutex = CreateMutexW(NULL, FALSE, NULL)) == NULL) return GetLastError();
-	if ((g_hIpcServerSemaphore = CreateSemaphoreW(NULL, 0, 1, NULL)) == NULL) return GetLastError();
 
 	return 0;
 }

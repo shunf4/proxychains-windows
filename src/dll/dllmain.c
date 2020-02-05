@@ -2,6 +2,7 @@
 #include "log_win32.h"
 #include "remote_win32.h"
 #include "hookdll_win32.h"
+#include "hookdll_interior_win32.h"
 #include <MinHook.h>
 
 #ifndef __CYGWIN__
@@ -12,7 +13,6 @@
 #endif
 #endif
 
-PXCHDLL_API HANDLE g_hIpcServerSemaphore;
 PXCH_INJECT_REMOTE_DATA* g_pRemoteData;
 PXCHDLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;
 PXCHDLL_API BOOL g_bCurrentlyInWinapiCall = FALSE;
@@ -20,238 +20,6 @@ PXCHDLL_API BOOL g_bCurrentlyInWinapiCall = FALSE;
 // To verify that this process has its original data (not overwritten with those of parent by fork())
 PXCHDLL_API DWORD g_dwCurrentProcessIdForVerify;
 
-PXCH_UINT32 IpcCommunicateWithServer(const IPC_MSGBUF sendMessage, PXCH_UINT32 cbSendMessageSize, IPC_MSGBUF responseMessage, PXCH_UINT32* pcbResponseMessageSize)
-{
-	HANDLE hPipe;
-	DWORD cbToWrite;
-	DWORD cbWritten;
-	DWORD dwMode;
-	DWORD dwErrorCode;
-	BOOL bReturn;
-
-	if (!g_pPxchConfig) return ERROR_INVALID_STATE;
-
-	*pcbResponseMessageSize = 0;
-	SetMsgInvalid(responseMessage);
-
-	DBGSTR_GP("before createfile");
-
-	// Try to open a named pipe; wait for it if necessary
-	while (1)
-	{
-		hPipe = CreateFileW(g_pPxchConfig->szIpcPipeName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-		if (hPipe != INVALID_HANDLE_VALUE) break;
-		if ((dwErrorCode = GetLastError()) != ERROR_PIPE_BUSY) goto err_open_pipe;
-
-		// Wait needed
-		if (!WaitNamedPipeW(g_pPxchConfig->szIpcPipeName, 2000)) goto err_wait_pipe;
-	}
-
-	DBGSTR_GP("after createfile");
-
-	dwMode = PIPE_READMODE_MESSAGE;
-	bReturn = SetNamedPipeHandleState(hPipe, &dwMode, NULL, NULL);
-	if (!bReturn) goto err_set_handle_state;
-
-	DBGSTR_GP("after SetNamedPipeHandleState");
-
-	// Request
-	cbToWrite = (DWORD)cbSendMessageSize;
-	bReturn = WriteFile(hPipe, sendMessage, cbToWrite, &cbWritten, NULL);
-	if (!bReturn || cbToWrite != cbWritten) goto err_write;
-
-	DBGSTR_GP("after WriteFile");
-
-	// Read response
-	bReturn = ReadFile(hPipe, responseMessage, IPC_BUFSIZE, pcbResponseMessageSize, NULL);
-	if (!bReturn) goto err_read;
-
-	DBGSTR_GP("after ReadFile");
-
-	CloseHandle(hPipe);
-	return 0;
-
-err_open_pipe:
-	// Opening pipe using CreateFileW error
-	return dwErrorCode;
-
-err_wait_pipe:
-	dwErrorCode = GetLastError();
-	// Waiting pipe using WaitNamedPipeW error
-	goto close_ret;
-
-err_set_handle_state:
-	dwErrorCode = GetLastError();
-	// SetNamedPipeHandleState() error
-	goto close_ret;
-
-err_write:
-	dwErrorCode = GetLastError();
-	// WriteFile() error
-	dwErrorCode = (dwErrorCode == NO_ERROR ? ERROR_WRITE_FAULT : dwErrorCode);
-	goto close_ret;
-
-err_read:
-	dwErrorCode = GetLastError();
-	// ReadFile() error
-	goto close_ret;
-
-close_ret:
-	CloseHandle(hPipe);
-	return dwErrorCode;
-}
-
-
-DWORD IpcClientRegisterChildProcess()
-{
-	/*REPORTED_CHILD_DATA childData;
-	IPC_MSGBUF chMessageBuf;
-	IPC_MSGBUF chRespMessageBuf;
-	DWORD cbMessageSize;
-	DWORD cbRespMessageSize;
-	DWORD dwErrorCode;
-
-	childData.dwPid = GetCurrentProcessId();
-	childData.pSavedPxchConfig = g_pPxchConfig;
-	childData.pSavedRemoteData = g_pRemoteData;
-
-	if ((dwErrorCode = ChildDataToMessage(chMessageBuf, &cbMessageSize, &childData)) != NO_ERROR) return dwErrorCode;
-	if ((dwErrorCode = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) return dwErrorCode;
-
-	return 0;*/
-
-	DWORD dwErrorCode;
-
-	HANDLE hMapFile;
-	WCHAR szFileMappingName[MAX_FILEMAPPING_BUFSIZE];
-	REPORTED_CHILD_DATA* pChildData;
-	DWORD dwCurrentProcessId;
-
-	IPC_MSGBUF chMessageBuf;
-	IPC_MSGBUF chRespMessageBuf;
-	DWORD cbMessageSize;
-	DWORD cbRespMessageSize;
-
-	dwCurrentProcessId = GetCurrentProcessId();
-
-	if (FAILED(StringCchPrintfW(szFileMappingName, _countof(szFileMappingName), L"%ls" WPRDW, g_szChildDataSavingFileMappingPrefix, dwCurrentProcessId))) goto err_sprintf;
-	hMapFile = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(REPORTED_CHILD_DATA), szFileMappingName);
-	if (hMapFile == NULL) goto err_filemapping;
-
-	pChildData = MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(REPORTED_CHILD_DATA));
-	if (pChildData == NULL) goto err_mapviewoffile;
-
-	pChildData->dwPid = dwCurrentProcessId;
-	pChildData->hMapFile = hMapFile;
-	pChildData->pMappedBuf = pChildData;
-	pChildData->pSavedPxchConfig = g_pPxchConfig;
-	pChildData->pSavedRemoteData = g_pRemoteData;
-
-	if ((dwErrorCode = ChildDataToMessage(chMessageBuf, &cbMessageSize, pChildData)) != NO_ERROR) return dwErrorCode;
-	if ((dwErrorCode = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) return dwErrorCode;
-
-	IPCLOGV(L"Saved child data, g_pPxchConfig = %p", g_pPxchConfig);
-
-	return 0;
-
-err_sprintf:
-	IPCLOGE(L"StringCchPrintfW failed");
-	return ERROR_INVALID_DATA;
-
-err_filemapping:
-	dwErrorCode = GetLastError();
-	IPCLOGE(L"CreateFileMappingW failed: %ls", FormatErrorToStr(dwErrorCode));
-	return dwErrorCode;
-
-err_mapviewoffile:
-	dwErrorCode = GetLastError();
-	IPCLOGE(L"MapViewOfFile failed");
-	CloseHandle(hMapFile);
-	return dwErrorCode;
-}
-
-
-PXCH_UINT32 RestoreChildData()
-{
-	// Restore child process essential data overwritten by Cygwin fork().
-
-	/*REPORTED_CHILD_DATA childData;
-	IPC_MSGBUF chMessageBuf;
-	IPC_MSGBUF chRespMessageBuf;
-	DWORD cbMessageSize;
-	DWORD cbRespMessageSize;
-	
-	childData.dwPid = GetCurrentProcessId();
-
-	if (childData.dwPid == g_pPxchConfig->dwMasterProcessId) return 0;
-
-	if ((dwErrorCode = QueryStorageToMessage(chMessageBuf, &cbMessageSize, childData.dwPid)) != NO_ERROR) return dwErrorCode;
-	if ((dwErrorCode = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) return dwErrorCode;
-	if ((dwErrorCode = MessageToChildData(&childData, chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) return dwErrorCode;*/
-
-	PXCH_UINT32 dwErrorCode;
-
-	HANDLE hMapFile;
-	HANDLE hMapFileWhenCreated;
-	LPCVOID pMappedBufWhenCreated;
-	WCHAR szFileMappingName[MAX_FILEMAPPING_BUFSIZE];
-	REPORTED_CHILD_DATA* pChildData;
-	DWORD dwRealCurrentProcessId;
-
-	if ((dwRealCurrentProcessId = GetCurrentProcessId()) == g_dwCurrentProcessIdForVerify) return 0;
-
-	// Overwritten, now restoring
-	g_pPxchConfig = NULL;
-	g_pRemoteData = NULL;
-
-	if (FAILED(StringCchPrintfW(szFileMappingName, _countof(szFileMappingName), L"%ls" WPRDW, g_szChildDataSavingFileMappingPrefix, dwRealCurrentProcessId))) goto err_sprintf;
-	// hMapFile = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READONLY, 0, sizeof(REPORTED_CHILD_DATA), szFileMappingName);
-	hMapFile = OpenFileMappingW(FILE_MAP_READ, FALSE, szFileMappingName);
-	if (hMapFile == NULL) goto err_filemapping;
-
-	pChildData = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, sizeof(REPORTED_CHILD_DATA));
-	if (pChildData == NULL) goto err_mapviewoffile;
-
-	if (pChildData->dwPid != dwRealCurrentProcessId || pChildData->pSavedPxchConfig == NULL || pChildData->pSavedRemoteData == NULL) goto err_data_invalid;
-	g_pPxchConfig = pChildData->pSavedPxchConfig;
-	g_pRemoteData = pChildData->pSavedRemoteData;
-	hMapFileWhenCreated = pChildData->hMapFile;
-	g_dwCurrentProcessIdForVerify = pChildData->dwPid;
-	pMappedBufWhenCreated = pChildData->pMappedBuf;
-
-	IPCLOGV(L"g_pPxchConfig restored to %p", g_pPxchConfig);
-	IPCLOGV(L"g_pRemoteData restored to %p", g_pRemoteData);
-
-	UnmapViewOfFile(pChildData);
-	UnmapViewOfFile(pMappedBufWhenCreated);
-	CloseHandle(hMapFile);
-	CloseHandle(hMapFileWhenCreated);
-	
-	return 0;
-
-err_data_invalid:
-	IPCLOGE(L"Saved CHILDDATA invalid");
-	ODBGSTRLOG(L"Saved CHILDDATA invalid");
-	return ERROR_INVALID_DATA;
-
-err_sprintf:
-	// Won't log because g_pPxchConfig == NULL. Same as below
-	IPCLOGE(L"StringCchPrintfW failed");
-	return ERROR_INVALID_DATA;
-
-err_filemapping:
-	dwErrorCode = GetLastError();
-	ODBGSTRLOG(L"OpenFileMappingW failed: %ls", FormatErrorToStr(dwErrorCode));
-	IPCLOGE(L"OpenFileMappingW failed");
-	return dwErrorCode;
-
-err_mapviewoffile:
-	dwErrorCode = GetLastError();
-	ODBGSTRLOG(L"MapViewOfFile failed: %ls", FormatErrorToStr(dwErrorCode));
-	IPCLOGE(L"MapViewOfFile failed");
-	CloseHandle(hMapFile);
-	return dwErrorCode;
-}
 
 DWORD RemoteCopyExecute(HANDLE hProcess, PXCH_INJECT_REMOTE_DATA* pRemoteData)
 {
@@ -458,157 +226,6 @@ error:
 	return dwReturn;
 }
 
-PROXY_FUNC(CreateProcessA)
-{
-	BOOL bRet;
-	DWORD dwErrorCode;
-	DWORD dwReturn;
-	PROCESS_INFORMATION processInformation;
-
-	bRet = orig_fpCreateProcessA(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &processInformation);
-	dwErrorCode = GetLastError();
-
-	if (lpProcessInformation) {
-		CopyMemory(lpProcessInformation, &processInformation, sizeof(PROCESS_INFORMATION));
-	}
-
-	LOGI(L"CreateProcessA: " WPRS L", " WPRS, lpApplicationName, lpCommandLine);
-
-	if (!bRet) goto err_orig;
-
-	dwReturn = InjectTargetProcess(&processInformation);
-	if (!(dwCreationFlags & CREATE_SUSPENDED)) {
-		ResumeThread(processInformation.hThread);
-	}
-	//if (GetCurrentProcessId() != g_pPxchConfig->dwMasterProcessId) IpcCommunicateWithServer();
-	if (dwReturn != 0) goto err_inject;
-	return 1;
-
-err_orig:
-	LOGE(L"CreateProcessA Error: " WPRDW L", %ls", bRet, FormatErrorToStr(dwErrorCode));
-	SetLastError(dwErrorCode);
-	return bRet;
-
-err_inject:
-	// PrintErrorToFile(stderr, dwReturn);
-	SetLastError(dwReturn);
-	return 1;
-}
-
-PROXY_FUNC(CreateProcessW)
-{
-	BOOL bRet;
-	DWORD dwErrorCode;
-	DWORD dwReturn = 0;
-	PROCESS_INFORMATION processInformation;
-
-	g_bCurrentlyInWinapiCall = TRUE;
-
-	// For cygwin: cygwin fork() will duplicate the data in child process, including pointer g_*.
-	RestoreChildData();
-
-	IPCLOGI(L"(In CreateProcessW) g_pRemoteData->dwDebugDepth = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
-
-	IPCLOGD(L"CreateProcessW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s", lpApplicationName, lpCommandLine, (UINT64)lpProcessAttributes, (UINT64)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory);
-
-	bRet = orig_fpCreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &processInformation);
-	dwErrorCode = GetLastError();
-
-	IPCLOGV(L"CreateProcessW: Created.(%u) Child process id: " WPRDW, bRet, processInformation.dwProcessId);
-
-	if (lpProcessInformation) {
-		CopyMemory(lpProcessInformation, &processInformation, sizeof(PROCESS_INFORMATION));
-	}
-
-	IPCLOGV(L"CreateProcessW: Copied.");
-	if (!bRet) goto err_orig;
-	
-	IPCLOGV(L"CreateProcessW: After jmp to err_orig.");
-	IPCLOGV(L"CreateProcessW: Before InjectTargetProcess.");
-	dwReturn = InjectTargetProcess(&processInformation);
-
-	IPCLOGV(L"CreateProcessW: Injected. " WPRDW, dwReturn);
-
-	if (!(dwCreationFlags & CREATE_SUSPENDED)) {
-		ResumeThread(processInformation.hThread);
-	}
-
-	if (dwReturn != 0) goto err_inject;
-	IPCLOGD(L"I've Injected WINPID " WPRDW, processInformation.dwProcessId);
-
-	g_bCurrentlyInWinapiCall = FALSE;
-	return 1;
-
-err_orig:
-	IPCLOGE(L"CreateProcessW Error: " WPRDW L", %ls", bRet, FormatErrorToStr(dwErrorCode));
-	SetLastError(dwErrorCode);
-	g_bCurrentlyInWinapiCall = FALSE;
-	return bRet;
-
-err_inject:
-	IPCLOGE(L"Injecting WINPID " WPRDW L" Error: %ls", processInformation.dwProcessId, FormatErrorToStr(dwReturn));
-	SetLastError(dwReturn);
-	g_bCurrentlyInWinapiCall = FALSE;
-	return 1;
-}
-
-PROXY_FUNC(CreateProcessAsUserW)
-{
-	BOOL bRet;
-	DWORD dwErrorCode;
-	DWORD dwReturn = 0;
-	PROCESS_INFORMATION processInformation;
-
-	g_bCurrentlyInWinapiCall = TRUE;
-
-	// For cygwin: cygwin fork() will duplicate the data in child process, including pointer g_*.
-	RestoreChildData();
-
-	IPCLOGI(L"(In CreateProcessAsUserW) g_pRemoteData->dwDebugDepth = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
-
-	IPCLOGD(L"CreateProcessAsUserW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s", lpApplicationName, lpCommandLine, (UINT64)lpProcessAttributes, (UINT64)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory);
-
-	bRet = orig_fpCreateProcessAsUserW(hToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &processInformation);
-	dwErrorCode = GetLastError();
-
-	IPCLOGV(L"CreateProcessAsUserW: Created.(%u) Child process id: " WPRDW, bRet, processInformation.dwProcessId);
-
-	if (lpProcessInformation) {
-		CopyMemory(lpProcessInformation, &processInformation, sizeof(PROCESS_INFORMATION));
-	}
-
-	IPCLOGV(L"CreateProcessAsUserW: Copied.");
-	if (!bRet) goto err_orig;
-
-	IPCLOGV(L"CreateProcessAsUserW: After jmp to err_orig.");
-	IPCLOGV(L"CreateProcessAsUserW: Before InjectTargetProcess.");
-	dwReturn = InjectTargetProcess(&processInformation);
-
-	IPCLOGV(L"CreateProcessAsUserW: Injected. " WPRDW, dwReturn);
-
-	if (!(dwCreationFlags & CREATE_SUSPENDED)) {
-		ResumeThread(processInformation.hThread);
-	}
-
-	if (dwReturn != 0) goto err_inject;
-	IPCLOGD(L"CreateProcessAsUserW: I've Injected WINPID " WPRDW, processInformation.dwProcessId);
-
-	g_bCurrentlyInWinapiCall = FALSE;
-	return 1;
-
-err_orig:
-	IPCLOGE(L"CreateProcessAsUserW Error: " WPRDW L", %ls", bRet, FormatErrorToStr(dwErrorCode));
-	SetLastError(dwErrorCode);
-	g_bCurrentlyInWinapiCall = FALSE;
-	return bRet;
-
-err_inject:
-	IPCLOGE(L"Injecting WINPID " WPRDW L" Error: %ls", processInformation.dwProcessId, FormatErrorToStr(dwReturn));
-	SetLastError(dwReturn);
-	g_bCurrentlyInWinapiCall = FALSE;
-	return 1;
-}
-
 
 PXCHDLL_API DWORD __stdcall InitHookForMain(PROXYCHAINS_CONFIG* pPxchConfig)
 {
@@ -631,77 +248,42 @@ PXCHDLL_API DWORD __stdcall InitHook(PXCH_INJECT_REMOTE_DATA* pRemoteData)
 	g_pPxchConfig = &pRemoteData->pxchConfig;
 	g_pRemoteData = pRemoteData;
 
-	DBGCHR('A');
+	ODBGSTRLOG(L"InitHook: start");
 
 	MH_Initialize();
 	// CREATE_HOOK(CreateProcessA);
 	CREATE_HOOK(CreateProcessW);
 	CREATE_HOOK(CreateProcessAsUserW);
 
-	DBGCHR('B');
+	ODBGSTRLOG(L"InitHook: hooked CreateProcess");
 
-	DBGCHR(g_pRemoteData->dwDebugDepth == 1 ? 'J' : 'K');
 	IPCLOGI(L"(In InitHook) g_pRemoteData->dwDebugDepth = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
 
-	DBGCHR('C');
+	Win32HookConnect();
+	CygwinHookConnect();
 
-	if (1) do {
-		HMODULE hWs2_32;
-		HMODULE hWsock32;
-		HMODULE hCygwin1;
-		LPVOID pWs2_32_connect = NULL;
-		LPVOID pWs2_32_WSAConnect = NULL;
-		LPVOID pWsock32_connect = NULL;
-		LPVOID pCygwin1_connect = NULL;
-
-		LoadLibraryW(L"ws2_32.dll");
-		LoadLibraryW(L"wsock32.dll");
-		LoadLibraryW(L"cygwin1.dll");
-
-		if ((hWs2_32 = pRemoteData->fpGetModuleHandleW(L"ws2_32.dll"))) {
-			pWs2_32_connect = pRemoteData->fpGetProcAddress(hWs2_32, "connect");
-			pWs2_32_WSAConnect = pRemoteData->fpGetProcAddress(hWs2_32, "WSAConnect");
-		}
-		if ((hWsock32 = pRemoteData->fpGetModuleHandleW(L"wsock32.dll"))) { pWsock32_connect = pRemoteData->fpGetProcAddress(hWsock32, "connect"); }
-		if ((hCygwin1 = pRemoteData->fpGetModuleHandleW(L"cygwin1.dll"))) { pCygwin1_connect = pRemoteData->fpGetProcAddress(hCygwin1, "connect"); }
-
-		IPCLOGI(L"ws2_32.dll  connect(): %p", pWs2_32_connect);
-		IPCLOGI(L"ws2_32.dll  WSAConnect(): %p", pWs2_32_WSAConnect);
-		IPCLOGI(L"wsock32.dll connect(): %p", pWsock32_connect);
-		// IPCLOGI(L"mswsock.dll connect(): %p", hMswsock ? pRemoteData->fpGetProcAddress(hMswsock, "connect") : NULL);
-		IPCLOGI(L"cygwin1.dll connect(): %p", pCygwin1_connect);
-
-		CREATE_HOOK3_IFNOTNULL(Ws2_32, WSAConnect, pWs2_32_WSAConnect);
-		CREATE_HOOK3_IFNOTNULL(Ws2_32, connect, pWs2_32_connect);
-		CREATE_HOOK3_IFNOTNULL(Cygwin1, connect, pCygwin1_connect);
-	} while (0);
-
-	DBGCHR('D');
+	ODBGSTRLOG(L"InitHook: before MH_EnableHook");
 
 	if (g_pRemoteData->dwDebugDepth >= 0) {
 		MH_EnableHook(MH_ALL_HOOKS);
-	}
-	else {
+	} else {
 		IPCLOGI(L"(In InitHook) g_pRemoteData->dwDebugDepth = " WPRDW L", skipping MH_EnableHook", g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
 	}
 	
-	DBGCHR('E');
-	// For non-direct descandant
+	ODBGSTRLOG(L"InitHook: after MH_EnableHook");
+
 	dwErrorCode = IpcClientRegisterChildProcess();
+
 	if (dwErrorCode) {
-		char tmpLogLine[100];
-		StringCchPrintfA(tmpLogLine, 100, "IPC Error: %u", dwErrorCode);
-		pRemoteData->fpOutputDebugStringA(tmpLogLine);
+		ODBGSTRLOG(L"InitHook: after IpcClientRegisterChildProcess, IPC Failed");
+	} else {
+		ODBGSTRLOG(L"InitHook: after IpcClientRegisterChildProcess, IPC Succeed");
 	}
 
-	// For direct child
-	pRemoteData->pSavedPxchConfig = g_pPxchConfig;
-	pRemoteData->pSavedRemoteData = g_pRemoteData;
-	DBGCHR('F');
 	IPCLOGI(L"I'm WINPID " WPRDW L" Hooked!", log_pid);
-	DBGCHR('G');
 
 	g_dwCurrentProcessIdForVerify = GetCurrentProcessId();
+	ODBGSTRLOG(L"InitHook: end");
 	return 0;
 }
 

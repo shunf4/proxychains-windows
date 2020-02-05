@@ -21,13 +21,22 @@
     <ClCompile Include="..\src\dll\remote_function\remote_function.c">
       <Filter>Sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\dll\hook_win32.c">
-      <Filter>Sources</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\dll\hook_cygwin_msvcstub.c">
       <Filter>Sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\log_func_impl.c">
+    <ClCompile Include="..\src\dll\hook_connect_win32.c">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\dll\hook_createprocess_win32.c">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\dll\ipc_client_and_child_data.c">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\dll\hook_installer.c">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\dll\log_func_impl.c">
       <Filter>Sources</Filter>
     </ClCompile>
   </ItemGroup>
@@ -75,6 +84,12 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\include\proxy_core.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\hookdll_interior_win32.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\hookdll_interior_generic.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

@@ -17,6 +17,7 @@
 #include <spawn.h>
 #endif
 
+HANDLE g_hIpcServerSemaphore;
 
 DWORD HandleMessage(int i, IPC_INSTANCE* pipc);
 
@@ -274,14 +275,43 @@ err_connect_overlapped_error:
 
 }
 
+static inline int handle_sigint_worker(int sig)
+{
+	// Once hooked, a cygwin program cannot handle Ctrl-C signal.
+	// Thus we have to implement this to kill everything forked
+	// by proxychains
+	tab_per_process_t* current;
+	tab_per_process_t* tmp;
+	HANDLE h;
+
+	LOGW(L"[PX:Ctrl-C]");
+	fflush(stderr);
+
+	LOCKED({
+		HASH_ITER(hh, g_tabPerProcess, current, tmp) {
+			HASH_DELETE(hh, g_tabPerProcess, current);
+			h = OpenProcess(SYNCHRONIZE | PROCESS_TERMINATE, TRUE, current->Data.dwPid);
+			if ((h != NULL || h != INVALID_HANDLE_VALUE) && TerminateProcess(h, 0)) {
+				LOGW(L"Killed WINPID " WPRDW, current->Data.dwPid);
+			}
+			else {
+				LOGW(L"Unable to kill WINPID " WPRDW, current->Data.dwPid);
+			}
+			HeapFree(GetProcessHeap(), 0, current);
+		}
+		exit(0);
+
+		goto after_proc;
+	});
+}
+
 BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
 {
 	switch (fdwCtrlType)
 	{
 		// Handle the CTRL-C signal. 
 	case CTRL_C_EVENT:
-		wprintf(L"[PX:Ctrl-C]");
-		Beep(750, 300);
+		handle_sigint_worker(0);
 		return TRUE;
 
 		// CTRL-CLOSE: confirm that the user wants to exit. 
@@ -318,6 +348,7 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 DWORD Init(void)
 {
 	g_dwCurrentProcessIdForVerify = GetCurrentProcessId();
+	if ((g_hIpcServerSemaphore = CreateSemaphoreW(NULL, 0, 1, NULL)) == NULL) return GetLastError();
 	return 0;
 }
 
@@ -408,37 +439,6 @@ void handle_sigchld(int sig)
 	while (waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
 	LOGI(L"Cygwin child process exited.");
 	IF_CYGWIN_EXIT(0);
-}
-
-
-static inline int handle_sigint_worker(int sig)
-{
-	// Once hooked, a cygwin program cannot handle Ctrl-C signal.
-	// Thus we have to implement this to kill everything forked
-	// by proxychains
-	tab_per_process_t* current;
-	tab_per_process_t* tmp;
-	HANDLE h;
-
-	LOGW(L"[PX:Ctrl-C]");
-	fflush(stderr);
-
-	LOCKED({
-		HASH_ITER(hh, g_tabPerProcess, current, tmp) {
-			HASH_DELETE(hh, g_tabPerProcess, current);
-			h = OpenProcess(SYNCHRONIZE | PROCESS_TERMINATE, TRUE, current->Data.dwPid);
-			if ((h != NULL || h != INVALID_HANDLE_VALUE) && TerminateProcess(h, 0)) {
-				LOGW(L"Killed WINPID " WPRDW, current->Data.dwPid);
-			}
-			else {
-				LOGW(L"Unable to kill WINPID " WPRDW, current->Data.dwPid);
-			}
-			HeapFree(GetProcessHeap(), 0, current);
-		}
-		IF_CYGWIN_EXIT(0);
-
-		goto after_proc;
-	});
 }
 
 

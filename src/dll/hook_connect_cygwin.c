@@ -8,3 +8,4 @@ PROXY_FUNC2(Cygwin1, connect)
 	FUNCIPCLOGI(L"cygwin1.dll connect() called");
 	return orig_fpCygwin1_connect(socket, addr, socklen);
 }
+

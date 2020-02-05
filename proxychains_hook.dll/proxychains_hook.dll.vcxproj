@@ -159,8 +159,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\dll\dllmain.c" />
+    <ClCompile Include="..\src\dll\hook_createprocess_win32.c" />
     <ClCompile Include="..\src\dll\hook_cygwin_msvcstub.c" />
-    <ClCompile Include="..\src\dll\hook_win32.c" />
+    <ClCompile Include="..\src\dll\hook_connect_win32.c" />
+    <ClCompile Include="..\src\dll\hook_installer.c" />
+    <ClCompile Include="..\src\dll\ipc_client_and_child_data.c" />
+    <ClCompile Include="..\src\dll\log_func_impl.c" />
     <ClCompile Include="..\src\dll\remote_function\remote_function.c">
       <SupportJustMyCode Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</SupportJustMyCode>
       <SupportJustMyCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</SupportJustMyCode>
@@ -171,7 +175,6 @@
       <SDLCheck Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </SDLCheck>
     </ClCompile>
-    <ClCompile Include="..\src\log_func_impl.c" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\proxychains_common\proxychains_common.vcxproj">
@@ -184,6 +187,8 @@
     <ClInclude Include="..\include\defines_generic.h" />
     <ClInclude Include="..\include\defines_win32.h" />
     <ClInclude Include="..\include\hookdll_generic.h" />
+    <ClInclude Include="..\include\hookdll_interior_generic.h" />
+    <ClInclude Include="..\include\hookdll_interior_win32.h" />
     <ClInclude Include="..\include\hookdll_win32.h" />
     <ClInclude Include="..\include\includes_win32.h" />
     <ClInclude Include="..\include\include_generic.h" />
