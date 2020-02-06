@@ -25,6 +25,7 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig)
 	PROXYCHAINS_CONFIG* pPxchConfig;
 	int iRuleNum;
 	int iProxyNum;
+	int iDummy;
 	//SIZE_T dirLength = 0;
 
 	WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -54,10 +55,16 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig)
 	if (!PathFileExistsW(pPxchConfig->szHookDllPath)) goto err_dll_not_exist;
 	if (!PathFileExistsW(pPxchConfig->szMinHookDllPath)) StringCchCopyW(pPxchConfig->szMinHookDllPath, MAX_DLL_PATH_BUFSIZE, g_szMinHookDllFileName);
 
+	pPxchConfig->dwFakeIpRangePrefix = 8;
+	WSAStringToAddressW(L"224.0.0.0", AF_INET, NULL, (LPSOCKADDR)&pPxchConfig->FakeIpRange, &iDummy);
+
+	pPxchConfig->bDeleteFakeIpAfterChildProcessExits = TRUE;
+
 	pPxchConfig->dwProxyNum = iProxyNum;
 	pPxchConfig->cbProxyListOffset = sizeof(PROXYCHAINS_CONFIG);
 	pPxchConfig->dwRuleNum = iRuleNum;
 	pPxchConfig->cbRuleListOffset = sizeof(PROXYCHAINS_CONFIG) + (sizeof(PXCH_PROXY_DATA) * pPxchConfig->dwProxyNum);
+	
 
 	{
 		PXCH_PROXY_DATA* proxy = &PXCHCONFIG_PROXY_ARR(pPxchConfig)[0];
@@ -78,9 +85,9 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig)
 		RuleInit(*rule);
 		SetRuleType(IP_CIDR, *rule);
 
-		ZeroMemory(&rule->HostAddress, sizeof(rule->HostAddress));
-		SetHostType(IPV4, rule->HostAddress);
-		WSAStringToAddressW(L"127.0.0.1", AF_INET, NULL, (LPSOCKADDR)&rule->HostAddress.IpPort, &iAddrLen);
+		ZeroMemory(&rule->HostPort, sizeof(rule->HostPort));
+		SetHostType(IPV4, rule->HostPort);
+		WSAStringToAddressW(L"127.0.0.1", AF_INET, NULL, (LPSOCKADDR)&rule->HostPort.IpPort, &iAddrLen);
 		rule->dwCidrPrefixLength = 32;
 		rule->iWillProxy = FALSE;
 	}
@@ -91,9 +98,9 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig)
 		RuleInit(*rule);
 		SetRuleType(IP_CIDR, *rule);
 
-		ZeroMemory(&rule->HostAddress, sizeof(rule->HostAddress));
-		SetHostType(IPV4, rule->HostAddress);
-		WSAStringToAddressW(L"10.0.0.0", AF_INET, NULL, (LPSOCKADDR)&rule->HostAddress.IpPort, &iAddrLen);
+		ZeroMemory(&rule->HostPort, sizeof(rule->HostPort));
+		SetHostType(IPV4, rule->HostPort);
+		WSAStringToAddressW(L"10.0.0.0", AF_INET, NULL, (LPSOCKADDR)&rule->HostPort.IpPort, &iAddrLen);
 		rule->dwCidrPrefixLength = 8;
 		rule->iWillProxy = FALSE;
 	}
@@ -104,9 +111,9 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig)
 		RuleInit(*rule);
 		SetRuleType(IP_CIDR, *rule);
 
-		ZeroMemory(&rule->HostAddress, sizeof(rule->HostAddress));
-		SetHostType(IPV4, rule->HostAddress);
-		WSAStringToAddressW(L"0.0.0.0", AF_INET, NULL, (LPSOCKADDR)&rule->HostAddress.IpPort, &iAddrLen);
+		ZeroMemory(&rule->HostPort, sizeof(rule->HostPort));
+		SetHostType(IPV4, rule->HostPort);
+		WSAStringToAddressW(L"0.0.0.0", AF_INET, NULL, (LPSOCKADDR)&rule->HostPort.IpPort, &iAddrLen);
 		rule->dwCidrPrefixLength = 0;
 		rule->iWillProxy = TRUE;
 	}

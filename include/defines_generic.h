@@ -139,7 +139,8 @@ typedef struct _PXCH_SOCKADDR {
 	char sa_data[14];
 } PXCH_SOCKADDR;
 
-typedef PXCH_SOCKADDR PXCH_IP_ADDRESS;   // port must be zero
+typedef PXCH_SOCKADDR PXCH_IP_PORT;
+typedef PXCH_IP_PORT PXCH_IP_ADDRESS;   // port must be zero
 
 typedef char PXCH_HOSTNAME_VALUE[MAX_HOSTNAME_BUFSIZE];
 typedef char PXCH_USERNAME[MAX_USERNAME_BUFSIZE];
@@ -163,7 +164,7 @@ typedef union _PXCH_HOST {
 	} CommonHeader;
 
 	PXCH_HOSTNAME_PORT HostnamePort;
-	PXCH_IP_ADDRESS IpPort;
+	PXCH_IP_PORT IpPort;
 } PXCH_HOST_PORT;
 
 typedef PXCH_HOST_PORT PXCH_HOST;  // port must be zero
@@ -215,7 +216,7 @@ typedef union _PXCH_PROXY_DATA {
 typedef struct _PXCH_RULE {
 	PXCH_UINT32 dwTag;
 
-	PXCH_HOST HostAddress;
+	PXCH_HOST_PORT HostPort;
 	PXCH_UINT32 dwCidrPrefixLength;
 	
 	PXCH_UINT32 iWillProxy;
@@ -246,6 +247,11 @@ typedef struct _PROXYCHAINS_CONFIG {
 
 	PXCH_UINT32 cbRuleListOffset;
 	PXCH_UINT32 dwRuleNum;
+
+	PXCH_IP_ADDRESS FakeIpRange;
+	PXCH_UINT32 dwFakeIpRangePrefix;
+
+	BOOL bDeleteFakeIpAfterChildProcessExits;
 } PROXYCHAINS_CONFIG;
 
 static const wchar_t g_szChildDataSavingFileMappingPrefix[] = L"Local\\proxychains_child_data_";

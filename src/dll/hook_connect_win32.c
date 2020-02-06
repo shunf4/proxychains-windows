@@ -55,7 +55,7 @@ static BOOL WillProxyByRule(const PXCH_HOST_PORT* pHostPort, BOOL bDefault)
 		pRule = &PXCHCONFIG_RULE_ARR(g_pPxchConfig)[i];
 		if (HostIsType(IPV4, *pHostPort) && RuleIsType(IP_CIDR, *pRule)) {
 			const struct sockaddr_in* pIpv4 = (const struct sockaddr_in*)pHostPort;
-			const struct sockaddr_in* pRuleIpv4 = (const struct sockaddr_in*) &pRule->HostAddress;
+			const struct sockaddr_in* pRuleIpv4 = (const struct sockaddr_in*) &pRule->HostPort;
 
 			// long is always 32-bit
 			PXCH_UINT32 dwMask = htonl(~(((PXCH_UINT64)1 << (32 - pRule->dwCidrPrefixLength)) - 1));

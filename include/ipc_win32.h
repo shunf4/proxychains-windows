@@ -14,7 +14,7 @@ typedef struct _REPORTED_CHILD_DATA {
 
 typedef struct _IPC_MSGHDR_CHILDDATA {
 	UINT32 dwTag;
-	REPORTED_CHILD_DATA childData;
+	REPORTED_CHILD_DATA ChildData;
 } IPC_MSGHDR_CHILDDATA;
 
 typedef struct _IPC_MSGHDR_QUERYSTORAGE {

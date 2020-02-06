@@ -88,18 +88,18 @@ close_ret:
 
 DWORD IpcClientRegisterChildProcess()
 {
-	/*REPORTED_CHILD_DATA childData;
+	/*REPORTED_CHILD_DATA ChildData;
 	IPC_MSGBUF chMessageBuf;
 	IPC_MSGBUF chRespMessageBuf;
 	DWORD cbMessageSize;
 	DWORD cbRespMessageSize;
 	DWORD dwErrorCode;
 
-	childData.dwPid = GetCurrentProcessId();
-	childData.pSavedPxchConfig = g_pPxchConfig;
-	childData.pSavedRemoteData = g_pRemoteData;
+	ChildData.dwPid = GetCurrentProcessId();
+	ChildData.pSavedPxchConfig = g_pPxchConfig;
+	ChildData.pSavedRemoteData = g_pRemoteData;
 
-	if ((dwErrorCode = ChildDataToMessage(chMessageBuf, &cbMessageSize, &childData)) != NO_ERROR) return dwErrorCode;
+	if ((dwErrorCode = ChildDataToMessage(chMessageBuf, &cbMessageSize, &ChildData)) != NO_ERROR) return dwErrorCode;
 	if ((dwErrorCode = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) return dwErrorCode;
 
 	return 0;*/
@@ -159,19 +159,19 @@ PXCH_UINT32 RestoreChildData()
 {
 	// Restore child process essential data overwritten by Cygwin fork().
 
-	/*REPORTED_CHILD_DATA childData;
+	/*REPORTED_CHILD_DATA ChildData;
 	IPC_MSGBUF chMessageBuf;
 	IPC_MSGBUF chRespMessageBuf;
 	DWORD cbMessageSize;
 	DWORD cbRespMessageSize;
 	
-	childData.dwPid = GetCurrentProcessId();
+	ChildData.dwPid = GetCurrentProcessId();
 
-	if (childData.dwPid == g_pPxchConfig->dwMasterProcessId) return 0;
+	if (ChildData.dwPid == g_pPxchConfig->dwMasterProcessId) return 0;
 
-	if ((dwErrorCode = QueryStorageToMessage(chMessageBuf, &cbMessageSize, childData.dwPid)) != NO_ERROR) return dwErrorCode;
+	if ((dwErrorCode = QueryStorageToMessage(chMessageBuf, &cbMessageSize, ChildData.dwPid)) != NO_ERROR) return dwErrorCode;
 	if ((dwErrorCode = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) return dwErrorCode;
-	if ((dwErrorCode = MessageToChildData(&childData, chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) return dwErrorCode;*/
+	if ((dwErrorCode = MessageToChildData(&ChildData, chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) return dwErrorCode;*/
 
 	PXCH_UINT32 dwErrorCode;
 

@@ -16,16 +16,8 @@
 
 #define IPC_MSGTYPE_WSTR 0x1
 
-#define IPC_MSGTYPE_GETHOSTBYFAKEIPV4 0x11
-#define IPC_MSGTYPE_GETHOSTBYFAKEIPV6 0x12
-
-#define IPC_MSGTYPE_GETFAKEIPV4BYHOST 0x21
-#define IPC_MSGTYPE_GETFAKEIPV6BYHOST 0x22
-#define IPC_MSGTYPE_RESPHOST 0x2F
-
-#define IPC_MSGTYPE_RESPIPS 0x30
-#define IPC_MSGTYPE_RESPIPV4 0x31
-#define IPC_MSGTYPE_RESPIPV6 0x32
+#define IPC_MSGTYPE_HOSTNAMEANDRESOLVEDIP 0x11
+#define IPC_MSGTYPE_IPADDRESS 0x12
 
 #define IPC_MSGTYPE_CHILDDATA 0x40
 #define IPC_MSGTYPE_QUERYSTORAGE 0x41
@@ -53,8 +45,33 @@ typedef struct _IPC_MSGHDR_WSTR {
 	PXCH_UINT32 cchLength;
 } IPC_MSGHDR_WSTR;
 
+typedef struct _IPC_MSGHDR_HOSTNAMEANDRESOLVEDIP {
+	PXCH_UINT32 dwTag;
+	PXCH_UINT32 dwPid;
+	PXCH_HOSTNAME Hostname;
+	PXCH_UINT32 dwWillMapResolvedIpToHost;
+	PXCH_UINT32 dwResolvedIpNum;
+} IPC_MSGHDR_HOSTNAMEANDRESOLVEDIP;
+
+#define IPC_RESOLVEDIP_ARR(pHdrHostnameAndResolvedIp) ((PXCH_IP_ADDRESS*)((char*)(pHdrHostnameAndResolvedIp) + sizeof(IPC_MSGHDR_HOSTNAMEANDRESOLVEDIP)))
+
+typedef struct _IPC_MSGHDR_IPADDRESS {
+	PXCH_UINT32 dwTag;
+	PXCH_UINT32 dwPid;
+	PXCH_IP_ADDRESS Ip;
+} IPC_MSGHDR_IPADDRESS;
+
 #pragma pack(pop)
 
 PXCH_UINT32 IpcCommunicateWithServer(const IPC_MSGBUF sendMessage, PXCH_UINT32 cbSendMessageSize, IPC_MSGBUF responseMessage, PXCH_UINT32* pcbResponseMessageSize);
+
 PXCH_UINT32 WstrToMessage(IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, const wchar_t* szWstr);
 PXCH_UINT32 MessageToWstr(wchar_t* wstr, CIPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize);
+
+#define MAX_RESOLVED_IP_NUM 10
+
+PXCH_UINT32 HostnameAndResolvedIpToMessage(IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, PXCH_UINT32 dwPid, const PXCH_HOSTNAME* Hostname, BOOL bWillMapResolvedIpToHost, PXCH_UINT32 dwResolvedIpNum, const PXCH_IP_ADDRESS* ResolvedIps);
+PXCH_UINT32 MessageToHostnameAndResolvedIp(PXCH_UINT32* pdwPid, PXCH_HOSTNAME* pHostname, BOOL* pbWillMapResolvedIpToHost, PXCH_UINT32* pdwResolvedIpNum, PXCH_IP_ADDRESS* ResolvedIps, CIPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize);
+
+PXCH_UINT32 IpAddressToMessage(IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, PXCH_UINT32 dwPid, const PXCH_IP_ADDRESS* pIp);
+PXCH_UINT32 MessageToIpAddress(PXCH_UINT32* pdwPid, PXCH_IP_ADDRESS* pIp, CIPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize);

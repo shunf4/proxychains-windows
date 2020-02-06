@@ -1,6 +1,7 @@
 ﻿#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
 
 #include <WinSock2.h>
 #include <WS2tcpip.h>
@@ -8,9 +9,21 @@
 #include <strsafe.h>
 #include <iostream>
 
+typedef char XXX[5];
+
+void AAA(XXX a)
+{
+    a[1] = 'z';
+}
+
 #pragma comment(lib, "Ws2_32.lib")
 int main()
 {
+    XXX a = "abcd";
+    AAA(a);
+    printf("%s\n", a);
+    return 0;
+
     WSADATA wsaData;
 
     int iResult;
@@ -28,12 +41,22 @@ int main()
     hints.ai_protocol = IPPROTO_TCP;
 
     struct addrinfo* addrsResult;
-    iResult = getaddrinfo("ip.sb", "80", &hints, &addrsResult);
+    iResult = getaddrinfo("ip.sb", "9993", NULL, &addrsResult);
     if (iResult != 0) {
         fprintf(stderr, "getaddrinfo failed: %d\n", iResult);
         WSACleanup();
         return 1;
     }
+
+    char ipstrbuf[100];
+    DWORD ipstrbuflen = _countof(ipstrbuf);
+    int iaddr = 0;
+    for (struct addrinfo* a = addrsResult; a; a = a->ai_next, iaddr++) {
+        WSAAddressToStringA(a->ai_addr, (DWORD)a->ai_addrlen, NULL, ipstrbuf, &ipstrbuflen);
+        printf("addrs[%d]\naddr: %s\naddrlen: %llu\ncanonname: %s\nfamily: %d\nflags: %d\nprotocol: %d\nsocktype: %d\n\n", iaddr, ipstrbuf, a->ai_addrlen, a->ai_canonname, a->ai_family, a->ai_flags, a->ai_protocol, a->ai_socktype);
+    }
+
+    return 0;
 
     SOCKET ConnectSocket = INVALID_SOCKET;
     struct addrinfo& firstAddr = addrsResult[0];
