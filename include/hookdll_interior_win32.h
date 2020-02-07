@@ -7,5 +7,5 @@ PXCH_UINT32 RestoreChildData();
 
 DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi);
 
-void Win32HookConnect(void);
-void CygwinHookConnect(void);
+void Win32HookWs2_32(void);
+void CygwinHook(void);

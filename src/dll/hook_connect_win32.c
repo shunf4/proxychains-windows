@@ -18,33 +18,20 @@
 #endif
 
 static PXCH_PROXY_DIRECT_DATA g_proxyDirect;
-static WCHAR g_HostPrintBuf[100];
+
+const PXCH_UINT32 g_dwW32HostentSize = sizeof(struct hostent);
 
 typedef struct _PXCH_WS2_32_TEMP_DATA {
 	DWORD iConnectLastError;
-	DWORD iConnectWSALastError;
+	int iConnectWSALastError;
 	int iConnectReturn;
 } PXCH_WS2_32_TEMP_DATA;
 
 typedef struct _PXCH_MSWSOCK_TEMP_DATA {
 	DWORD iConnectLastError;
-	DWORD iConnectWSALastError;
+	int iConnectWSALastError;
 	BOOL bConnectReturn;
 } PXCH_MSWSOCK_TEMP_DATA;
-
-static const WCHAR* FormatHostPortToStr(const void* pHostPort, int iAddrLen)
-{
-	DWORD dwLen;
-	dwLen = _countof(g_HostPrintBuf);
-	g_HostPrintBuf[0] = L'\0';
-
-	if (HostIsType(HOSTNAME, *(PXCH_HOST*)pHostPort)) {
-		StringCchPrintfW(g_HostPrintBuf, dwLen, L"%ls%hu", ((PXCH_HOSTNAME*)pHostPort)->szValue, ntohs(((PXCH_HOSTNAME*)pHostPort)->wPort));
-	} else {
-		WSAAddressToStringW((struct sockaddr*)(pHostPort), iAddrLen, NULL, g_HostPrintBuf, &dwLen);
-	}
-	return g_HostPrintBuf;
-}
 
 static BOOL WillProxyByRule(const PXCH_HOST_PORT* pHostPort, BOOL bDefault)
 {
@@ -68,40 +55,6 @@ static BOOL WillProxyByRule(const PXCH_HOST_PORT* pHostPort, BOOL bDefault)
 	}
 
 	return bDefault;
-}
-
-// Hook WSAStartup
-
-PROXY_FUNC2(Ws2_32, WSAStartup)
-{
-	int iReturn;
-	FUNCIPCLOGI(L"Ws2_32.dll WSAStartup() called");
-	iReturn = orig_fpWs2_32_WSAStartup(wVersionRequested, lpWSAData);
-	if (iReturn == 0) {
-		SOCKET DummySocket;
-		GUID GuidConnectEx = WSAID_CONNECTEX;
-		LPFN_CONNECTEX fpConnectEx = NULL;
-		DWORD cb;
-
-		DummySocket = socket(AF_INET, SOCK_STREAM, 0);
-		if (DummySocket == INVALID_SOCKET) goto out;
-		if (WSAIoctl(DummySocket, SIO_GET_EXTENSION_FUNCTION_POINTER, &GuidConnectEx, sizeof(GUID), &fpConnectEx, sizeof(LPFN_CONNECTEX), &cb, NULL, NULL) != 0) goto out;
-		if (!fpConnectEx) goto out;
-
-		CREATE_HOOK3_IFNOTNULL(Mswsock, ConnectEx, fpConnectEx);
-		MH_EnableHook(fpConnectEx);
-	}
-
-out:
-	return iReturn;
-}
-
-// Hook WSAConnect
-
-PROXY_FUNC2(Ws2_32, WSAConnect)
-{
-	FUNCIPCLOGI(L"Ws2_32.dll WSAConnect() called");
-	return orig_fpWs2_32_WSAConnect(s, name, namelen, lpCallerData, lpCalleeData, lpSQOS, lpGQOS);
 }
 
 
@@ -450,6 +403,8 @@ err_return:
 	return iReturn;
 }
 
+// Hook connect
+
 PROXY_FUNC2(Ws2_32, connect)
 {
 	// SOCKET real_s = s;
@@ -464,6 +419,8 @@ PROXY_FUNC2(Ws2_32, connect)
 	PXCH_WS2_32_TEMP_DATA TempData;
 
 	RestoreChildData();
+
+	FUNCIPCLOGI(L"ws2_32.dll connect(%d, %ls, %d) called", s, FormatHostPortToStr(name, namelen), namelen);
 
 	bWillProxy = WillProxyByRule(pHostPort, FALSE);
 	
@@ -536,6 +493,8 @@ PROXY_FUNC2(Mswsock, ConnectEx)
 
 	RestoreChildData();
 
+	FUNCIPCLOGI(L"mswsock.dll (FP)ConnectEx(%d, %ls, %d) called", s, FormatHostPortToStr(name, namelen), namelen);
+
 	bWillProxy = WillProxyByRule(pHostPort, FALSE);
 	
 	if (!bWillProxy) {
@@ -573,3 +532,198 @@ end:
 	return bReturn;
 }
 
+// Hook WSAStartup
+
+PROXY_FUNC2(Ws2_32, WSAStartup)
+{
+	int iReturn;
+	FUNCIPCLOGI(L"Ws2_32.dll WSAStartup() called");
+	iReturn = orig_fpWs2_32_WSAStartup(wVersionRequested, lpWSAData);
+	if (iReturn == 0) {
+		SOCKET DummySocket;
+		GUID GuidConnectEx = WSAID_CONNECTEX;
+		LPFN_CONNECTEX fpConnectEx = NULL;
+		DWORD cb;
+
+		DummySocket = socket(AF_INET, SOCK_STREAM, 0);
+		if (DummySocket == INVALID_SOCKET) goto out;
+		if (WSAIoctl(DummySocket, SIO_GET_EXTENSION_FUNCTION_POINTER, &GuidConnectEx, sizeof(GUID), &fpConnectEx, sizeof(LPFN_CONNECTEX), &cb, NULL, NULL) != 0) goto out;
+		if (!fpConnectEx) goto out;
+
+		CREATE_HOOK3_IFNOTNULL(Mswsock, ConnectEx, fpConnectEx);
+		MH_EnableHook(fpConnectEx);
+	}
+
+out:
+	return iReturn;
+}
+
+// Hook WSAConnect
+
+PROXY_FUNC2(Ws2_32, WSAConnect)
+{
+	FUNCIPCLOGI(L"Ws2_32.dll WSAConnect() called");
+	return orig_fpWs2_32_WSAConnect(s, name, namelen, lpCallerData, lpCalleeData, lpSQOS, lpGQOS);
+}
+
+// Hook gethostbyname
+
+PROXY_FUNC2(Ws2_32, gethostbyname)
+{
+	FUNCIPCLOGI(L"Ws2_32.dll gethostbyname(%S) called", name);
+
+	return orig_fpWs2_32_gethostbyname(name);
+}
+
+// Hook gethostbyaddr
+
+PROXY_FUNC2(Ws2_32, gethostbyaddr)
+{
+	FUNCIPCLOGI(L"Ws2_32.dll gethostbyaddr() called");
+
+	return orig_fpWs2_32_gethostbyaddr(addr, len, type);
+}
+
+// Hook getaddrinfo
+
+PROXY_FUNC2(Ws2_32, getaddrinfo)
+{
+	const ADDRINFOA* pHintsCast = pHints;
+	PADDRINFOA* ppResultCast = ppResult;
+	int iResult;
+	DWORD dwLastError;
+	int iWSALastError;
+
+	WCHAR szAddrsBuf[200];
+	WCHAR* pszAddrsBuf;
+	PADDRINFOA pResultCast;
+
+
+	FUNCIPCLOGI(L"Ws2_32.dll getaddrinfo(%S, %S, AF%#010x, FL%#010x, ST%#010x, PT%#010x) called", pNodeName, pServiceName, pHintsCast ? pHintsCast->ai_family : -1, pHintsCast ? pHintsCast->ai_flags : -1, pHintsCast ? pHintsCast->ai_socktype : -1, pHintsCast ? pHintsCast->ai_protocol : -1);
+
+	iResult = orig_fpWs2_32_getaddrinfo(pNodeName, pServiceName, pHints, ppResult);
+	iWSALastError = WSAGetLastError();
+	dwLastError = GetLastError();
+
+	szAddrsBuf[0] = L'\0';
+	pszAddrsBuf = szAddrsBuf;
+
+	for (pResultCast = (*ppResultCast); pResultCast; pResultCast = pResultCast->ai_next) {
+		StringCchPrintfExW(pszAddrsBuf, _countof(szAddrsBuf) - (pszAddrsBuf - szAddrsBuf), &pszAddrsBuf, NULL, 0, L"%ls%ls", pResultCast == (*ppResultCast) ? L"" : L", ", FormatHostPortToStr(pResultCast->ai_addr, (int)pResultCast->ai_addrlen));
+	}
+
+	FUNCIPCLOGI(L"Ws2_32.dll getaddrinfo(%S, %S, ...) result: %ls", pNodeName, pServiceName, szAddrsBuf);
+
+	WSASetLastError(iWSALastError);
+	SetLastError(dwLastError);
+	return iResult;
+}
+
+// Hook GetAddrInfoW
+
+PROXY_FUNC2(Ws2_32, GetAddrInfoW)
+{
+	const ADDRINFOW* pHintsCast = pHints;
+	PADDRINFOW* ppResultCast = ppResult;
+	int iResult;
+	DWORD dwLastError;
+	int iWSALastError;
+
+	WCHAR szAddrsBuf[200];
+	WCHAR* pszAddrsBuf;
+	PADDRINFOW pResultCast;
+
+
+	FUNCIPCLOGI(L"Ws2_32.dll GetAddrInfoW(%ls, %ls, AF%#010x, FL%#010x, ST%#010x, PT%#010x) called", pNodeName, pServiceName, pHintsCast ? pHintsCast->ai_family : -1, pHintsCast ? pHintsCast->ai_flags : -1, pHintsCast ? pHintsCast->ai_socktype : -1, pHintsCast ? pHintsCast->ai_protocol : -1);
+
+	iResult = orig_fpWs2_32_GetAddrInfoW(pNodeName, pServiceName, pHints, ppResult);
+	iWSALastError = WSAGetLastError();
+	dwLastError = GetLastError();
+
+	szAddrsBuf[0] = L'\0';
+	pszAddrsBuf = szAddrsBuf;
+
+	for (pResultCast = (*ppResultCast); pResultCast; pResultCast = pResultCast->ai_next) {
+		StringCchPrintfExW(pszAddrsBuf, _countof(szAddrsBuf) - (pszAddrsBuf - szAddrsBuf), &pszAddrsBuf, NULL, 0, L"%ls%ls", pResultCast == (*ppResultCast) ? L"" : L", ", FormatHostPortToStr(pResultCast->ai_addr, (int)pResultCast->ai_addrlen));
+	}
+
+	FUNCIPCLOGI(L"Ws2_32.dll GetAddrInfoW(%ls, %ls, ...) result: %ls", pNodeName, pServiceName, szAddrsBuf);
+
+	WSASetLastError(iWSALastError);
+	SetLastError(dwLastError);
+	return iResult;
+}
+
+// Hook GetAddrInfoExA
+
+PROXY_FUNC2(Ws2_32, GetAddrInfoExA)
+{
+	FUNCIPCLOGI(L"Ws2_32.dll GetAddrInfoExA() called");
+
+	return orig_fpWs2_32_GetAddrInfoExA(pName, pServiceName, dwNameSpace, lpNspId, hints, ppResult, timeout, lpOverlapped, lpCompletionRoutine, lpHandle);
+}
+
+// Hook GetAddrInfoExW
+
+PROXY_FUNC2(Ws2_32, GetAddrInfoExW)
+{
+	FUNCIPCLOGI(L"Ws2_32.dll GetAddrInfoExW() called");
+	
+	return orig_fpWs2_32_GetAddrInfoExW(pName, pServiceName, dwNameSpace, lpNspId, hints, ppResult, timeout, lpOverlapped, lpCompletionRoutine, lpHandle);
+}
+
+// Hook freeaddrinfo
+
+PROXY_FUNC2(Ws2_32, freeaddrinfo)
+{
+	FUNCIPCLOGI(L"Ws2_32.dll freeaddrinfo() called");
+
+	orig_fpWs2_32_freeaddrinfo(pAddrInfo);
+}
+
+// Hook FreeAddrInfoW
+
+PROXY_FUNC2(Ws2_32, FreeAddrInfoW)
+{
+	FUNCIPCLOGI(L"Ws2_32.dll FreeAddrInfoW() called");
+	
+	orig_fpWs2_32_FreeAddrInfoW(pAddrInfo);
+}
+
+// Hook FreeAddrInfoEx
+
+PROXY_FUNC2(Ws2_32, FreeAddrInfoEx)
+{
+	FUNCIPCLOGI(L"Ws2_32.dll FreeAddrInfoEx() called");
+
+	orig_fpWs2_32_FreeAddrInfoEx(pAddrInfoEx);
+}
+
+
+// Hook FreeAddrInfoW
+
+PROXY_FUNC2(Ws2_32, FreeAddrInfoExW)
+{
+	FUNCIPCLOGI(L"Ws2_32.dll FreeAddrInfoExW() called");
+
+	orig_fpWs2_32_FreeAddrInfoExW(pAddrInfoEx);
+}
+
+
+// Hook getnameinfo
+
+PROXY_FUNC2(Ws2_32, getnameinfo)
+{
+	FUNCIPCLOGI(L"Ws2_32.dll getnameinfo() called");
+
+	return orig_fpWs2_32_getnameinfo(pSockaddr, SockaddrLength, pNodeBuffer, NodeBufferSize, pServiceBuffer, ServiceBufferSize, Flags);
+}
+
+// Hook GetNameInfoW
+
+PROXY_FUNC2(Ws2_32, GetNameInfoW)
+{
+	FUNCIPCLOGI(L"Ws2_32.dll GetNameInfoW() called");
+
+	return orig_fpWs2_32_GetNameInfoW(pSockaddr, SockaddrLength, pNodeBuffer, NodeBufferSize, pServiceBuffer, ServiceBufferSize, Flags);
+}

@@ -58,7 +58,7 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig)
 	pPxchConfig->dwFakeIpRangePrefix = 8;
 	WSAStringToAddressW(L"224.0.0.0", AF_INET, NULL, (LPSOCKADDR)&pPxchConfig->FakeIpRange, &iDummy);
 
-	pPxchConfig->bDeleteFakeIpAfterChildProcessExits = TRUE;
+	pPxchConfig->dwDeleteFakeIpAfterChildProcessExits = TRUE;
 
 	pPxchConfig->dwProxyNum = iProxyNum;
 	pPxchConfig->cbProxyListOffset = sizeof(PROXYCHAINS_CONFIG);

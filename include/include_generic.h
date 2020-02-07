@@ -6,7 +6,7 @@
 #pragma GCC diagnostic error "-Wimplicit-function-declaration"
 #endif
 
-#define _WIN32_WINNT 0x0501		// Windows XP
+#define _WIN32_WINNT 0x0502		// Windows XP SP2
 
 #include <stddef.h>
 #include <limits.h>

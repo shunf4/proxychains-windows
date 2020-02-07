@@ -16,6 +16,7 @@
 PXCH_INJECT_REMOTE_DATA* g_pRemoteData;
 PXCHDLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;
 PXCHDLL_API BOOL g_bCurrentlyInWinapiCall = FALSE;
+PXCH_UINT32 g_dwTlsIndex;
 
 // To verify that this process has its original data (not overwritten with those of parent by fork())
 PXCHDLL_API DWORD g_dwCurrentProcessIdForVerify;
@@ -259,8 +260,8 @@ PXCHDLL_API DWORD __stdcall InitHook(PXCH_INJECT_REMOTE_DATA* pRemoteData)
 
 	IPCLOGI(L"(In InitHook) g_pRemoteData->dwDebugDepth = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
 
-	Win32HookConnect();
-	CygwinHookConnect();
+	Win32HookWs2_32();
+	CygwinHook();
 
 	ODBGSTRLOG(L"InitHook: before MH_EnableHook");
 
@@ -297,13 +298,27 @@ PXCHDLL_API void UninitHook(void)
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
+	LPVOID pvData;
 	switch (fdwReason)
 	{
 	case DLL_PROCESS_ATTACH:
-	case DLL_PROCESS_DETACH:
+		if ((g_dwTlsIndex = TlsAlloc()) == TLS_OUT_OF_INDEXES) {
+			return FALSE;
+		}
+		// No break: initailize the index for the main thread.
 	case DLL_THREAD_ATTACH:
+		pvData = HeapAlloc(GetProcessHeap(), 0, PXCH_TLS_TOTAL_SIZE);
+		TlsSetValue(g_dwTlsIndex, pvData);
+		break;
 	case DLL_THREAD_DETACH:
-		;
+		pvData = TlsGetValue(g_dwTlsIndex);
+		HeapFree(GetProcessHeap(), 0, pvData);
+		break;
+	case DLL_PROCESS_DETACH:
+		pvData = TlsGetValue(g_dwTlsIndex);
+		HeapFree(GetProcessHeap(), 0, pvData);
+		TlsFree(g_dwTlsIndex);
+		break;
 	}
 
 	return TRUE;

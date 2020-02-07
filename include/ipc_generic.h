@@ -36,8 +36,10 @@
 #define SetMsgS2C(x) *((PXCH_UINT32*)(x)) = (*((PXCH_UINT32*)(x)) & ~IPC_MSGDIRECTION_MASK) | IPC_MSGDIRECTION_SERVERTOCLIENT
 #define SetMsgInvalid(x) (*(PXCH_UINT32*)(x)) = IPC_MSGTAG_INVALID
 
-typedef const char CIPC_MSGBUF[IPC_BUFSIZE];
+typedef const char* CIPC_MSGBUF;
 typedef char IPC_MSGBUF[IPC_BUFSIZE];
+typedef char* PIPC_MSGBUF;
+typedef CIPC_MSGBUF PCIPC_MSGBUF;
 
 #pragma pack(push, 1)
 typedef struct _IPC_MSGHDR_WSTR {

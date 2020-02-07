@@ -19,11 +19,7 @@ void AAA(XXX a)
 #pragma comment(lib, "Ws2_32.lib")
 int main()
 {
-    XXX a = "abcd";
-    AAA(a);
-    printf("%s\n", a);
-    return 0;
-
+   
     WSADATA wsaData;
 
     int iResult;
@@ -33,6 +29,12 @@ int main()
         return 1;
     }
 
+    DWORD dwLen;
+    WCHAR g_HostPrintBuf[400];
+    dwLen = _countof(g_HostPrintBuf);
+    g_HostPrintBuf[0] = L'\0';
+    int len = sizeof(SOCKADDR);
+
     struct addrinfo hints;
     ::ZeroMemory(&hints, sizeof(hints));
     
@@ -40,8 +42,36 @@ int main()
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
 
-    struct addrinfo* addrsResult;
-    iResult = getaddrinfo("ip.sb", "9993", NULL, &addrsResult);
+    struct hostent* pH;
+    WCHAR szIp[100];
+    pH = gethostbyname("");
+    wprintf(L"gethostbyname(): addrtype=%hx name=%S(%hu)\n", pH->h_addrtype, pH->h_name, pH->h_length);
+    wprintf(L" aliases:\n");
+    for (char** pA = pH->h_aliases; *pA; pA++) {
+        wprintf(L"   %S\n", *pA);
+    }
+    wprintf(L" addrs:\n");
+    for (char** pA = pH->h_addr_list; *pA; pA++) {
+        //WSAAddressToStringW((LPSOCKADDR)*pA, sizeof(SOCKADDR), NULL, szIp, &cchIp);
+        InetNtopW(AF_INET, *pA, szIp, _countof(szIp));
+        wprintf(L"   %ls\n", szIp);
+    }
+
+    pH = gethostbyname("openwrt.reserved");
+    wprintf(L"gethostbyname(openwrt.reserved): addrtype=%hx name=%S(%hu)\n", pH->h_addrtype, pH->h_name, pH->h_length);
+    wprintf(L" aliases:\n");
+    for (char** pA = pH->h_aliases; *pA; pA++) {
+        wprintf(L"   %S\n", *pA);
+    }
+    wprintf(L" addrs:\n");
+    for (char** pA = pH->h_addr_list; *pA; pA++) {
+        //WSAAddressToStringW((LPSOCKADDR)*pA, sizeof(SOCKADDR), NULL, szIp, &cchIp);
+        InetNtopW(AF_INET, *pA, szIp, _countof(szIp));
+        wprintf(L"   %ls\n", szIp);
+    }
+
+    ADDRINFOW* addrsResult;
+    iResult = GetAddrInfoW(L"ip.sb", L"80", NULL, &addrsResult);
     if (iResult != 0) {
         fprintf(stderr, "getaddrinfo failed: %d\n", iResult);
         WSACleanup();
@@ -51,13 +81,16 @@ int main()
     char ipstrbuf[100];
     DWORD ipstrbuflen = _countof(ipstrbuf);
     int iaddr = 0;
-    for (struct addrinfo* a = addrsResult; a; a = a->ai_next, iaddr++) {
+    for (ADDRINFOW* a = addrsResult; a; a = a->ai_next, iaddr++) {
         WSAAddressToStringA(a->ai_addr, (DWORD)a->ai_addrlen, NULL, ipstrbuf, &ipstrbuflen);
-        printf("addrs[%d]\naddr: %s\naddrlen: %llu\ncanonname: %s\nfamily: %d\nflags: %d\nprotocol: %d\nsocktype: %d\n\n", iaddr, ipstrbuf, a->ai_addrlen, a->ai_canonname, a->ai_family, a->ai_flags, a->ai_protocol, a->ai_socktype);
+        printf("addrs[%d]\naddr: %s\naddrlen: %llu\ncanonname: %ls\nfamily: %d\nflags: %d\nprotocol: %d\nsocktype: %d\n\n", iaddr, ipstrbuf, a->ai_addrlen, a->ai_canonname, a->ai_family, a->ai_flags, a->ai_protocol, a->ai_socktype);
     }
 
-    return 0;
+    FreeAddrInfoW((ADDRINFOW*)addrsResult);
 
+    return 0;
+    
+#if 0
     SOCKET ConnectSocket = INVALID_SOCKET;
     struct addrinfo& firstAddr = addrsResult[0];
     ConnectSocket = socket(firstAddr.ai_family, firstAddr.ai_socktype, firstAddr.ai_protocol);
@@ -75,7 +108,6 @@ int main()
         ConnectSocket = INVALID_SOCKET;
     }
 
-    Sleep(1000);
 
     fd_set fds;
     FD_ZERO(&fds);
@@ -140,4 +172,5 @@ int main()
     closesocket(ConnectSocket);
     WSACleanup();
     return 0;
+#endif
 }

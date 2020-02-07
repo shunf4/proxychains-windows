@@ -91,6 +91,96 @@ PXCHDLL_API void UninitHook(void);
 
 
 
+#define Ws2_32_gethostbyname_SIGN(inside_identifier) void* /* struct hostent * */(__stdcall inside_identifier)(const char* name)
+
+
+
+#define Ws2_32_gethostbyaddr_SIGN(inside_identifier) void* /* struct hostent* */(__stdcall inside_identifier)(\
+	const char* addr,\
+	int len,\
+	int type)
+
+
+
+#define Ws2_32_getaddrinfo_SIGN(inside_identifier) int (__stdcall inside_identifier)(const char* pNodeName, const char* pServiceName, const void* /* const ADDRINFOA* */ pHints, void* /* PADDRINFOA* */ ppResult)
+
+
+
+#define Ws2_32_GetAddrInfoW_SIGN(inside_identifier) int (__stdcall inside_identifier)(\
+	const wchar_t* pNodeName,\
+	const wchar_t* pServiceName,\
+	const void* /* const ADDRINFOW* */ pHints,\
+	void* /* PADDRINFOW* */ ppResult)
+
+
+
+#define Ws2_32_GetAddrInfoExA_SIGN(inside_identifier) int (__stdcall inside_identifier)(\
+    const char* pName,\
+    const char* pServiceName,\
+    PXCH_UINT32 dwNameSpace,\
+    void*/* LPGUID */ lpNspId,\
+    const void* /* const ADDRINFOEXA * */ hints,\
+    void*/* PADDRINFOEXA * */ ppResult,\
+    void* /* struct timeval * */ timeout,\
+    void* /* LPOVERLAPPED */ lpOverlapped,\
+    void* /* LPLOOKUPSERVICE_COMPLETION_ROUTINE */ lpCompletionRoutine,\
+	void* /* LPHANDLE */ lpHandle)
+
+
+
+#define Ws2_32_GetAddrInfoExW_SIGN(inside_identifier) int (__stdcall inside_identifier)(\
+    const wchar_t* pName,\
+    const wchar_t* pServiceName,\
+    PXCH_UINT32 dwNameSpace,\
+    void*/* LPGUID */ lpNspId,\
+    const void* /* const ADDRINFOEXW * */ hints,\
+    void*/* PADDRINFOEXW * */ ppResult,\
+    void* /* struct timeval * */ timeout,\
+    void* /* LPOVERLAPPED */ lpOverlapped,\
+    void* /* LPLOOKUPSERVICE_COMPLETION_ROUTINE */ lpCompletionRoutine,\
+	void* /* LPHANDLE */ lpHandle)
+
+
+
+#define Ws2_32_freeaddrinfo_SIGN(inside_identifier) void (__stdcall inside_identifier)(void* /* PADDRINFOA */ pAddrInfo)
+
+
+
+#define Ws2_32_FreeAddrInfoW_SIGN(inside_identifier) void (__stdcall inside_identifier)(void* /* PADDRINFOW */ pAddrInfo)
+
+
+
+#define Ws2_32_FreeAddrInfoEx_SIGN(inside_identifier) void (__stdcall inside_identifier)(void* /* PADDRINFOEXA */ pAddrInfoEx)
+
+
+
+#define Ws2_32_FreeAddrInfoExW_SIGN(inside_identifier) void (__stdcall inside_identifier)(void* /* PADDRINFOEXW */ pAddrInfoEx)
+
+
+
+#define Ws2_32_getnameinfo_SIGN(inside_identifier) int (__stdcall inside_identifier)(\
+	const void* /* const SOCKADDR * */ pSockaddr,\
+	int /* socklen_t */ SockaddrLength,\
+	char* pNodeBuffer,\
+	PXCH_UINT32 /* DWORD */ NodeBufferSize,\
+	char* pServiceBuffer,\
+	PXCH_UINT32 /* DWORD */ ServiceBufferSize, \
+	int Flags)
+
+
+
+#define Ws2_32_GetNameInfoW_SIGN(inside_identifier) int (__stdcall inside_identifier)(\
+	const void* /* const SOCKADDR * */ pSockaddr,\
+	int /* socklen_t */ SockaddrLength,\
+	wchar_t* pNodeBuffer,\
+	PXCH_UINT32 /* DWORD */ NodeBufferSize,\
+	wchar_t* pServiceBuffer,\
+	PXCH_UINT32 /* DWORD */ ServiceBufferSize, \
+	int Flags)
+
+
+
+
 //DECLARE_PROXY_FUNC(CreateProcessA);
 extern FP_ORIGINAL_FUNC(CreateProcessW);
 DECLARE_HOOK_FUNC(CreateProcessW);
@@ -109,6 +199,42 @@ DECLARE_HOOK_FUNC2(Ws2_32, connect);
 
 extern FP_ORIGINAL_FUNC2(Ws2_32, WSAConnect);
 DECLARE_HOOK_FUNC2(Ws2_32, WSAConnect);
+
+extern FP_ORIGINAL_FUNC2(Ws2_32, gethostbyname);
+DECLARE_HOOK_FUNC2(Ws2_32, gethostbyname);
+
+extern FP_ORIGINAL_FUNC2(Ws2_32, gethostbyaddr);
+DECLARE_HOOK_FUNC2(Ws2_32, gethostbyaddr);
+
+extern FP_ORIGINAL_FUNC2(Ws2_32, getaddrinfo);
+DECLARE_HOOK_FUNC2(Ws2_32, getaddrinfo);
+
+extern FP_ORIGINAL_FUNC2(Ws2_32, GetAddrInfoW);
+DECLARE_HOOK_FUNC2(Ws2_32, GetAddrInfoW);
+
+extern FP_ORIGINAL_FUNC2(Ws2_32, GetAddrInfoExA);
+DECLARE_HOOK_FUNC2(Ws2_32, GetAddrInfoExA);
+
+extern FP_ORIGINAL_FUNC2(Ws2_32, GetAddrInfoExW);
+DECLARE_HOOK_FUNC2(Ws2_32, GetAddrInfoExW);
+
+extern FP_ORIGINAL_FUNC2(Ws2_32, freeaddrinfo);
+DECLARE_HOOK_FUNC2(Ws2_32, freeaddrinfo);
+
+extern FP_ORIGINAL_FUNC2(Ws2_32, FreeAddrInfoW);
+DECLARE_HOOK_FUNC2(Ws2_32, FreeAddrInfoW);
+
+extern FP_ORIGINAL_FUNC2(Ws2_32, FreeAddrInfoEx);
+DECLARE_HOOK_FUNC2(Ws2_32, FreeAddrInfoEx);
+
+extern FP_ORIGINAL_FUNC2(Ws2_32, FreeAddrInfoExW);
+DECLARE_HOOK_FUNC2(Ws2_32, FreeAddrInfoExW);
+
+extern FP_ORIGINAL_FUNC2(Ws2_32, getnameinfo);
+DECLARE_HOOK_FUNC2(Ws2_32, getnameinfo);
+
+extern FP_ORIGINAL_FUNC2(Ws2_32, GetNameInfoW);
+DECLARE_HOOK_FUNC2(Ws2_32, GetNameInfoW);
 
 // DECLARE_PROXY_FUNC2(Wsock32, connect);
 

@@ -1,8 +1,10 @@
 ﻿#include "common_win32.h"
+#include <WinSock2.h>
 
 WCHAR szErrorMessage[MAX_ERROR_MESSAGE_BUFSIZE];
 static WCHAR szFwprintfWbuf[MAX_FWPRINTF_BUFSIZE];
 static CHAR szFwprintfBuf[MAX_FWPRINTF_BUFSIZE];
+static WCHAR g_HostPrintBuf[100];
 
 VOID StdVwprintf(DWORD dwStdHandle, const WCHAR* fmt, va_list args)
 {
@@ -83,3 +85,17 @@ after_fmt:
 	return szErrorMessage;
 }
 
+
+const wchar_t* FormatHostPortToStr(const void* pHostPort, int iAddrLen)
+{
+	DWORD dwLen;
+	dwLen = _countof(g_HostPrintBuf);
+	g_HostPrintBuf[0] = L'\0';
+
+	if (HostIsType(HOSTNAME, *(PXCH_HOST*)pHostPort)) {
+		StringCchPrintfW(g_HostPrintBuf, dwLen, L"%ls%hu", ((PXCH_HOSTNAME*)pHostPort)->szValue, ntohs(((PXCH_HOSTNAME*)pHostPort)->wPort));
+	} else {
+		WSAAddressToStringW((struct sockaddr*)(pHostPort), iAddrLen, NULL, g_HostPrintBuf, &dwLen);
+	}
+	return g_HostPrintBuf;
+}

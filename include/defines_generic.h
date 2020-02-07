@@ -251,7 +251,7 @@ typedef struct _PROXYCHAINS_CONFIG {
 	PXCH_IP_ADDRESS FakeIpRange;
 	PXCH_UINT32 dwFakeIpRangePrefix;
 
-	BOOL bDeleteFakeIpAfterChildProcessExits;
+	PXCH_UINT32 dwDeleteFakeIpAfterChildProcessExits;
 } PROXYCHAINS_CONFIG;
 
 static const wchar_t g_szChildDataSavingFileMappingPrefix[] = L"Local\\proxychains_child_data_";

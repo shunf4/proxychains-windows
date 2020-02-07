@@ -419,7 +419,7 @@ int wmain(int argc, WCHAR* argv[])
 		}
 	}
 
-	if (!ProxyCreateProcessW(NULL, g_pPxchConfig->szCommandLine, 0, 0, 1, 0, 0, 0, &startupInfo, &processInformation)) goto err_get;
+	if (!ProxyCreateProcessW(NULL, g_pPxchConfig->szCommandLine, 0, 0, 0, 0, 0, 0, &startupInfo, &processInformation)) goto err_get;
 
 	SetConsoleCtrlHandler(CtrlHandler, TRUE);
 	Sleep(INFINITE);
