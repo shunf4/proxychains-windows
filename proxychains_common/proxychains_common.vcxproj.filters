@@ -24,6 +24,9 @@
     <ClCompile Include="..\src\ipc_message.c">
       <Filter>Sources</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\common_wsock.c">
+      <Filter>Sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\include_generic.h">

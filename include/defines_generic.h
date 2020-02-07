@@ -3,6 +3,7 @@
 #include "include_generic.h"
 
 #ifdef __CYGWIN__
+#define _byteswap_uint64 _bswap64
 typedef __UINT16_TYPE__ PXCH_UINT16;
 typedef __INT32_TYPE__ PXCH_INT32;
 typedef __UINT32_TYPE__ PXCH_UINT32;

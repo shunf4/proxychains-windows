@@ -38,7 +38,7 @@ $(DLL_OBJS) : %.o : $(SRC_PREFIX)%.c %.d
 
 $(DEPS) : 
 	
-$(DLL_PATH) : dll/dllmain.o dll/hook_connect_win32.o dll/hook_connect_cygwin.o dll/hook_createprocess_win32.o dll/hook_installer.o dll/ipc_client_and_child_data.o dll/log_func_impl.o dll/remote_function/remote_function.o common.o ipc_message.o log.o cygwin_strsafe/strsafe.o
+$(DLL_PATH) : dll/dllmain.o dll/hook_connect_win32.o dll/hook_connect_cygwin.o dll/hook_createprocess_win32.o dll/hook_installer.o dll/ipc_client_and_child_data.o dll/log_func_impl.o dll/remote_function/remote_function.o common.o common_wsock.o ipc_message.o log.o cygwin_strsafe/strsafe.o
 	$(CC) -shared -o$@ -Wl,--out-implib=$(DLL_IMPLIB_PATH) -L$(LIB_PREFIX) $(filter %.c %.o %.a %.lib,$^) -lntdllcrt -lMinHookx64 -lws2_32
 		
 #	-Wl,--export-all-symbols \
@@ -46,7 +46,7 @@ $(DLL_PATH) : dll/dllmain.o dll/hook_connect_win32.o dll/hook_connect_cygwin.o d
 	
 $(DLL_IMPLIB_PATH) : $(DLL_PATH)
 
-$(EXEC_PATH) : exe/main.o exe/args_and_config.o exe/ipc_proc_bookkeeping.o common.o ipc_message.o log.o cygwin_strsafe/strsafe.o $(DLL_IMPLIB_PATH)
+$(EXEC_PATH) : exe/main.o exe/args_and_config.o exe/ipc_proc_bookkeeping.o common.o common_wsock.o ipc_message.o log.o cygwin_strsafe/strsafe.o $(DLL_IMPLIB_PATH)
 	$(CC) -o$@ $^ -lntdllcrt -lkernel32 -lshlwapi -ladvapi32 -lcygwin -lws2_32
 
 .PHONY : clean

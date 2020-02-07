@@ -3,9 +3,6 @@
 #include "hookdll_win32.h"
 #include "proc_bookkeeping_win32.h"
 
-#include <WinSock2.h>
-#include <Ws2Tcpip.h>
-
 tab_per_process_t* g_tabPerProcess;
 HANDLE g_hDataMutex;
 tab_fake_ip_hostname_t* g_tabFakeIpHostname;
@@ -177,103 +174,6 @@ DWORD QueryChildStorage(REPORTED_CHILD_DATA* pChildData)
 	});
 }
 
-void IndexToIp(PXCH_IP_ADDRESS* pIp, PXCH_UINT32 iIndex)
-{
-	PXCH_HOST* pHost = (PXCH_HOST*)&g_pPxchConfig->FakeIpRange;
-	ZeroMemory(pIp, sizeof(PXCH_IP_ADDRESS));
-	if (HostIsType(IPV4, *pHost)) {
-		struct sockaddr_in* pIpv4 = (struct sockaddr_in*)pIp;
-		pIpv4->sin_family = PXCH_HOST_TYPE_IPV4;
-		PXCH_UINT32 dwMaskInvert;
-		PXCH_UINT32 dwToShift = g_pPxchConfig->dwFakeIpRangePrefix > 32 ? 0 : 32 - g_pPxchConfig->dwFakeIpRangePrefix;
-
-		pIpv4->sin_addr = ((struct sockaddr_in*) & g_pPxchConfig->FakeIpRange)->sin_addr;
-		dwMaskInvert = htonl((PXCH_UINT32)((((PXCH_UINT64)1) << dwToShift) - 1));
-		pIpv4->sin_addr.s_addr &= ~dwMaskInvert;
-		pIpv4->sin_addr.s_addr |= (htonl(iIndex) & dwMaskInvert);
-		goto out_succ;
-	}
-
-	if (HostIsType(IPV6, *pHost)) {
-		struct sockaddr_in6* pIpv6 = (struct sockaddr_in6*)pIp;
-		pIpv6->sin6_family = PXCH_HOST_TYPE_IPV6;
-		struct {
-			PXCH_UINT64 First64;
-			PXCH_UINT64 Last64;
-		} MaskInvert, *pIpv6AddrInQwords;
-
-		PXCH_UINT32 dwToShift = g_pPxchConfig->dwFakeIpRangePrefix > 128 ? 0 : 128 - g_pPxchConfig->dwFakeIpRangePrefix;
-		PXCH_UINT32 dwShift1 = dwToShift >= 64 ? 64 : dwToShift;
-		PXCH_UINT32 dwShift2 = dwToShift >= 64 ? (dwToShift - 64) : 0;
-
-		MaskInvert.Last64 = dwShift1 == 64 ? 0xFFFFFFFFFFFFFFFFU : ((((PXCH_UINT64)1) << dwShift1) - 1);
-		MaskInvert.First64 = dwShift2 == 64 ? 0xFFFFFFFFFFFFFFFFU : ((((PXCH_UINT64)1) << dwShift2) - 1);
-
-		if (LITTLEENDIAN) {
-			MaskInvert.Last64 = _byteswap_uint64(MaskInvert.Last64);
-			MaskInvert.First64 = _byteswap_uint64(MaskInvert.First64);
-		}
-
-
-		pIpv6->sin6_addr = ((struct sockaddr_in6*) & g_pPxchConfig->FakeIpRange)->sin6_addr;
-		pIpv6AddrInQwords = (void*)&pIpv6->sin6_addr;
-		pIpv6AddrInQwords->First64 &= ~MaskInvert.First64;
-		pIpv6AddrInQwords->Last64 &= ~MaskInvert.Last64;
-		pIpv6AddrInQwords->Last64 |= (htonl(iIndex) & MaskInvert.Last64);
-		goto out_succ;
-	}
-	return;
-
-out_succ:
-	LOGI(L"Map index to IP: " WPRDW L" -> %ls", iIndex, FormatHostPortToStr(pIp, sizeof(PXCH_IP_ADDRESS)));
-}
-
-void IpToIndex(PXCH_UINT32* piIndex, const PXCH_IP_ADDRESS* pIp)
-{
-	PXCH_HOST* pHost = (PXCH_HOST*)&g_pPxchConfig->FakeIpRange;
-	PXCH_HOST* pInHost = (PXCH_HOST*)pIp;
-	if (HostIsType(IPV4, *pHost) && HostIsType(IPV4, *pInHost)) {
-		struct sockaddr_in* pIpv4 = (struct sockaddr_in*)pIp;
-		PXCH_UINT32 dwMaskInvert;
-		PXCH_UINT32 dwToShift = g_pPxchConfig->dwFakeIpRangePrefix > 32 ? 0 : 32 - g_pPxchConfig->dwFakeIpRangePrefix;
-
-		dwMaskInvert = htonl((PXCH_UINT32)((((PXCH_UINT64)1) << dwToShift) - 1));
-		*piIndex = pIpv4->sin_addr.s_addr & dwMaskInvert;
-		goto out_succ;
-	}
-
-	if (HostIsType(IPV6, *pHost) && HostIsType(IPV6, *pInHost)) {
-		struct sockaddr_in6* pIpv6 = (struct sockaddr_in6*)pIp;
-		struct {
-			PXCH_UINT64 First64;
-			PXCH_UINT64 Last64;
-		} MaskInvert, * pIpv6AddrInQwords;
-
-		PXCH_UINT32 dwToShift = g_pPxchConfig->dwFakeIpRangePrefix > 128 ? 0 : 128 - g_pPxchConfig->dwFakeIpRangePrefix;
-		PXCH_UINT32 dwShift1 = dwToShift >= 64 ? 64 : dwToShift;
-		PXCH_UINT32 dwShift2 = dwToShift >= 64 ? (dwToShift - 64) : 0;
-
-		MaskInvert.Last64 = dwShift1 == 64 ? 0xFFFFFFFFFFFFFFFFU : ((((PXCH_UINT64)1) << dwShift1) - 1);
-		MaskInvert.First64 = dwShift2 == 64 ? 0xFFFFFFFFFFFFFFFFU : ((((PXCH_UINT64)1) << dwShift2) - 1);
-
-		if (LITTLEENDIAN) {
-			MaskInvert.Last64 = _byteswap_uint64(MaskInvert.Last64);
-			MaskInvert.First64 = _byteswap_uint64(MaskInvert.First64);
-		}
-
-		pIpv6AddrInQwords = (void*)&pIpv6->sin6_addr;
-
-		*piIndex = (PXCH_UINT32)(pIpv6AddrInQwords->Last64 & MaskInvert.Last64);
-		goto out_succ;
-	}
-
-	*piIndex = -1;
-	return;
-
-out_succ:
-	LOGI(L"Map IP to index: %ls -> " WPRDW, FormatHostPortToStr(pIp, sizeof(PXCH_IP_ADDRESS)), *piIndex);
-}
-
 DWORD NextAvailableFakeIp(PXCH_IP_ADDRESS* pFakeIp)
 {
 	static PXCH_UINT32 iSearch = 1;
@@ -288,7 +188,7 @@ DWORD NextAvailableFakeIp(PXCH_IP_ADDRESS* pFakeIp)
 
 		while (1) {
 			Entry = NULL;
-			IndexToIp(&AsKey.Ip, iSearch);
+			IndexToIp(g_pPxchConfig, &AsKey.Ip, iSearch);
 			HASH_FIND(hh, g_tabFakeIpHostname, &AsKey.Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), Entry);
 			if (!Entry) break;
 			iSearch++;

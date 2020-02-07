@@ -160,6 +160,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\common.c" />
+    <ClCompile Include="..\src\common_wsock.c" />
     <ClCompile Include="..\src\ipc_message.c" />
     <ClCompile Include="..\src\log.c" />
   </ItemGroup>
