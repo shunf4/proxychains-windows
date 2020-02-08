@@ -25,13 +25,16 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig)
 	PROXYCHAINS_CONFIG* pPxchConfig;
 	int iRuleNum;
 	int iProxyNum;
+	int iHostsEntryNum;
 	int iDummy;
+	int iRulePolicySet;
 	//SIZE_T dirLength = 0;
 
 	WSAStartup(MAKEWORD(2, 2), &wsaData);
 
 	iRuleNum = 3;
 	iProxyNum = 1;
+	iHostsEntryNum = 1;
 	pPxchConfig = *ppPxchConfig = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(PROXYCHAINS_CONFIG) + PXCHCONFIG_EXTRA_SIZE_BY_N(iProxyNum, iRuleNum));
 
 	pPxchConfig->dwMasterProcessId = GetCurrentProcessId();
@@ -55,15 +58,26 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig)
 	if (!PathFileExistsW(pPxchConfig->szHookDllPath)) goto err_dll_not_exist;
 	if (!PathFileExistsW(pPxchConfig->szMinHookDllPath)) StringCchCopyW(pPxchConfig->szMinHookDllPath, MAX_DLL_PATH_BUFSIZE, g_szMinHookDllFileName);
 
-	pPxchConfig->dwFakeIpRangePrefix = 8;
-	WSAStringToAddressW(L"224.0.0.0", AF_INET, NULL, (LPSOCKADDR)&pPxchConfig->FakeIpRange, &iDummy);
+	pPxchConfig->dwFakeIpv4PrefixLength = 8;
+	WSAStringToAddressW(L"224.0.0.0", AF_INET, NULL, (LPSOCKADDR)&pPxchConfig->FakeIpv4Range, &iDummy);
 
-	pPxchConfig->dwDeleteFakeIpAfterChildProcessExits = TRUE;
+	iRulePolicySet = 1;
+
+	if (iRulePolicySet == 1) {
+		pPxchConfig->dwWillDeleteFakeIpAfterChildProcessExits = TRUE;
+		pPxchConfig->dwWillUseFakeIpWhenHostnameNotMatched = FALSE;
+		pPxchConfig->dwWillMapResolvedIpToHost = TRUE;
+		pPxchConfig->dwWillSearchForHostByResolvedIp = TRUE;
+		pPxchConfig->dwWillCheckRuleOnIpIfNoHostnameRuleMatched = TRUE;
+		pPxchConfig->dwWillForceResolveByHostsFile = TRUE;
+	}
 
 	pPxchConfig->dwProxyNum = iProxyNum;
 	pPxchConfig->cbProxyListOffset = sizeof(PROXYCHAINS_CONFIG);
 	pPxchConfig->dwRuleNum = iRuleNum;
 	pPxchConfig->cbRuleListOffset = sizeof(PROXYCHAINS_CONFIG) + (sizeof(PXCH_PROXY_DATA) * pPxchConfig->dwProxyNum);
+	pPxchConfig->dwHostsEntryNum = iRuleNum;
+	pPxchConfig->cbHostsEntryListOffset = sizeof(PROXYCHAINS_CONFIG) + (sizeof(PXCH_PROXY_DATA) * pPxchConfig->dwProxyNum) + (sizeof(PXCH_RULE) * pPxchConfig->dwRuleNum);
 	
 
 	{
@@ -118,7 +132,13 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig)
 		rule->iWillProxy = TRUE;
 	}
 
-	
+	{
+		PXCH_HOSTS_ENTRY* pHostsEntry = &PXCHCONFIG_HOSTS_ENTRY_ARR(pPxchConfig)[0];
+		int iAddrLen = sizeof(PXCH_IP_ADDRESS);
+		WSAStringToAddressW(L"127.0.0.1", AF_INET, NULL, (LPSOCKADDR)&pHostsEntry->Ip, &iAddrLen);
+		SetHostType(HOSTNAME, pHostsEntry->Hostname);
+		StringCchCopyW(pHostsEntry->Hostname.szValue, sizeof(pHostsEntry->Hostname.szValue), L"myself.reserved");
+	}
 
 	return 0;
 

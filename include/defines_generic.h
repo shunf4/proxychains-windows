@@ -64,6 +64,7 @@ typedef unsigned int PXCH_UINT_PTR;
 #define MAX_PASSWORD_BUFSIZE 256
 #define MAX_PROXY_NUM 5
 #define MAX_FILEMAPPING_BUFSIZE 256
+#define MAX_ARRAY_IP_NUM 10
 // In characters -- end
 
 #define PXCH_PROXY_TYPE_MASK    0x000000FF
@@ -140,10 +141,16 @@ typedef struct _PXCH_SOCKADDR {
 	char sa_data[14];
 } PXCH_SOCKADDR;
 
-typedef PXCH_SOCKADDR PXCH_IP_PORT;
+typedef union {
+	PXCH_SOCKADDR Sockaddr;
+	struct {
+		PXCH_UINT16 wTag;
+		PXCH_UINT16 wPort;	// Network order
+	} CommonHeader;
+} PXCH_IP_PORT;
 typedef PXCH_IP_PORT PXCH_IP_ADDRESS;   // port must be zero
 
-typedef char PXCH_HOSTNAME_VALUE[MAX_HOSTNAME_BUFSIZE];
+typedef wchar_t PXCH_HOSTNAME_VALUE[MAX_HOSTNAME_BUFSIZE];
 typedef char PXCH_USERNAME[MAX_USERNAME_BUFSIZE];
 typedef char PXCH_PASSWORD[MAX_USERNAME_BUFSIZE];
 
@@ -224,15 +231,24 @@ typedef struct _PXCH_RULE {
 } PXCH_RULE;
 
 
+typedef struct _PXCH_HOSTS_ENTRY {
+	PXCH_HOSTNAME Hostname;
+	PXCH_IP_ADDRESS Ip;
+} PXCH_HOSTS_ENTRY;
+
+
 #define PXCHCONFIG_EXTRA_SIZE(pPxchConfig) ((sizeof(PXCH_RULE) * (pPxchConfig)->dwRuleNum) + (sizeof(PXCH_PROXY_DATA) * (pPxchConfig)->dwProxyNum))
 #define PXCHCONFIG_EXTRA_SIZE_G PXCHCONFIG_EXTRA_SIZE(g_pPxchConfig)
 #define PXCHCONFIG_EXTRA_SIZE_BY_N(proxyNum, ruleNum) ((sizeof(PXCH_RULE) * ruleNum) + (sizeof(PXCH_PROXY_DATA) * proxyNum))
 
 #define PXCHCONFIG_PROXY_ARR(pPxchConfig) ((PXCH_PROXY_DATA*)((char*)(pPxchConfig) + pPxchConfig->cbProxyListOffset))
 #define PXCHCONFIG_RULE_ARR(pPxchConfig) ((PXCH_RULE*)((char*)(pPxchConfig) + pPxchConfig->cbRuleListOffset))
+#define PXCHCONFIG_HOSTS_ENTRY_ARR(pPxchConfig) ((PXCH_HOSTS_ENTRY*)((char*)(pPxchConfig) + pPxchConfig->cbHostsEntryListOffset))
 
 #define PXCHCONFIG_PROXY_ARR_G PXCHCONFIG_PROXY_ARR(g_pPxchConfig)
 #define PXCHCONFIG_RULE_ARR_G PXCHCONFIG_RULE_ARR(g_pPxchConfig)
+#define PXCHCONFIG_HOSTS_ENTRY_ARR_G PXCHCONFIG_HOSTS_ENTRY_ARR(g_pPxchConfig)
+
 
 typedef struct _PROXYCHAINS_CONFIG {
 	PXCH_UINT32 dwMasterProcessId;
@@ -249,10 +265,21 @@ typedef struct _PROXYCHAINS_CONFIG {
 	PXCH_UINT32 cbRuleListOffset;
 	PXCH_UINT32 dwRuleNum;
 
-	PXCH_IP_ADDRESS FakeIpRange;
-	PXCH_UINT32 dwFakeIpRangePrefix;
+	PXCH_UINT32 cbHostsEntryListOffset;
+	PXCH_UINT32 dwHostsEntryNum;
 
-	PXCH_UINT32 dwDeleteFakeIpAfterChildProcessExits;
+	PXCH_IP_ADDRESS FakeIpv4Range;
+	PXCH_UINT32 dwFakeIpv4PrefixLength;
+
+	PXCH_IP_ADDRESS FakeIpv6Range;
+	PXCH_UINT32 dwFakeIpv6PrefixLength;
+
+	PXCH_UINT32 dwWillDeleteFakeIpAfterChildProcessExits;
+	PXCH_UINT32 dwWillUseFakeIpWhenHostnameNotMatched;
+	PXCH_UINT32 dwWillMapResolvedIpToHost;
+	PXCH_UINT32 dwWillSearchForHostByResolvedIp;
+	PXCH_UINT32 dwWillCheckRuleOnIpIfNoHostnameRuleMatched;
+	PXCH_UINT32 dwWillForceResolveByHostsFile;
 } PROXYCHAINS_CONFIG;
 
 static const wchar_t g_szChildDataSavingFileMappingPrefix[] = L"Local\\proxychains_child_data_";
@@ -270,3 +297,18 @@ static const wchar_t g_szMinHookDllFileName[] = L"MinHook.x86.dll";
 #endif
 
 extern PXCHDLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;
+
+#define PXCH_TLS_OFFSET_W32HOSTENT 0
+#define PXCH_TLS_W32HOSTENT_IP_NUM 16
+#define PXCH_TLS_W32HOSTENT_ALIAS_NUM 16
+#define PXCH_TLS_W32HOSTENT_ALIAS_BUFSIZE 64
+
+#define PXCH_TLS_OFFSET_W32HOSTENT_IP_PTR_LIST (PXCH_TLS_OFFSET_W32HOSTENT + g_dwW32HostentSize)
+#define PXCH_TLS_OFFSET_W32HOSTENT_IP_BUF (PXCH_TLS_OFFSET_W32HOSTENT_IP_PTR_LIST + sizeof(PXCH_UINT32*[PXCH_TLS_W32HOSTENT_IP_NUM]))
+#define PXCH_TLS_OFFSET_W32HOSTENT_ALIAS_PTR_LIST (PXCH_TLS_OFFSET_W32HOSTENT_IP_BUF + sizeof(PXCH_UINT32[PXCH_TLS_W32HOSTENT_IP_NUM]))
+#define PXCH_TLS_OFFSET_W32HOSTENT_ALIAS_BUF (PXCH_TLS_OFFSET_W32HOSTENT_ALIAS_PTR_LIST + sizeof(char*[PXCH_TLS_W32HOSTENT_ALIAS_NUM]))
+#define PXCH_TLS_OFFSET_W32HOSTENT_HOSTNAME_BUF (PXCH_TLS_OFFSET_W32HOSTENT_ALIAS_PTR_LIST + sizeof(char[PXCH_TLS_W32HOSTENT_ALIAS_NUM][PXCH_TLS_W32HOSTENT_ALIAS_BUFSIZE]))
+
+#define PXCH_TLS_TOTAL_SIZE (PXCH_TLS_OFFSET_W32HOSTENT_HOSTNAME_BUF + sizeof(char[MAX_HOSTNAME_BUFSIZE]))
+
+extern const PXCH_UINT32 g_dwW32HostentSize;

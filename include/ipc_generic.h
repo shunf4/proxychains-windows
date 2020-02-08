@@ -16,8 +16,7 @@
 
 #define IPC_MSGTYPE_WSTR 0x1
 
-#define IPC_MSGTYPE_HOSTNAMEANDRESOLVEDIP 0x11
-#define IPC_MSGTYPE_IPADDRESS 0x12
+#define IPC_MSGTYPE_HOSTNAMEANDIPS 0x11
 
 #define IPC_MSGTYPE_CHILDDATA 0x40
 #define IPC_MSGTYPE_QUERYSTORAGE 0x41
@@ -47,21 +46,25 @@ typedef struct _IPC_MSGHDR_WSTR {
 	PXCH_UINT32 cchLength;
 } IPC_MSGHDR_WSTR;
 
-typedef struct _IPC_MSGHDR_HOSTNAMEANDRESOLVEDIP {
+typedef struct _IPC_MSGHDR_HOSTNAMEANDIPS {
 	PXCH_UINT32 dwTag;
 	PXCH_UINT32 dwPid;
+	// Hostname meaning:
+	// C2S:
+	//   wTag == HOSTNAME && szValue[0] != L'\0' :
+	//     Client registers hostname, retreiving fake ips;
+    //   else: Client retrieves hostname provided fake ip/resolved ip.
+	// S2C:
+	//   wTag == HOSTNAME && szValue[0] != L'\0' :
+	//     Server can't find fake ip/resolved ip provided by client, returning it as-is;
+	//   else: Server returns hostname and resolved ips corresponding to fake ip/resolved ip provided by client.
 	PXCH_HOSTNAME Hostname;
+	PXCH_UINT32 dwWillProxy;
 	PXCH_UINT32 dwWillMapResolvedIpToHost;
-	PXCH_UINT32 dwResolvedIpNum;
-} IPC_MSGHDR_HOSTNAMEANDRESOLVEDIP;
+	PXCH_UINT32 dwIpNum;
+} IPC_MSGHDR_HOSTNAMEANDIPS;
 
-#define IPC_RESOLVEDIP_ARR(pHdrHostnameAndResolvedIp) ((PXCH_IP_ADDRESS*)((char*)(pHdrHostnameAndResolvedIp) + sizeof(IPC_MSGHDR_HOSTNAMEANDRESOLVEDIP)))
-
-typedef struct _IPC_MSGHDR_IPADDRESS {
-	PXCH_UINT32 dwTag;
-	PXCH_UINT32 dwPid;
-	PXCH_IP_ADDRESS Ip;
-} IPC_MSGHDR_IPADDRESS;
+#define IPC_IP_ARR(pHdrHostnameAndIp) ((PXCH_IP_ADDRESS*)((char*)(pHdrHostnameAndIp) + sizeof(IPC_MSGHDR_HOSTNAMEANDIPS)))
 
 #pragma pack(pop)
 
@@ -70,10 +73,5 @@ PXCH_UINT32 IpcCommunicateWithServer(const IPC_MSGBUF sendMessage, PXCH_UINT32 c
 PXCH_UINT32 WstrToMessage(IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, const wchar_t* szWstr);
 PXCH_UINT32 MessageToWstr(wchar_t* wstr, CIPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize);
 
-#define MAX_RESOLVED_IP_NUM 10
-
-PXCH_UINT32 HostnameAndResolvedIpToMessage(IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, PXCH_UINT32 dwPid, const PXCH_HOSTNAME* Hostname, BOOL bWillMapResolvedIpToHost, PXCH_UINT32 dwResolvedIpNum, const PXCH_IP_ADDRESS* ResolvedIps);
-PXCH_UINT32 MessageToHostnameAndResolvedIp(PXCH_UINT32* pdwPid, PXCH_HOSTNAME* pHostname, BOOL* pbWillMapResolvedIpToHost, PXCH_UINT32* pdwResolvedIpNum, PXCH_IP_ADDRESS* ResolvedIps, CIPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize);
-
-PXCH_UINT32 IpAddressToMessage(IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, PXCH_UINT32 dwPid, const PXCH_IP_ADDRESS* pIp);
-PXCH_UINT32 MessageToIpAddress(PXCH_UINT32* pdwPid, PXCH_IP_ADDRESS* pIp, CIPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize);
+PXCH_UINT32 HostnameAndIpsToMessage(IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, PXCH_UINT32 dwPid, const PXCH_HOSTNAME* Hostname, BOOL bWillMapResolvedIpToHost, PXCH_UINT32 dwIpNum, const PXCH_IP_ADDRESS* Ips, BOOL bWillProxy);
+PXCH_UINT32 MessageToHostnameAndIps(PXCH_UINT32* pdwPid, PXCH_HOSTNAME* pHostname, BOOL* pbWillMapResolvedIpToHost, PXCH_UINT32* pdwIpNum, PXCH_IP_ADDRESS* Ips, BOOL* pbWillProxy, CIPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize);

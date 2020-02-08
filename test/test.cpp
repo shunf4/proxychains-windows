@@ -6,6 +6,7 @@
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <iphlpapi.h>
+#include <locale.h>
 #include <strsafe.h>
 #include <iostream>
 
@@ -19,7 +20,9 @@ void AAA(XXX a)
 #pragma comment(lib, "Ws2_32.lib")
 int main()
 {
-   
+    setlocale(LC_ALL, "");
+
+
     WSADATA wsaData;
 
     int iResult;
@@ -44,6 +47,7 @@ int main()
 
     struct hostent* pH;
     WCHAR szIp[100];
+
     pH = gethostbyname("");
     wprintf(L"gethostbyname(): addrtype=%hx name=%S(%hu)\n", pH->h_addrtype, pH->h_name, pH->h_length);
     wprintf(L" aliases:\n");
@@ -71,7 +75,7 @@ int main()
     }
 
     ADDRINFOW* addrsResult;
-    iResult = GetAddrInfoW(L"ip.sb", L"80", NULL, &addrsResult);
+    iResult = GetAddrInfoW(L"127.0.0.1", L"80", NULL, &addrsResult);
     if (iResult != 0) {
         fprintf(stderr, "getaddrinfo failed: %d\n", iResult);
         WSACleanup();
@@ -87,6 +91,14 @@ int main()
     }
 
     FreeAddrInfoW((ADDRINFOW*)addrsResult);
+
+    int cbIn;
+    struct sockaddr in;
+    cbIn = sizeof(in);
+    dwLen = _countof(g_HostPrintBuf);
+    wprintf(L"%d\n", WSAStringToAddressW((WCHAR*)L"127", AF_INET, NULL, &in, &cbIn));
+    wprintf(L"%d\n", WSAAddressToStringW(&in, sizeof(in), NULL, g_HostPrintBuf, &dwLen));
+    wprintf(L"%ls\n", g_HostPrintBuf);
 
     return 0;
     
