@@ -164,7 +164,7 @@
     <ClCompile Include="..\src\dll\hook_connect_win32.c" />
     <ClCompile Include="..\src\dll\hook_installer.c" />
     <ClCompile Include="..\src\dll\ipc_client_and_child_data.c" />
-    <ClCompile Include="..\src\dll\log_func_impl.c" />
+    <ClCompile Include="..\src\dll\dllutil_log_func.c" />
     <ClCompile Include="..\src\dll\remote_function\remote_function.c">
       <SupportJustMyCode Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</SupportJustMyCode>
       <SupportJustMyCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</SupportJustMyCode>
@@ -175,6 +175,7 @@
       <SDLCheck Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </SDLCheck>
     </ClCompile>
+    <ClCompile Include="..\src\dll\dllutil_wsock.c" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\proxychains_common\proxychains_common.vcxproj">
@@ -199,6 +200,10 @@
     <ClInclude Include="..\include\MinHook.h" />
     <ClInclude Include="..\include\proxy_core.h" />
     <ClInclude Include="..\include\remote_win32.h" />
+    <ClInclude Include="..\include\utarray.h" />
+    <ClInclude Include="..\include\uthash.h" />
+    <ClInclude Include="..\include\utlist.h" />
+    <ClInclude Include="..\include\ut_helpers.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

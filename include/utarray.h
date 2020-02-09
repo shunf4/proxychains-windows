@@ -23,9 +23,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* a dynamic array implementation using macros
  */
-#ifndef __CYGWIN__
-#define strdup _strdup
-#endif
 #ifndef UTARRAY_H
 #define UTARRAY_H
 

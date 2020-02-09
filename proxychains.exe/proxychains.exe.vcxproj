@@ -186,6 +186,8 @@
     <ClInclude Include="..\include\log_win32.h" />
     <ClInclude Include="..\include\proc_bookkeeping_win32.h" />
     <ClInclude Include="..\include\uthash.h" />
+    <ClInclude Include="..\include\utlist.h" />
+    <ClInclude Include="..\include\ut_helpers.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

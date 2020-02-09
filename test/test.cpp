@@ -10,18 +10,27 @@
 #include <strsafe.h>
 #include <iostream>
 
-typedef char XXX[5];
-
-void AAA(XXX a)
+DWORD WINAPI ThreadFunc(LPVOID lpVoid)
 {
-    a[1] = 'z';
+    HeapLock(GetProcessHeap());
+    printf("in thread");
+    HeapUnlock(GetProcessHeap());
+    return 0;
 }
 
 #pragma comment(lib, "Ws2_32.lib")
 int main()
 {
     setlocale(LC_ALL, "");
+    HeapLock(GetProcessHeap());
+    printf("in main thread");
+    // CreateThread(NULL, 0, &ThreadFunc, NULL, 0, NULL);
+    Sleep(3000);
+    HeapUnlock(GetProcessHeap());
 
+    HeapUnlock(GetProcessHeap());
+
+    return 0;
 
     WSADATA wsaData;
 
@@ -75,7 +84,7 @@ int main()
     }
 
     ADDRINFOW* addrsResult;
-    iResult = GetAddrInfoW(L"127.0.0.1", L"80", NULL, &addrsResult);
+    iResult = GetAddrInfoW(L"ip.sb", L"80", NULL, &addrsResult);
     if (iResult != 0) {
         fprintf(stderr, "getaddrinfo failed: %d\n", iResult);
         WSACleanup();
@@ -85,9 +94,18 @@ int main()
     char ipstrbuf[100];
     DWORD ipstrbuflen = _countof(ipstrbuf);
     int iaddr = 0;
+    struct sockaddr_storage_xp xxxx;
+    int ilen = sizeof(xxxx);
     for (ADDRINFOW* a = addrsResult; a; a = a->ai_next, iaddr++) {
+        if (a->ai_family == AF_INET6) {
+            struct sockaddr_in6* p6 = ((struct sockaddr_in6*) a->ai_addr);
+            p6->sin6_port = 0;
+            printf("%hu %u %u\n", ((struct sockaddr_in6*) a->ai_addr)->sin6_port, ((struct sockaddr_in6*) a->ai_addr)->sin6_flowinfo, ((struct sockaddr_in6*) a->ai_addr)->sin6_scope_id);
+        }
         WSAAddressToStringA(a->ai_addr, (DWORD)a->ai_addrlen, NULL, ipstrbuf, &ipstrbuflen);
+        
         printf("addrs[%d]\naddr: %s\naddrlen: %llu\ncanonname: %ls\nfamily: %d\nflags: %d\nprotocol: %d\nsocktype: %d\n\n", iaddr, ipstrbuf, a->ai_addrlen, a->ai_canonname, a->ai_family, a->ai_flags, a->ai_protocol, a->ai_socktype);
+        printf("WSAStringToAddressA: %d\n", WSAStringToAddressA(ipstrbuf, AF_INET6, NULL, (LPSOCKADDR)&xxxx, &ilen));
     }
 
     FreeAddrInfoW((ADDRINFOW*)addrsResult);

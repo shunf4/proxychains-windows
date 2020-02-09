@@ -4,8 +4,8 @@
 SYSTEMTIME log_time;
 WCHAR log_szLogLine[PXCHLOG_IPC_BUFSIZE] = { 0 };
 SYSTEMTIME log_time;
-IPC_MSGBUF log_msg;
-IPC_MSGBUF log_respMsg;
+PXCH_IPC_MSGBUF log_msg;
+PXCH_IPC_MSGBUF log_respMsg;
 DWORD log_cbMsgSize;
 DWORD log_cbRespMsgSize;
 DWORD log_pid;

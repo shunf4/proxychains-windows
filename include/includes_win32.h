@@ -15,6 +15,7 @@
 
 #ifdef __CYGWIN__
 static int __attribute__((unused)) (*newlib_vswprintf)(wchar_t*, size_t, const wchar_t*, __VALIST) = vswprintf;
+static int __attribute__((unused)) (*newlib_swprintf)(wchar_t*, size_t, const wchar_t*, ...) = swprintf;
 #endif
 #endif
 
@@ -26,3 +27,4 @@ static int __attribute__((unused)) (*newlib_vswprintf)(wchar_t*, size_t, const w
 #ifndef PXCH_DO_NOT_INCLUDE_STRSAFE_NOW
 #include <strsafe.h>
 #endif
+

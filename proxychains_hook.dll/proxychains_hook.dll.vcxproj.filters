@@ -36,7 +36,10 @@
     <ClCompile Include="..\src\dll\hook_installer.c">
       <Filter>Sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\dll\log_func_impl.c">
+    <ClCompile Include="..\src\dll\dllutil_log_func.c">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\dll\dllutil_wsock.c">
       <Filter>Sources</Filter>
     </ClCompile>
   </ItemGroup>
@@ -90,6 +93,18 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\include\hookdll_interior_generic.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\ut_helpers.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\utarray.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\uthash.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\utlist.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

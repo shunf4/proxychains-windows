@@ -1,6 +1,6 @@
 #pragma once
 
-#define PXCHLOG_IPC_BUFSIZE 256
+#define PXCHLOG_IPC_BUFSIZE 1024
 #define PXCHLOG_ODS_BUFSIZE 256
 
 #define PXCHLOG_IPC_PID_PREFIX_CYG L"[CYGPID%5d,WINPID%5u] ["
@@ -18,11 +18,11 @@
 #define PXCHLOG_CONCAT_FMT(level, fmt) PXCHLOG_FMT_PREFIX(level) fmt L"\n"
 #define PXCHLOG_IPC_CONCAT_FMT(level, fmt) PXCHLOG_IPC_FMT_PREFIX(level) fmt L"\n"
 
-extern void pxchlog_ipc_func_e(const wchar_t* prefix_fmt, const wchar_t* fmt, ...);
-extern void pxchlog_ipc_func(const wchar_t* prefix_fmt, const wchar_t* fmt, ...);
+extern void pxchlog_ipc_func_e(const wchar_t* prefix_fmt, const wchar_t* ipc_prefix_fmt, const wchar_t* fmt, ...);
+extern void pxchlog_ipc_func(const wchar_t* prefix_fmt, const wchar_t* ipc_prefix_fmt, const wchar_t* fmt, ...);
 
-#define PXCHLOG_IPC_FUNC_E(level, fmt, ...) pxchlog_ipc_func_e(PXCHLOG_IPC_FMT_PREFIX(level), fmt L"\n", ##__VA_ARGS__)
-#define PXCHLOG_IPC_FUNC(level, fmt, ...) pxchlog_ipc_func(PXCHLOG_IPC_FMT_PREFIX(level), fmt L"\n", ##__VA_ARGS__)
+#define PXCHLOG_IPC_FUNC_E(level, fmt, ...) pxchlog_ipc_func_e(PXCHLOG_FMT_PREFIX(level), PXCHLOG_IPC_FMT_PREFIX(level), fmt L"\n", ##__VA_ARGS__)
+#define PXCHLOG_IPC_FUNC(level, fmt, ...) pxchlog_ipc_func(PXCHLOG_FMT_PREFIX(level), PXCHLOG_IPC_FMT_PREFIX(level), fmt L"\n", ##__VA_ARGS__)
 
 #if PXCHLOG_LEVEL >= PXCHLOG_LEVEL_CRITICAL
 #define FUNCIPCLOGC(fmt, ...) PXCHLOG_IPC_FUNC_E(C, fmt, ##__VA_ARGS__)

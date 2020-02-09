@@ -3,6 +3,35 @@
 #include "includes_win32.h"
 #include "defines_generic.h"
 
+#define PXCH_DO_IN_CRITICAL_SECTION_RETURN_DWORD \
+	DWORD dwReturn = 0; \
+	int iLock; \
+	HeapLock(GetProcessHeap()); \
+	goto lock_critical_section_start; \
+lock_after_critical_section: \
+	HeapUnlock(GetProcessHeap()); \
+	return dwReturn; \
+ \
+lock_critical_section_start: \
+for (iLock = 0; ; iLock++) \
+if (iLock > 0) goto lock_after_critical_section; \
+else
+
+
+#define PXCH_DO_IN_CRITICAL_SECTION_RETURN_VOID \
+	int iLock; \
+	HeapLock(GetProcessHeap()); \
+	goto lock_critical_section_start; \
+lock_after_critical_section: \
+	HeapUnlock(GetProcessHeap()); \
+	return; \
+ \
+lock_critical_section_start: \
+for (iLock = 0; ; iLock++) \
+if (iLock > 0) goto lock_after_critical_section; \
+else
+
+
 #define PXCH_TLS_PTR_W32HOSTENT_BY_BASE(base) ((struct hostent*)((char*)base + PXCH_TLS_OFFSET_W32HOSTENT))
 #define PXCH_TLS_PTR_W32HOSTENT_IP_PTR_LIST_BY_BASE(base) ((PXCH_UINT32**)((char*)base + PXCH_TLS_OFFSET_W32HOSTENT_IP_PTR_LIST))
 #define PXCH_TLS_PTR_W32HOSTENT_IP_PTR_LIST_AS_PPCHAR_BY_BASE(base) ((char**)((char*)base + PXCH_TLS_OFFSET_W32HOSTENT_IP_PTR_LIST))

@@ -17,6 +17,7 @@ PXCH_INJECT_REMOTE_DATA* g_pRemoteData;
 PXCHDLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;
 PXCHDLL_API BOOL g_bCurrentlyInWinapiCall = FALSE;
 PXCH_UINT32 g_dwTlsIndex;
+UT_array* g_arrHeapAllocatedPointers;
 
 // To verify that this process has its original data (not overwritten with those of parent by fork())
 PXCHDLL_API DWORD g_dwCurrentProcessIdForVerify;
@@ -248,6 +249,7 @@ PXCHDLL_API DWORD __stdcall InitHook(PXCH_INJECT_REMOTE_DATA* pRemoteData)
 
 	g_pPxchConfig = &pRemoteData->pxchConfig;
 	g_pRemoteData = pRemoteData;
+	utarray_new(g_arrHeapAllocatedPointers, &ut_ptr_icd);
 
 	ODBGSTRLOG(L"InitHook: start");
 

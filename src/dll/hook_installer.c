@@ -58,6 +58,9 @@ void Win32HookWs2_32(void)
 	CREATE_HOOK3_IFNOTNULL(Ws2_32, FreeAddrInfoExW, pWs2_32_FreeAddrInfoExW);
 	CREATE_HOOK3_IFNOTNULL(Ws2_32, getnameinfo, pWs2_32_getnameinfo);
 	CREATE_HOOK3_IFNOTNULL(Ws2_32, GetNameInfoW, pWs2_32_GetNameInfoW);
+
+	if (orig_fpWs2_32_FreeAddrInfoW == NULL) orig_fpWs2_32_FreeAddrInfoW = orig_fpWs2_32_freeaddrinfo;
+	if (orig_fpWs2_32_FreeAddrInfoExW == NULL) orig_fpWs2_32_FreeAddrInfoExW = orig_fpWs2_32_FreeAddrInfoEx;
 }
 
 void CygwinHook(void)

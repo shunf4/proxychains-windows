@@ -1,11 +1,10 @@
 #pragma once
 #include "defines_win32.h"
 #include "ipc_win32.h"
-#include "uthash.h"
-#include "utlist.h"
+#include "ut_helpers.h"
 
 
-#define LOCKED(proc) do { \
+/* #define LOCKED(proc) do { \
 	DWORD dwWaitResult; \
 	DWORD dwErrorCode; \
 	DWORD dwReturn = 0; \
@@ -15,7 +14,7 @@
 	{ \
 	case WAIT_OBJECT_0: \
 	{ \
-		LOGV(L"Mutex fetched."); \
+		LOGD(L"Mutex fetched."); \
 		proc \
 	after_proc: \
 		if (!ReleaseMutex(g_hDataMutex)) { \
@@ -23,6 +22,7 @@
 			LOGC(L"Release mutex error: %ls", FormatErrorToStr(dwErrorCode)); \
 			exit(dwErrorCode); \
 		} \
+		LOGD(L"Mutex freed."); \
 		return dwReturn; \
 	} \
 	 \
@@ -36,24 +36,24 @@
 		LOGW(L"Wait for mutex error: " WPRDW L", %ls", dwWaitResult, FormatErrorToStr(dwErrorCode)); \
 		return dwErrorCode; \
 	} \
-} while(0)
+} while(0) */
 
 #pragma pack(push, 1)
 typedef struct _IPC_INSTANCE {
 	OVERLAPPED oOverlap;
 	HANDLE hPipe;
 
-	IPC_MSGBUF chReadBuf;
+	PXCH_IPC_MSGBUF chReadBuf;
 	DWORD cbRead;
 
-	IPC_MSGBUF chWriteBuf;
+	PXCH_IPC_MSGBUF chWriteBuf;
 	DWORD cbToWrite;
 
 	DWORD dwState;
 
 	BOOL bPending;
 
-} IPC_INSTANCE;
+} PXCH_IPC_INSTANCE;
 
 
 typedef DWORD pid_key_t;
@@ -84,5 +84,4 @@ typedef struct {
 #pragma pack(pop)
 
 extern tab_per_process_t* g_tabPerProcess;
-extern HANDLE g_hDataMutex;
 extern tab_fake_ip_hostname_t* g_tabFakeIpHostname;

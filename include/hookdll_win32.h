@@ -2,6 +2,7 @@
 
 #include "defines_win32.h"
 #include "hookdll_generic.h"
+#include "ut_helpers.h"
 
 PXCHDLL_API DWORD __stdcall InitHook(PXCH_INJECT_REMOTE_DATA * pData);
 PXCHDLL_API DWORD __stdcall InitHookForMain(PROXYCHAINS_CONFIG * pConfig);
@@ -241,3 +242,5 @@ DECLARE_HOOK_FUNC2(Ws2_32, GetNameInfoW);
 PXCHDLL_API int Ws2_32_DirectConnect(void* pTempData, PXCH_UINT_PTR s, const PXCH_PROXY_DATA* pProxy /* Mostly myself */, const PXCH_HOST_PORT* pHostPort, int iAddrLen);
 PXCHDLL_API int Ws2_32_Socks5Connect(void* pTempData, PXCH_UINT_PTR s, const PXCH_PROXY_DATA* pProxy /* Mostly myself */, const PXCH_HOST_PORT* pHostPort, int iAddrLen);
 PXCHDLL_API int Ws2_32_Socks5Handshake(void* pTempData, PXCH_UINT_PTR s, const PXCH_PROXY_DATA* pProxy /* Mostly myself */);
+
+extern UT_array* g_arrHeapAllocatedPointers;

@@ -19,7 +19,7 @@
 
 HANDLE g_hIpcServerSemaphore;
 
-DWORD HandleMessage(int i, IPC_INSTANCE* pipc);
+DWORD HandleMessage(int i, PXCH_IPC_INSTANCE* pipc);
 
 DWORD ConnectToNewClient(HANDLE hPipe, LPOVERLAPPED lpo)
 {
@@ -55,7 +55,7 @@ err_connected_not_zero:
 	return dwErrorCode;
 }
 
-DWORD DisconnectAndReconnect(IPC_INSTANCE* ipc, int i)
+DWORD DisconnectAndReconnect(PXCH_IPC_INSTANCE* ipc, int i)
 {
 	DWORD dwErrorCode;
 
@@ -67,14 +67,14 @@ DWORD DisconnectAndReconnect(IPC_INSTANCE* ipc, int i)
 	if (dwErrorCode != ERROR_IO_PENDING && dwErrorCode != ERROR_PIPE_CONNECTED) return dwErrorCode;
 
 	ipc[i].bPending = (dwErrorCode == ERROR_IO_PENDING);
-	ipc[i].dwState = (dwErrorCode == ERROR_PIPE_CONNECTED) ? IPC_STATE_READING : IPC_STATE_CONNECTING;
+	ipc[i].dwState = (dwErrorCode == ERROR_PIPE_CONNECTED) ? PXCH_IPC_STATE_READING : PXCH_IPC_STATE_CONNECTING;
 	return 0;
 }
 
 DWORD WINAPI ServerLoop(LPVOID lpVoid)
 {
-	static IPC_INSTANCE ipc[IPC_INSTANCE_NUM];
-	static HANDLE hEvents[IPC_INSTANCE_NUM];
+	static PXCH_IPC_INSTANCE ipc[PXCH_IPC_INSTANCE_NUM];
+	static HANDLE hEvents[PXCH_IPC_INSTANCE_NUM];
 	PROXYCHAINS_CONFIG* pPxchConfig = (PROXYCHAINS_CONFIG*)lpVoid;
 	DWORD dwErrorCode;
 	DWORD dwWait;
@@ -93,14 +93,14 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 	SecAttr.lpSecurityDescriptor = pSecDesc;
 
 	// Initialize
-	for (i = 0; i < IPC_INSTANCE_NUM; i++) {
+	for (i = 0; i < PXCH_IPC_INSTANCE_NUM; i++) {
 		// Manual-reset, initially signaled event
 		hEvents[i] = CreateEventW(NULL, TRUE, TRUE, NULL);
 		if (hEvents[i] == 0) goto err_create_event;
 
 		ipc[i].oOverlap.hEvent = hEvents[i];
 
-		ipc[i].hPipe = CreateNamedPipeW(pPxchConfig->szIpcPipeName, PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, IPC_INSTANCE_NUM, IPC_BUFSIZE, IPC_BUFSIZE, 0, &SecAttr);
+		ipc[i].hPipe = CreateNamedPipeW(pPxchConfig->szIpcPipeName, PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, PXCH_IPC_INSTANCE_NUM, PXCH_IPC_BUFSIZE, PXCH_IPC_BUFSIZE, 0, &SecAttr);
 
 		if (ipc[i].hPipe == INVALID_HANDLE_VALUE) goto err_create_pipe;
 
@@ -109,7 +109,7 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 
 		ipc[i].bPending = (dwErrorCode == ERROR_IO_PENDING);
 
-		ipc[i].dwState = (dwErrorCode == ERROR_PIPE_CONNECTED) ? IPC_STATE_READING : IPC_STATE_CONNECTING;
+		ipc[i].dwState = (dwErrorCode == ERROR_PIPE_CONNECTED) ? PXCH_IPC_STATE_READING : PXCH_IPC_STATE_CONNECTING;
 	}
 
 	LOGD(L"[IPCALL] Waiting for clients...");
@@ -124,9 +124,9 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 
 	while (1) {
 #ifndef __CYGWIN__
-		dwWait = WaitForMultipleObjects(IPC_INSTANCE_NUM, hEvents, FALSE, INFINITE);
+		dwWait = WaitForMultipleObjects(PXCH_IPC_INSTANCE_NUM, hEvents, FALSE, INFINITE);
 #else
-		dwWait = WaitForMultipleObjects(IPC_INSTANCE_NUM, hEvents, FALSE, 100);
+		dwWait = WaitForMultipleObjects(PXCH_IPC_INSTANCE_NUM, hEvents, FALSE, 100);
 		if (dwWait == WAIT_TIMEOUT) {
 			BOOL bChild = FALSE;
 			int iChildPid = 0;
@@ -139,20 +139,20 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 		}
 #endif
 		i = dwWait - WAIT_OBJECT_0;
-		if (i < 0 || i >= IPC_INSTANCE_NUM) goto err_wait_out_of_range;
+		if (i < 0 || i >= PXCH_IPC_INSTANCE_NUM) goto err_wait_out_of_range;
 
 		// If this pipe is just awaken from pending state
 		if (ipc[i].bPending) {
 			bReturn = GetOverlappedResult(ipc[i].hPipe, &ipc[i].oOverlap, &cbReturn, FALSE);
 
 			switch (ipc[i].dwState) {
-			case IPC_STATE_CONNECTING:
+			case PXCH_IPC_STATE_CONNECTING:
 				if (!bReturn) goto err_connect_overlapped_error;
 				LOGV(L"[IPC%03d] named pipe connected.", i);
-				ipc[i].dwState = IPC_STATE_READING;
+				ipc[i].dwState = PXCH_IPC_STATE_READING;
 				break;
 
-			case IPC_STATE_READING:
+			case PXCH_IPC_STATE_READING:
 				if (!bReturn || cbReturn == 0) {
 					dwErrorCode = GetLastError();
 					if (dwErrorCode != ERROR_BROKEN_PIPE) {
@@ -163,10 +163,10 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 				}
 				LOGV(L"[IPC%03d] ReadFile() received msglen = " WPRDW L"", i, cbReturn);
 				ipc[i].cbRead = cbReturn;
-				ipc[i].dwState = IPC_STATE_WRITING;
+				ipc[i].dwState = PXCH_IPC_STATE_WRITING;
 				break;
 
-			case IPC_STATE_WRITING:
+			case PXCH_IPC_STATE_WRITING:
 				if (!bReturn || cbReturn != ipc[i].cbToWrite) {
 					dwErrorCode = GetLastError();
 					if (dwErrorCode != ERROR_BROKEN_PIPE) {
@@ -176,7 +176,7 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 					continue;
 				}
 				LOGV(L"[IPC%03d] WriteFile() sent msglen = " WPRDW L"", i, cbReturn);
-				ipc[i].dwState = IPC_STATE_READING;
+				ipc[i].dwState = PXCH_IPC_STATE_READING;
 				break;
 
 			default:
@@ -187,14 +187,14 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 
 		// Last operation has finished, now dwState stores what to do next
 		switch (ipc[i].dwState) {
-		case IPC_STATE_READING:
-			bReturn = ReadFile(ipc[i].hPipe, ipc[i].chReadBuf, IPC_BUFSIZE, &ipc[i].cbRead, &ipc[i].oOverlap);
+		case PXCH_IPC_STATE_READING:
+			bReturn = ReadFile(ipc[i].hPipe, ipc[i].chReadBuf, PXCH_IPC_BUFSIZE, &ipc[i].cbRead, &ipc[i].oOverlap);
 
 			// Finished instantly
 			if (bReturn && ipc[i].cbRead != 0) {
 				LOGV(L"[IPC%03d] ReadFile() received msglen = " WPRDW L" (immediately)", i, ipc[i].cbRead);
 				ipc[i].bPending = FALSE;
-				ipc[i].dwState = IPC_STATE_WRITING;
+				ipc[i].dwState = PXCH_IPC_STATE_WRITING;
 				continue;
 			}
 
@@ -211,7 +211,7 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 			if ((dwErrorCode = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwErrorCode;
 			break;
 
-		case IPC_STATE_WRITING:
+		case PXCH_IPC_STATE_WRITING:
 			dwErrorCode = HandleMessage(i, &ipc[i]);
 			LOGV(L"HandleMessage done.");
 
@@ -229,7 +229,7 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 			if (bReturn && cbReturn == ipc[i].cbToWrite) {
 				LOGV(L"[IPC%03d] WriteFile() sent msglen = " WPRDW L" (immediately)", i, cbReturn);
 				ipc[i].bPending = FALSE;
-				ipc[i].dwState = IPC_STATE_READING;
+				ipc[i].dwState = PXCH_IPC_STATE_READING;
 				continue;
 			}
 
@@ -275,7 +275,7 @@ err_connect_overlapped_error:
 
 }
 
-static inline int handle_sigint_worker(int sig)
+void handle_sigint(int sig)
 {
 	// Once hooked, a cygwin program cannot handle Ctrl-C signal.
 	// Thus we have to implement this to kill everything forked
@@ -287,7 +287,7 @@ static inline int handle_sigint_worker(int sig)
 	LOGW(L"[PX:Ctrl-C]");
 	fflush(stderr);
 
-	LOCKED({
+	PXCH_DO_IN_CRITICAL_SECTION_RETURN_VOID{
 		HASH_ITER(hh, g_tabPerProcess, current, tmp) {
 			HASH_DELETE(hh, g_tabPerProcess, current);
 			h = OpenProcess(SYNCHRONIZE | PROCESS_TERMINATE, TRUE, current->Data.dwPid);
@@ -300,9 +300,7 @@ static inline int handle_sigint_worker(int sig)
 			HeapFree(GetProcessHeap(), 0, current);
 		}
 		exit(0);
-
-		goto after_proc;
-	});
+	}
 }
 
 BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
@@ -311,7 +309,7 @@ BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
 	{
 		// Handle the CTRL-C signal. 
 	case CTRL_C_EVENT:
-		handle_sigint_worker(0);
+		handle_sigint(0);
 		return TRUE;
 
 		// CTRL-CLOSE: confirm that the user wants to exit. 
@@ -441,11 +439,6 @@ void handle_sigchld(int sig)
 	IF_CYGWIN_EXIT(0);
 }
 
-
-void handle_sigint(int sig)
-{
-	handle_sigint_worker(sig);
-}
 
 DWORD WINAPI CygwinSpawn(LPVOID lpParam)
 {

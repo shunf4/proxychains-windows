@@ -4,7 +4,6 @@
 #include "proc_bookkeeping_win32.h"
 
 tab_per_process_t* g_tabPerProcess;
-HANDLE g_hDataMutex;
 tab_fake_ip_hostname_t* g_tabFakeIpHostname;
 
 void PrintTablePerProcess()
@@ -34,7 +33,7 @@ void PrintTablePerProcess()
 
 			if (IpHostnameEntry) {
 				PXCH_UINT32 i;
-				StringCchPrintfExW(pTempBuf, _countof(TempBuf) - (pTempBuf - TempBuf), &pTempBuf, NULL, 0, L"(FakeIp,%ls - ", IpHostnameEntry->Hostname.szValue);
+				StringCchPrintfExW(pTempBuf, _countof(TempBuf) - (pTempBuf - TempBuf), &pTempBuf, NULL, 0, L"(FakeIp,%ls<%ls> - ", IpHostnameEntry->Hostname.szValue, IpHostnameEntry->bWillProxy ? L"Proxied" : L"Direct");
 				for (i = 0; i < IpHostnameEntry->dwResovledIpNum; i++) {
 					StringCchPrintfExW(pTempBuf, _countof(TempBuf) - (pTempBuf - TempBuf), &pTempBuf, NULL, 0, L"%ls%ls", i ? L"/" : L"", FormatHostPortToStr(&IpHostnameEntry->ResolvedIps[i], sizeof(PXCH_IP_ADDRESS)));
 				}
@@ -47,7 +46,7 @@ void PrintTablePerProcess()
 
 			if (IpHostnameEntry) {
 				PXCH_UINT32 i;
-				StringCchPrintfExW(pTempBuf, _countof(TempBuf) - (pTempBuf - TempBuf), &pTempBuf, NULL, 0, L"(ResolvedIp,%ls - ", IpHostnameEntry->Hostname.szValue);
+				StringCchPrintfExW(pTempBuf, _countof(TempBuf) - (pTempBuf - TempBuf), &pTempBuf, NULL, 0, L"(ResolvedIp,%ls<%ls> - ", IpHostnameEntry->Hostname.szValue, IpHostnameEntry->bWillProxy ? L"Proxied" : L"Direct");
 				for (i = 0; i < IpHostnameEntry->dwResovledIpNum; i++) {
 					StringCchPrintfExW(pTempBuf, _countof(TempBuf) - (pTempBuf - TempBuf), &pTempBuf, NULL, 0, L"%ls%ls", i ? L"/" : L"", FormatHostPortToStr(&IpHostnameEntry->ResolvedIps[i], sizeof(PXCH_IP_ADDRESS)));
 				}
@@ -61,7 +60,7 @@ void PrintTablePerProcess()
 
 DWORD ChildProcessExitedCallbackWorker(PVOID lpParameter, BOOLEAN TimerOrWaitFired)
 {
-	LOCKED({
+	PXCH_DO_IN_CRITICAL_SECTION_RETURN_DWORD{
 		tab_per_process_t * Entry = (tab_per_process_t*)lpParameter;
 		tab_fake_ip_hostname_t IpHostnameAsKey;
 		tab_fake_ip_hostname_t* IpHostnameEntry;
@@ -75,7 +74,7 @@ DWORD ChildProcessExitedCallbackWorker(PVOID lpParameter, BOOLEAN TimerOrWaitFir
 		}
 		LOGI(L"Child process winpid " WPRDW L" exited (%#010x).", Entry->Data.dwPid, dwExitCode);
 
-		LL_FOREACH_SAFE(Entry->Ips, pIpNode, pTmpIpNode){
+		LL_FOREACH_SAFE(Entry->Ips, pIpNode, pTmpIpNode) {
 			IpHostnameAsKey.Ip = pIpNode->Ip;
 			IpHostnameAsKey.dwOptionalPid = Entry->Data.dwPid;
 			HASH_FIND(hh, g_tabFakeIpHostname, &IpHostnameAsKey.Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), IpHostnameEntry);
@@ -103,11 +102,10 @@ DWORD ChildProcessExitedCallbackWorker(PVOID lpParameter, BOOLEAN TimerOrWaitFir
 
 		if (g_tabPerProcess == NULL) {
 			LOGI(L"All windows descendant process exited.");
+			HeapUnlock(GetProcessHeap());	// go out of critical section
 			IF_WIN32_EXIT(0);
 		}
-
-		goto after_proc;
-	});
+	}
 }
 
 
@@ -121,7 +119,7 @@ VOID CALLBACK ChildProcessExitedCallback(
 
 DWORD RegisterNewChildProcess(const REPORTED_CHILD_DATA* pChildData)
 {
-	LOCKED({
+	PXCH_DO_IN_CRITICAL_SECTION_RETURN_DWORD{
 		tab_per_process_t* Entry;
 		HANDLE hWaitHandle;
 		HANDLE hChildHandle;
@@ -139,7 +137,7 @@ DWORD RegisterNewChildProcess(const REPORTED_CHILD_DATA* pChildData)
 				}
 			}
 			LOGC(L"OpenProcess() error: %ls", FormatErrorToStr(dwReturn));
-			goto after_proc;
+			goto lock_after_critical_section;
 		}
 	after_open_process:
 		LOGD(L"After OpenProcess(" WPRDW L")...", hChildHandle);
@@ -147,7 +145,7 @@ DWORD RegisterNewChildProcess(const REPORTED_CHILD_DATA* pChildData)
 		if (!RegisterWaitForSingleObject(&hWaitHandle, hChildHandle, &ChildProcessExitedCallback, Entry, INFINITE, WT_EXECUTELONGFUNCTION | WT_EXECUTEONLYONCE)) {
 			dwReturn = GetLastError();
 			LOGC(L"RegisterWaitForSingleObject() error: %ls", FormatErrorToStr(dwReturn));
-			goto after_proc;
+			goto lock_after_critical_section;
 		}
 		LOGV(L"After RegisterWaitForSingleObject...");
 		Entry->Data = *pChildData;
@@ -158,90 +156,86 @@ DWORD RegisterNewChildProcess(const REPORTED_CHILD_DATA* pChildData)
 		LOGV(L"After HASH_ADD");
 		LOGI(L"Registered child pid " WPRDW, pChildData->dwPid);
 		PrintTablePerProcess();
-	});
+	}
 }
 
 DWORD QueryChildStorage(REPORTED_CHILD_DATA* pChildData)
 {
-	LOCKED({
+	PXCH_DO_IN_CRITICAL_SECTION_RETURN_DWORD{
 		tab_per_process_t* Entry;
 		HASH_FIND(hh, g_tabPerProcess, &pChildData->dwPid, sizeof(pid_key_t), Entry);
 		if (Entry) {
 			*pChildData = Entry->Data;
 		}
 
-		goto after_proc;
-	});
+		goto lock_after_critical_section;
+	}
 }
 
 DWORD NextAvailableFakeIp(PXCH_IP_ADDRESS* pFakeIpv4, PXCH_IP_ADDRESS* pFakeIpv6)
 {
 	static PXCH_UINT32 iSearchIpv4 = 1;
 	static PXCH_UINT32 iSearchIpv6 = 1;
-	LOCKED({
-		PXCH_UINT32 iSearchIpv4WhenEnter;
-		PXCH_UINT32 iSearchIpv6WhenEnter;
-		PXCH_UINT32 iIpv4ShiftLength;
-		PXCH_UINT32 iIpv6ShiftLength;
-		tab_fake_ip_hostname_t* Entry;
-		tab_fake_ip_hostname_t AsKey;
-		AsKey.dwOptionalPid = 0;
+	PXCH_UINT32 iSearchIpv4WhenEnter;
+	PXCH_UINT32 iSearchIpv6WhenEnter;
+	PXCH_UINT32 iIpv4ShiftLength;
+	PXCH_UINT32 iIpv6ShiftLength;
+	tab_fake_ip_hostname_t* Entry;
+	tab_fake_ip_hostname_t AsKey;
+	AsKey.dwOptionalPid = 0;
 
-		iSearchIpv4WhenEnter = iSearchIpv4;
-		AsKey.Ip.CommonHeader.wTag = PXCH_HOST_TYPE_IPV4;
-		iIpv4ShiftLength = (32 > g_pPxchConfig->dwFakeIpv4PrefixLength) ? (32 - g_pPxchConfig->dwFakeIpv4PrefixLength) : 0;
-		while (1) {
-			Entry = NULL;
-			IndexToIp(g_pPxchConfig, &AsKey.Ip, iSearchIpv4);
-			LOGI(L"Map index to IPv4: " WPRDW L" -> %ls", iSearchIpv4, FormatHostPortToStr(&AsKey.Ip, sizeof(PXCH_IP_ADDRESS)));
-			HASH_FIND(hh, g_tabFakeIpHostname, &AsKey.Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), Entry);
-			if (!Entry) break;
-			iSearchIpv4++;
-			if (iSearchIpv4 >= ((PXCH_UINT64)1 << iIpv4ShiftLength) - 1) {
-				iSearchIpv4 = 1;
-			}
-
-			if (iSearchIpv4 == iSearchIpv4WhenEnter) {
-				dwReturn = ERROR_RESOURCE_NOT_AVAILABLE;
-				goto after_proc;
-			}
+	iSearchIpv4WhenEnter = iSearchIpv4;
+	AsKey.Ip.CommonHeader.wTag = PXCH_HOST_TYPE_IPV4;
+	iIpv4ShiftLength = (32 > g_pPxchConfig->dwFakeIpv4PrefixLength) ? (32 - g_pPxchConfig->dwFakeIpv4PrefixLength) : 0;
+	while (1) {
+		Entry = NULL;
+		IndexToIp(g_pPxchConfig, &AsKey.Ip, iSearchIpv4);
+		LOGI(L"Map index to IPv4: " WPRDW L" -> %ls", iSearchIpv4, FormatHostPortToStr(&AsKey.Ip, sizeof(PXCH_IP_ADDRESS)));
+		HASH_FIND(hh, g_tabFakeIpHostname, &AsKey.Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), Entry);
+		if (!Entry) break;
+		iSearchIpv4++;
+		if (iSearchIpv4 >= ((PXCH_UINT64)1 << iIpv4ShiftLength) - 1) {
+			iSearchIpv4 = 1;
 		}
 
-		LOGI(L"Next available IPv4 index: " WPRDW, iSearchIpv4);
-		*pFakeIpv4 = AsKey.Ip;
+		if (iSearchIpv4 == iSearchIpv4WhenEnter) {
+			return ERROR_RESOURCE_NOT_AVAILABLE;
+		}
+	}
+
+	LOGI(L"Next available IPv4 index: " WPRDW, iSearchIpv4);
+	*pFakeIpv4 = AsKey.Ip;
 
 
-		iSearchIpv6WhenEnter = iSearchIpv6;
-		AsKey.Ip.CommonHeader.wTag = PXCH_HOST_TYPE_IPV6;
-		iIpv6ShiftLength = (128 > g_pPxchConfig->dwFakeIpv6PrefixLength) ? (128 - g_pPxchConfig->dwFakeIpv6PrefixLength) : 0;
-		iIpv6ShiftLength = iIpv6ShiftLength > 64 ? 64 : iIpv6ShiftLength;
-		while (1) {
-			Entry = NULL;
-			IndexToIp(g_pPxchConfig, &AsKey.Ip, iSearchIpv6);
-			LOGI(L"Map index to IPv6: " WPRDW L" -> %ls", iSearchIpv6, FormatHostPortToStr(&AsKey.Ip, sizeof(PXCH_IP_ADDRESS)));
-			HASH_FIND(hh, g_tabFakeIpHostname, &AsKey.Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), Entry);
-			if (!Entry) break;
-			iSearchIpv6++;
-			if (iSearchIpv6 >= ((PXCH_UINT64)1 << iIpv6ShiftLength) - 1) {
-				iSearchIpv6 = 1;
-			}
-
-			if (iSearchIpv6 == iSearchIpv6WhenEnter) {
-				dwReturn = ERROR_RESOURCE_NOT_AVAILABLE;
-				goto after_proc;
-			}
+	iSearchIpv6WhenEnter = iSearchIpv6;
+	AsKey.Ip.CommonHeader.wTag = PXCH_HOST_TYPE_IPV6;
+	iIpv6ShiftLength = (128 > g_pPxchConfig->dwFakeIpv6PrefixLength) ? (128 - g_pPxchConfig->dwFakeIpv6PrefixLength) : 0;
+	iIpv6ShiftLength = iIpv6ShiftLength > 64 ? 64 : iIpv6ShiftLength;
+	while (1) {
+		Entry = NULL;
+		IndexToIp(g_pPxchConfig, &AsKey.Ip, iSearchIpv6);
+		LOGI(L"Map index to IPv6: " WPRDW L" -> %ls", iSearchIpv6, FormatHostPortToStr(&AsKey.Ip, sizeof(PXCH_IP_ADDRESS)));
+		HASH_FIND(hh, g_tabFakeIpHostname, &AsKey.Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), Entry);
+		if (!Entry) break;
+		iSearchIpv6++;
+		if (iSearchIpv6 >= ((iIpv6ShiftLength == 64) ? 0xFFFFFFFFFFFFFFFF : (((PXCH_UINT64)1 << iIpv6ShiftLength) - 1))) {
+			iSearchIpv6 = 1;
 		}
 
-		LOGI(L"Next available IPv6 index: " WPRDW, iSearchIpv6);
-		*pFakeIpv6 = AsKey.Ip;
+		if (iSearchIpv6 == iSearchIpv6WhenEnter) {
+			return ERROR_RESOURCE_NOT_AVAILABLE;
+		}
+	}
 
-		dwReturn = NO_ERROR;
-	});
+	LOGI(L"Next available IPv6 index: " WPRDW, iSearchIpv6);
+	*pFakeIpv6 = AsKey.Ip;
+
+	return NO_ERROR;
 }
 
 DWORD RegisterHostnameAndGetFakeIp(PXCH_IP_ADDRESS* pFakeIpv4, PXCH_IP_ADDRESS* pFakeIpv6, const tab_fake_ip_hostname_t* TempEntry, PXCH_UINT32 dwPid, BOOL bWillMapResolvedIpToHost)
 {
-	LOCKED({
+	PXCH_DO_IN_CRITICAL_SECTION_RETURN_DWORD{
 		tab_fake_ip_hostname_t* FakeIpv4Entry;
 		tab_fake_ip_hostname_t* FakeIpv6Entry;
 		tab_fake_ip_hostname_t* ResolvedIpEntry;
@@ -271,6 +265,7 @@ DWORD RegisterHostnameAndGetFakeIp(PXCH_IP_ADDRESS* pFakeIpv4, PXCH_IP_ADDRESS* 
 		FakeIpv4Entry->Hostname = TempEntry->Hostname;
 		FakeIpv4Entry->bWillProxy = TempEntry->bWillProxy;
 		FakeIpv4Entry->dwResovledIpNum = TempEntry->dwResovledIpNum;
+		LOGI(L"Fake Ipv4: %ls", FormatHostPortToStr(&pIpv4Node->Ip, sizeof(PXCH_IP_ADDRESS)));
 		CopyMemory(FakeIpv4Entry->ResolvedIps, TempEntry->ResolvedIps, sizeof(PXCH_IP_ADDRESS) * FakeIpv4Entry->dwResovledIpNum);
 
 		HASH_ADD(hh, g_tabFakeIpHostname, Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), FakeIpv4Entry);
@@ -283,6 +278,7 @@ DWORD RegisterHostnameAndGetFakeIp(PXCH_IP_ADDRESS* pFakeIpv4, PXCH_IP_ADDRESS* 
 		FakeIpv6Entry->Hostname = TempEntry->Hostname;
 		FakeIpv6Entry->bWillProxy = TempEntry->bWillProxy;
 		FakeIpv6Entry->dwResovledIpNum = TempEntry->dwResovledIpNum;
+		LOGI(L"Fake Ipv6: %ls", FormatHostPortToStr(&pIpv6Node->Ip, sizeof(PXCH_IP_ADDRESS)));
 		CopyMemory(FakeIpv6Entry->ResolvedIps, TempEntry->ResolvedIps, sizeof(PXCH_IP_ADDRESS) * FakeIpv6Entry->dwResovledIpNum);
 
 		HASH_ADD(hh, g_tabFakeIpHostname, Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), FakeIpv6Entry);
@@ -292,6 +288,7 @@ DWORD RegisterHostnameAndGetFakeIp(PXCH_IP_ADDRESS* pFakeIpv4, PXCH_IP_ADDRESS* 
 			for (dw = 0; dw < TempEntry->dwResovledIpNum; dw++) {
 				pResolvedIpNode = (IpNode*)HeapAlloc(GetProcessHeap(), 0, sizeof(IpNode));
 				pResolvedIpNode->Ip = TempEntry->ResolvedIps[dw];
+				LOGI(L"Resolved Ip: %ls", FormatHostPortToStr(&pResolvedIpNode->Ip, sizeof(PXCH_IP_ADDRESS)));
 				LL_PREPEND(CurrentProcessDataEntry->Ips, pResolvedIpNode);
 
 				ResolvedIpEntry = (tab_fake_ip_hostname_t*)HeapAlloc(GetProcessHeap(), 0, sizeof(tab_fake_ip_hostname_t));
@@ -307,11 +304,11 @@ DWORD RegisterHostnameAndGetFakeIp(PXCH_IP_ADDRESS* pFakeIpv4, PXCH_IP_ADDRESS* 
 
 		PrintTablePerProcess();
 		dwReturn = NO_ERROR;
-		goto after_proc;
+		goto lock_after_critical_section;
 
 	err_no_proc_entry:
 		dwReturn = ERROR_NOT_FOUND;
-		goto after_proc;
+		goto lock_after_critical_section;
 
 	err_no_avail_fake_ip:
 		goto ret_free;
@@ -320,11 +317,11 @@ DWORD RegisterHostnameAndGetFakeIp(PXCH_IP_ADDRESS* pFakeIpv4, PXCH_IP_ADDRESS* 
 		HeapFree(GetProcessHeap(), 0, pIpv4Node);
 		HeapFree(GetProcessHeap(), 0, pIpv6Node);
 		dwReturn = dwErrorCode;
-		goto after_proc;
-	});
+		goto lock_after_critical_section;
+	}
 }
 
-DWORD GetMsgHostnameAndResolvedIpsFromMsgIp(IPC_MSGBUF chMessageBuf, PXCH_UINT32 *pcbMessageSize, const IPC_MSGHDR_HOSTNAMEANDIPS* pMsgIp)
+DWORD GetMsgHostnameAndResolvedIpsFromMsgIp(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32 *pcbMessageSize, const PXCH_IPC_MSGHDR_HOSTNAMEANDIPS* pMsgIp)
 {
 	tab_fake_ip_hostname_t AsKey;
 	tab_fake_ip_hostname_t* Entry;
@@ -335,18 +332,21 @@ DWORD GetMsgHostnameAndResolvedIpsFromMsgIp(IPC_MSGBUF chMessageBuf, PXCH_UINT32
 	EmptyHostname.wPort = 0;
 	EmptyHostname.szValue[0] = L'\0';
 
-	AsKey.Ip = *IPC_IP_ARR(pMsgIp);
-	AsKey.dwOptionalPid = pMsgIp->dwPid;
+	AsKey.Ip = *PXCH_IPC_IP_ARR(pMsgIp);
 
-	Entry = NULL;
-	HASH_FIND(hh, g_tabFakeIpHostname, &AsKey.Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), Entry);
+	if (g_pPxchConfig->dwWillSearchForHostByResolvedIp) {
+		AsKey.dwOptionalPid = pMsgIp->dwPid;
 
-	if (Entry) {
-		LOGI(L"ResolvedIp %ls -> Hostname %ls", FormatHostPortToStr(IPC_IP_ARR(pMsgIp), sizeof(PXCH_IP_ADDRESS)), Entry->Hostname.szValue);
-		dwErrorCode = HostnameAndIpsToMessage(chMessageBuf, pcbMessageSize, pMsgIp->dwPid, &Entry->Hostname, FALSE /*ignored*/, Entry->dwResovledIpNum, Entry->ResolvedIps, Entry->bWillProxy);
-		if (dwErrorCode != NO_ERROR) goto error;
+		Entry = NULL;
+		HASH_FIND(hh, g_tabFakeIpHostname, &AsKey.Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), Entry);
 
-		return NO_ERROR;
+		if (Entry) {
+			LOGI(L"ResolvedIp %ls -> Hostname %ls, %ls", FormatHostPortToStr(PXCH_IPC_IP_ARR(pMsgIp), sizeof(PXCH_IP_ADDRESS)), Entry->Hostname.szValue, Entry->bWillProxy ? L"Proxied" : L"Direct");
+			dwErrorCode = HostnameAndIpsToMessage(chMessageBuf, pcbMessageSize, pMsgIp->dwPid, &Entry->Hostname, FALSE /*ignored*/, Entry->dwResovledIpNum, Entry->ResolvedIps, Entry->bWillProxy);
+			if (dwErrorCode != NO_ERROR) goto error;
+
+			return NO_ERROR;
+		}
 	}
 
 	AsKey.dwOptionalPid = 0;
@@ -354,7 +354,7 @@ DWORD GetMsgHostnameAndResolvedIpsFromMsgIp(IPC_MSGBUF chMessageBuf, PXCH_UINT32
 	HASH_FIND(hh, g_tabFakeIpHostname, &AsKey.Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), Entry);
 
 	if (Entry) {
-		LOGI(L"FakeIp %ls -> Hostname %ls", FormatHostPortToStr(IPC_IP_ARR(pMsgIp), sizeof(PXCH_IP_ADDRESS)), Entry->Hostname.szValue);
+		LOGI(L"FakeIp %ls -> Hostname %ls, %ls", FormatHostPortToStr(PXCH_IPC_IP_ARR(pMsgIp), sizeof(PXCH_IP_ADDRESS)), Entry->Hostname.szValue, Entry->bWillProxy ? L"Proxied" : L"Direct");
 		dwErrorCode = HostnameAndIpsToMessage(chMessageBuf, pcbMessageSize, pMsgIp->dwPid, &Entry->Hostname, FALSE /*ignored*/, Entry->dwResovledIpNum, Entry->ResolvedIps, Entry->bWillProxy);
 		if (dwErrorCode != NO_ERROR) goto error;
 
@@ -363,7 +363,7 @@ DWORD GetMsgHostnameAndResolvedIpsFromMsgIp(IPC_MSGBUF chMessageBuf, PXCH_UINT32
 
 	// return ERROR_NOT_FOUND;
 
-	LOGI(L"NotRegisteredIp %ls, return it As-is", FormatHostPortToStr(IPC_IP_ARR(pMsgIp), sizeof(PXCH_IP_ADDRESS)));
+	LOGI(L"NotRegisteredIp %ls, return it As-is", FormatHostPortToStr(PXCH_IPC_IP_ARR(pMsgIp), sizeof(PXCH_IP_ADDRESS)));
 	dwErrorCode = HostnameAndIpsToMessage(chMessageBuf, pcbMessageSize, pMsgIp->dwPid, &EmptyHostname, FALSE /*ignored*/, 1, &AsKey.Ip, FALSE);
 	if (dwErrorCode != NO_ERROR) goto error;
 
@@ -373,12 +373,12 @@ error:
 	return dwErrorCode;
 }
 
-DWORD HandleMessage(int i, IPC_INSTANCE* pipc)
+DWORD HandleMessage(int i, PXCH_IPC_INSTANCE* pipc)
 {
-	PIPC_MSGBUF pMsg = pipc->chReadBuf;
+	PPXCH_IPC_MSGBUF pMsg = pipc->chReadBuf;
 
 	if (MsgIsType(WSTR, pMsg)) {
-		WCHAR sz[IPC_BUFSIZE / sizeof(WCHAR)];
+		WCHAR sz[PXCH_IPC_BUFSIZE / sizeof(WCHAR)];
 		MessageToWstr(sz, pMsg, pipc->cbRead);
 		StdWprintf(STD_ERROR_HANDLE, L"%ls", sz);
 		StdFlush(STD_ERROR_HANDLE);
@@ -414,14 +414,15 @@ DWORD HandleMessage(int i, IPC_INSTANCE* pipc)
 		
 		LOGV(L"Message is HOSTNAMEANDIPS");
 		MessageToHostnameAndIps(&dwPid, &Entry.Hostname, &bWillMapResolvedIpToHost, &Entry.dwResovledIpNum, Entry.ResolvedIps, &Entry.bWillProxy, pMsg, pipc->cbRead);
-		if (RegisterHostnameAndGetFakeIp(&FakeIps[0], &FakeIps[1], &Entry, dwPid, bWillMapResolvedIpToHost) != NO_ERROR) LOGE(L"RegisterHostnameAndGetFakeIp() failed");
-		HostnameAndIpsToMessage(pipc->chWriteBuf, &pipc->cbToWrite, 0 /*ignored*/, &Entry.Hostname /*ignored*/, FALSE /*ignored*/, 2, FakeIps, FALSE /*ignored*/);
-		goto ret;
-	}
 
-	if (MsgIsType(IPADDRESS, pMsg)) {
-		LOGV(L"Message is IPADDRESS");
-		if (GetMsgHostnameAndResolvedIpsFromMsgIp(pipc->chWriteBuf, &pipc->cbToWrite, (const IPC_MSGHDR_HOSTNAMEANDIPS*)pMsg) != NO_ERROR) LOGE(L"GetHostnameFromIp() failed");
+		if (HostIsType(HOSTNAME, Entry.Hostname) && Entry.Hostname.szValue[0]) {
+			LOGV(L"Client is registering hostname, retrieving fake ips");
+			if (RegisterHostnameAndGetFakeIp(&FakeIps[0], &FakeIps[1], &Entry, dwPid, bWillMapResolvedIpToHost) != NO_ERROR) LOGE(L"RegisterHostnameAndGetFakeIp() failed");
+			HostnameAndIpsToMessage(pipc->chWriteBuf, &pipc->cbToWrite, 0 /*ignored*/, &Entry.Hostname /*ignored*/, FALSE /*ignored*/, 2, FakeIps, FALSE /*ignored*/);
+		} else {
+			LOGV(L"Client is querying with fake ip");
+			if (GetMsgHostnameAndResolvedIpsFromMsgIp(pipc->chWriteBuf, &pipc->cbToWrite, (const PXCH_IPC_MSGHDR_HOSTNAMEANDIPS*)pMsg) != NO_ERROR) LOGE(L"GetHostnameFromIp() failed");
+		}
 		goto ret;
 	}
 
@@ -444,8 +445,6 @@ DWORD InitProcessBookkeeping(void)
 {
 	g_tabPerProcess = NULL;
 	g_tabFakeIpHostname = NULL;
-
-	if ((g_hDataMutex = CreateMutexW(NULL, FALSE, NULL)) == NULL) return GetLastError();
 
 	return 0;
 }

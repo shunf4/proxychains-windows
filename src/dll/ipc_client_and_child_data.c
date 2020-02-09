@@ -4,7 +4,7 @@
 #include "hookdll_interior_win32.h"
 
 
-PXCH_UINT32 IpcCommunicateWithServer(const IPC_MSGBUF sendMessage, PXCH_UINT32 cbSendMessageSize, IPC_MSGBUF responseMessage, PXCH_UINT32* pcbResponseMessageSize)
+PXCH_UINT32 IpcCommunicateWithServer(const PXCH_IPC_MSGBUF sendMessage, PXCH_UINT32 cbSendMessageSize, PXCH_IPC_MSGBUF responseMessage, PXCH_UINT32* pcbResponseMessageSize)
 {
 	HANDLE hPipe;
 	DWORD cbToWrite;
@@ -47,7 +47,7 @@ PXCH_UINT32 IpcCommunicateWithServer(const IPC_MSGBUF sendMessage, PXCH_UINT32 c
 	ODBGSTRLOG(L"after WriteFile");
 
 	// Read response
-	bReturn = ReadFile(hPipe, responseMessage, IPC_BUFSIZE, pcbResponseMessageSize, NULL);
+	bReturn = ReadFile(hPipe, responseMessage, PXCH_IPC_BUFSIZE, pcbResponseMessageSize, NULL);
 	if (!bReturn) goto err_read;
 
 	ODBGSTRLOG(L"after ReadFile");
@@ -89,8 +89,8 @@ close_ret:
 DWORD IpcClientRegisterChildProcess()
 {
 	/*REPORTED_CHILD_DATA ChildData;
-	IPC_MSGBUF chMessageBuf;
-	IPC_MSGBUF chRespMessageBuf;
+	PXCH_IPC_MSGBUF chMessageBuf;
+	PXCH_IPC_MSGBUF chRespMessageBuf;
 	DWORD cbMessageSize;
 	DWORD cbRespMessageSize;
 	DWORD dwErrorCode;
@@ -111,8 +111,8 @@ DWORD IpcClientRegisterChildProcess()
 	REPORTED_CHILD_DATA* pChildData;
 	DWORD dwCurrentProcessId;
 
-	IPC_MSGBUF chMessageBuf;
-	IPC_MSGBUF chRespMessageBuf;
+	PXCH_IPC_MSGBUF chMessageBuf;
+	PXCH_IPC_MSGBUF chRespMessageBuf;
 	DWORD cbMessageSize;
 	DWORD cbRespMessageSize;
 
@@ -130,6 +130,8 @@ DWORD IpcClientRegisterChildProcess()
 	pChildData->pMappedBuf = pChildData;
 	pChildData->pSavedPxchConfig = g_pPxchConfig;
 	pChildData->pSavedRemoteData = g_pRemoteData;
+	pChildData->dwSavedTlsIndex = g_dwTlsIndex;
+	pChildData->pSavedHeapAllocatedPointers = g_arrHeapAllocatedPointers;
 
 	if ((dwErrorCode = ChildDataToMessage(chMessageBuf, &cbMessageSize, pChildData)) != NO_ERROR) return dwErrorCode;
 	if ((dwErrorCode = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) return dwErrorCode;
@@ -160,8 +162,8 @@ PXCH_UINT32 RestoreChildData()
 	// Restore child process essential data overwritten by Cygwin fork().
 
 	/*REPORTED_CHILD_DATA ChildData;
-	IPC_MSGBUF chMessageBuf;
-	IPC_MSGBUF chRespMessageBuf;
+	PXCH_IPC_MSGBUF chMessageBuf;
+	PXCH_IPC_MSGBUF chRespMessageBuf;
 	DWORD cbMessageSize;
 	DWORD cbRespMessageSize;
 	
@@ -199,6 +201,8 @@ PXCH_UINT32 RestoreChildData()
 	if (pChildData->dwPid != dwRealCurrentProcessId || pChildData->pSavedPxchConfig == NULL || pChildData->pSavedRemoteData == NULL) goto err_data_invalid;
 	g_pPxchConfig = pChildData->pSavedPxchConfig;
 	g_pRemoteData = pChildData->pSavedRemoteData;
+	g_dwTlsIndex = pChildData->dwSavedTlsIndex;
+	g_arrHeapAllocatedPointers = pChildData->pSavedHeapAllocatedPointers;
 	hMapFileWhenCreated = pChildData->hMapFile;
 	g_dwCurrentProcessIdForVerify = pChildData->dwPid;
 	pMappedBufWhenCreated = pChildData->pMappedBuf;

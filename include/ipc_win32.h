@@ -10,21 +10,23 @@ typedef struct _REPORTED_CHILD_DATA {
 	LPCVOID pMappedBuf;
 	PROXYCHAINS_CONFIG* pSavedPxchConfig;
 	PXCH_INJECT_REMOTE_DATA* pSavedRemoteData;
+	PXCH_UINT32 dwSavedTlsIndex;
+	void* /* UT_array* */ pSavedHeapAllocatedPointers;
 } REPORTED_CHILD_DATA;
 
 typedef struct _IPC_MSGHDR_CHILDDATA {
 	UINT32 dwTag;
 	REPORTED_CHILD_DATA ChildData;
-} IPC_MSGHDR_CHILDDATA;
+} PXCH_IPC_MSGHDR_CHILDDATA;
 
 typedef struct _IPC_MSGHDR_QUERYSTORAGE {
 	UINT32 dwTag;
 	DWORD dwChildPid;
-} IPC_MSGHDR_QUERYSTORAGE;
+} PXCH_IPC_MSGHDR_QUERYSTORAGE;
 #pragma pack(pop)
 
-DWORD ChildDataToMessage(IPC_MSGBUF chMessageBuf, DWORD* pcbMessageSize, const REPORTED_CHILD_DATA* pChildData);
-DWORD MessageToChildData(REPORTED_CHILD_DATA* pChildData, CIPC_MSGBUF chMessageBuf, DWORD cbMessageSize);
+DWORD ChildDataToMessage(PXCH_IPC_MSGBUF chMessageBuf, DWORD* pcbMessageSize, const REPORTED_CHILD_DATA* pChildData);
+DWORD MessageToChildData(REPORTED_CHILD_DATA* pChildData, CPXCH_IPC_MSGBUF chMessageBuf, DWORD cbMessageSize);
 
-DWORD QueryStorageToMessage(IPC_MSGBUF chMessageBuf, DWORD* pcbMessageSize, DWORD dwChildPid);
-DWORD MessageToQueryStorage(DWORD* pdwChildPid, CIPC_MSGBUF chMessageBuf, DWORD cbMessageSize);
+DWORD QueryStorageToMessage(PXCH_IPC_MSGBUF chMessageBuf, DWORD* pcbMessageSize, DWORD dwChildPid);
+DWORD MessageToQueryStorage(DWORD* pdwChildPid, CPXCH_IPC_MSGBUF chMessageBuf, DWORD cbMessageSize);

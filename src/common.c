@@ -83,3 +83,13 @@ after_fmt:
 	}
 	return szErrorMessage;
 }
+
+void DumpMemory(const void* p, int iLength)
+{
+	int i;
+	if (iLength == 0) iLength = 64;
+	for (i = 0; i < iLength; i++) {
+		StdWprintf(STD_OUTPUT_HANDLE, L"%02x ", (unsigned int)*((const char*)p + i));
+	}
+	StdWprintf(STD_OUTPUT_HANDLE, L"\n");
+}

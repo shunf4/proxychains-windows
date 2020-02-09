@@ -22,8 +22,8 @@
 extern SYSTEMTIME log_time;
 extern WCHAR log_szLogLine[PXCHLOG_IPC_BUFSIZE];
 extern SYSTEMTIME log_time;
-extern IPC_MSGBUF log_msg;
-extern IPC_MSGBUF log_respMsg;
+extern PXCH_IPC_MSGBUF log_msg;
+extern PXCH_IPC_MSGBUF log_respMsg;
 extern DWORD log_cbMsgSize;
 extern DWORD log_cbRespMsgSize;
 extern DWORD log_pid;

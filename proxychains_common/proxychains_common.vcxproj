@@ -171,6 +171,7 @@
     <ClInclude Include="..\include\defines_win32.h" />
     <ClInclude Include="..\include\includes_win32.h" />
     <ClInclude Include="..\include\include_generic.h" />
+    <ClInclude Include="..\include\ut_helpers.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

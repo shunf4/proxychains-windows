@@ -26,8 +26,8 @@ typedef unsigned int PXCH_UINT_PTR;
 #endif
 
 
-
-
+// printf narrow string specifier
+// Only used in non-ipc log. When using ipc log, use "%ls" for wide string, and "%S" for narrow string
 #ifdef __CYGWIN__
 #define WPRS L"%s"
 #else
@@ -112,11 +112,11 @@ typedef unsigned int PXCH_UINT_PTR;
 
 #define HostInit(x) *((PXCH_UINT16*)(&x)) = 0
 
-#define HostIsType(type, x) ((x).wTag == PXCH_HOST_TYPE_##type)
-#define HostIsIp(x) ((x).wTag == PXCH_HOST_TYPE_IPV4 || (x).wTag == PXCH_HOST_TYPE_IPV6)
+#define HostIsType(type, x) (((const PXCH_HOST*)&(x))->wTag == PXCH_HOST_TYPE_##type)
+#define HostIsIp(x) (((const PXCH_HOST*)&(x))->wTag == PXCH_HOST_TYPE_IPV4 || ((const PXCH_HOST*)&(x))->wTag == PXCH_HOST_TYPE_IPV6)
 #define HostIsInvalid(x) HostIsType(INVALID, x)
 
-#define SetHostType(type, x) (x).wTag = PXCH_HOST_TYPE_##type
+#define SetHostType(type, x) ((PXCH_HOST*)&(x))->wTag = PXCH_HOST_TYPE_##type
 
 
 #ifdef PXCHDLL_EXPORTS
@@ -136,10 +136,12 @@ typedef unsigned int PXCH_UINT_PTR;
 
 
 // Consistent with sockaddr
+#pragma pack(push, 1)
 typedef struct _PXCH_SOCKADDR {
-	PXCH_UINT16 sa_family;
-	char sa_data[14];
+	PXCH_UINT16 wTag;
+	char Data[128 - 2];
 } PXCH_SOCKADDR;
+#pragma pack(pop)
 
 typedef union {
 	PXCH_SOCKADDR Sockaddr;
@@ -239,7 +241,7 @@ typedef struct _PXCH_HOSTS_ENTRY {
 
 #define PXCHCONFIG_EXTRA_SIZE(pPxchConfig) ((sizeof(PXCH_RULE) * (pPxchConfig)->dwRuleNum) + (sizeof(PXCH_PROXY_DATA) * (pPxchConfig)->dwProxyNum))
 #define PXCHCONFIG_EXTRA_SIZE_G PXCHCONFIG_EXTRA_SIZE(g_pPxchConfig)
-#define PXCHCONFIG_EXTRA_SIZE_BY_N(proxyNum, ruleNum) ((sizeof(PXCH_RULE) * ruleNum) + (sizeof(PXCH_PROXY_DATA) * proxyNum))
+#define PXCHCONFIG_EXTRA_SIZE_BY_N(proxyNum, ruleNum, hostsEntryNum) ((sizeof(PXCH_RULE) * ruleNum) + (sizeof(PXCH_PROXY_DATA) * proxyNum) + (sizeof(PXCH_HOSTS_ENTRY) * hostsEntryNum))
 
 #define PXCHCONFIG_PROXY_ARR(pPxchConfig) ((PXCH_PROXY_DATA*)((char*)(pPxchConfig) + pPxchConfig->cbProxyListOffset))
 #define PXCHCONFIG_RULE_ARR(pPxchConfig) ((PXCH_RULE*)((char*)(pPxchConfig) + pPxchConfig->cbRuleListOffset))
@@ -275,11 +277,13 @@ typedef struct _PROXYCHAINS_CONFIG {
 	PXCH_UINT32 dwFakeIpv6PrefixLength;
 
 	PXCH_UINT32 dwWillDeleteFakeIpAfterChildProcessExits;
-	PXCH_UINT32 dwWillUseFakeIpWhenHostnameNotMatched;
+	PXCH_UINT32 dwWillUseFakeIpWhenHostnameNotMatched;	// usually exclusive with dwWillMapResolvedIpToHost
 	PXCH_UINT32 dwWillMapResolvedIpToHost;
 	PXCH_UINT32 dwWillSearchForHostByResolvedIp;
-	PXCH_UINT32 dwWillCheckRuleOnIpIfNoHostnameRuleMatched;
 	PXCH_UINT32 dwWillForceResolveByHostsFile;
+
+	PXCH_UINT32 dwWillFirstTunnelUseIpv4;
+	PXCH_UINT32 dwWillFirstTunnelUseIpv6;
 } PROXYCHAINS_CONFIG;
 
 static const wchar_t g_szChildDataSavingFileMappingPrefix[] = L"Local\\proxychains_child_data_";

@@ -32,10 +32,10 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig)
 
 	WSAStartup(MAKEWORD(2, 2), &wsaData);
 
-	iRuleNum = 3;
+	iRuleNum = 5;
 	iProxyNum = 1;
 	iHostsEntryNum = 1;
-	pPxchConfig = *ppPxchConfig = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(PROXYCHAINS_CONFIG) + PXCHCONFIG_EXTRA_SIZE_BY_N(iProxyNum, iRuleNum));
+	pPxchConfig = *ppPxchConfig = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(PROXYCHAINS_CONFIG) + PXCHCONFIG_EXTRA_SIZE_BY_N(iProxyNum, iRuleNum, iHostsEntryNum));
 
 	pPxchConfig->dwMasterProcessId = GetCurrentProcessId();
 
@@ -58,17 +58,24 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig)
 	if (!PathFileExistsW(pPxchConfig->szHookDllPath)) goto err_dll_not_exist;
 	if (!PathFileExistsW(pPxchConfig->szMinHookDllPath)) StringCchCopyW(pPxchConfig->szMinHookDllPath, MAX_DLL_PATH_BUFSIZE, g_szMinHookDllFileName);
 
+	pPxchConfig->dwWillFirstTunnelUseIpv4 = TRUE;
+	pPxchConfig->dwWillFirstTunnelUseIpv6 = FALSE;
+
+	iDummy = sizeof(PXCH_IP_ADDRESS);
 	pPxchConfig->dwFakeIpv4PrefixLength = 8;
-	WSAStringToAddressW(L"224.0.0.0", AF_INET, NULL, (LPSOCKADDR)&pPxchConfig->FakeIpv4Range, &iDummy);
+	LOGI(L"WSAStringToAddressW() Ipv4: %d", WSAStringToAddressW(L"224.0.0.0", AF_INET, NULL, (LPSOCKADDR)&pPxchConfig->FakeIpv4Range, &iDummy));
+
+	iDummy = sizeof(PXCH_IP_ADDRESS);
+	pPxchConfig->dwFakeIpv6PrefixLength = 16;
+	LOGI(L"WSAStringToAddressW() Ipv6: %d", WSAStringToAddressW(L"250d::", AF_INET6, NULL, (LPSOCKADDR)&pPxchConfig->FakeIpv6Range, &iDummy));
 
 	iRulePolicySet = 1;
 
 	if (iRulePolicySet == 1) {
 		pPxchConfig->dwWillDeleteFakeIpAfterChildProcessExits = TRUE;
-		pPxchConfig->dwWillUseFakeIpWhenHostnameNotMatched = FALSE;
+		pPxchConfig->dwWillUseFakeIpWhenHostnameNotMatched = TRUE;
 		pPxchConfig->dwWillMapResolvedIpToHost = TRUE;
 		pPxchConfig->dwWillSearchForHostByResolvedIp = TRUE;
-		pPxchConfig->dwWillCheckRuleOnIpIfNoHostnameRuleMatched = TRUE;
 		pPxchConfig->dwWillForceResolveByHostsFile = TRUE;
 	}
 
@@ -76,7 +83,7 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig)
 	pPxchConfig->cbProxyListOffset = sizeof(PROXYCHAINS_CONFIG);
 	pPxchConfig->dwRuleNum = iRuleNum;
 	pPxchConfig->cbRuleListOffset = sizeof(PROXYCHAINS_CONFIG) + (sizeof(PXCH_PROXY_DATA) * pPxchConfig->dwProxyNum);
-	pPxchConfig->dwHostsEntryNum = iRuleNum;
+	pPxchConfig->dwHostsEntryNum = iHostsEntryNum;
 	pPxchConfig->cbHostsEntryListOffset = sizeof(PROXYCHAINS_CONFIG) + (sizeof(PXCH_PROXY_DATA) * pPxchConfig->dwProxyNum) + (sizeof(PXCH_RULE) * pPxchConfig->dwRuleNum);
 	
 
@@ -86,7 +93,11 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig)
 		SetProxyType(SOCKS5, *proxy);
 		SetHostType(IPV4, proxy->Socks5.HostPort);
 		proxy->Socks5.iAddrLen = sizeof(proxy->Socks5.HostPort);
-		WSAStringToAddressW(L"127.0.0.1:1079", AF_INET, NULL, (LPSOCKADDR)&proxy->Socks5.HostPort, &proxy->Socks5.iAddrLen);
+		// WSAStringToAddressW(L"127.0.0.1:1079", AF_INET, NULL, (LPSOCKADDR)&proxy->Socks5.HostPort, &proxy->Socks5.iAddrLen);
+		proxy->Socks5.HostPort.wTag = PXCH_HOST_TYPE_HOSTNAME;
+		proxy->Socks5.HostPort.CommonHeader.wPort = ntohs(1079);
+		StringCchCopyW(proxy->Socks5.HostPort.HostnamePort.szValue, _countof(proxy->Socks5.HostPort.HostnamePort.szValue), L"localhost");
+
 		proxy->Socks5.szUsername[0] = '\0';
 		proxy->Socks5.szPassword[0] = '\0';
 		proxy->Socks5.Ws2_32_FpConnect = &Ws2_32_Socks5Connect;
@@ -117,6 +128,30 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig)
 		WSAStringToAddressW(L"10.0.0.0", AF_INET, NULL, (LPSOCKADDR)&rule->HostPort.IpPort, &iAddrLen);
 		rule->dwCidrPrefixLength = 8;
 		rule->iWillProxy = FALSE;
+	}
+
+	{
+		PXCH_RULE* rule = &PXCHCONFIG_RULE_ARR(pPxchConfig)[iRuleNum - 3];
+		RuleInit(*rule);
+		SetRuleType(DOMAIN_KEYWORD, *rule);
+
+		ZeroMemory(&rule->HostPort, sizeof(rule->HostPort));
+		SetHostType(HOSTNAME, rule->HostPort);
+		StringCchCopyW(rule->HostPort.HostnamePort.szValue, _countof(rule->HostPort.HostnamePort.szValue), L"");
+		rule->iWillProxy = TRUE;
+	}
+
+	{
+		PXCH_RULE* rule = &PXCHCONFIG_RULE_ARR(pPxchConfig)[iRuleNum - 2];
+		int iAddrLen = sizeof(PXCH_IP_ADDRESS);
+		RuleInit(*rule);
+		SetRuleType(IP_CIDR, *rule);
+
+		ZeroMemory(&rule->HostPort, sizeof(rule->HostPort));
+		SetHostType(IPV6, rule->HostPort);
+		WSAStringToAddressW(L"::", AF_INET6, NULL, (LPSOCKADDR)&rule->HostPort.IpPort, &iAddrLen);
+		rule->dwCidrPrefixLength = 0;
+		rule->iWillProxy = TRUE;
 	}
 
 	{
@@ -236,8 +271,9 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 		}
 		else {
 			WCHAR szExecPath[MAX_COMMAND_EXEC_PATH_BUFSIZE];
-			if (SearchPath(NULL, pWchar, NULL, _countof(szExecPath), szExecPath, NULL) == 0) {
-				if (SearchPath(NULL, pWchar, L".exe", _countof(szExecPath), szExecPath, NULL) == 0) {
+			LPWSTR lpDummyFilePart;
+			if (SearchPathW(NULL, pWchar, L"", _countof(szExecPath), szExecPath, &lpDummyFilePart) == 0) {
+				if (SearchPathW(NULL, pWchar, L".exe", _countof(szExecPath), szExecPath, &lpDummyFilePart) == 0) {
 					goto err_get_exec_path;
 				}
 			}
