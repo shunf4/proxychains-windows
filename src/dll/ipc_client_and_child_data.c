@@ -209,6 +209,7 @@ PXCH_UINT32 RestoreChildData()
 
 	IPCLOGV(L"g_pPxchConfig restored to %p", g_pPxchConfig);
 	IPCLOGV(L"g_pRemoteData restored to %p", g_pRemoteData);
+	IPCLOGV(L"g_arrHeapAllocatedPointers restored to %p", g_arrHeapAllocatedPointers);
 
 	UnmapViewOfFile(pChildData);
 	UnmapViewOfFile(pMappedBufWhenCreated);

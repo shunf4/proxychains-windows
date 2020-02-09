@@ -436,6 +436,7 @@ PXCHDLL_API int Ws2_32_DirectConnect(void* pTempData, PXCH_UINT_PTR s, const PXC
 		NewHostPort.CommonHeader.wPort = pHostPort->CommonHeader.wPort;
 		pHostPort = &NewHostPort;
 		iAddrLen = (int)pTempAddrInfo->ai_addrlen;
+		FreeAddrInfoW(pAddrInfo);
 	}
 
 	FUNCIPCLOGI(L"Ws2_32_DirectConnect(%ls)", FormatHostPortToStr(pHostPort, iAddrLen));
@@ -911,8 +912,17 @@ PROXY_FUNC2(Ws2_32, gethostbyaddr)
 
 PROXY_FUNC2(Ws2_32, getaddrinfo)
 {
+	WCHAR pNodeNameW[MAX_HOSTNAME_BUFSIZE];
+	WCHAR pServiceNameW[MAX_HOSTNAME_BUFSIZE];
 	const ADDRINFOA* pHintsCast = pHints;
-	PADDRINFOA* ppResultCast = ppResult;
+	const ADDRINFOW* pHintsCastW = pHints;
+	PADDRINFOW pResultCastW;
+	PXCH_ADDRINFOA* pTempPxchAddrInfoA;
+	PADDRINFOA pTempAddrInfoA;
+	PADDRINFOW pTempAddrInfoW;
+	PXCH_ADDRINFOA* arrPxchAddrInfoA = NULL;
+	PADDRINFOA* ppResultCastA = ppResult;
+	PADDRINFOA* ppTempAddrInfoA;
 	int iResult;
 	DWORD dwLastError;
 	int iWSALastError;
@@ -921,18 +931,63 @@ PROXY_FUNC2(Ws2_32, getaddrinfo)
 	WCHAR* pszAddrsBuf;
 	PADDRINFOA pResultCast;
 
+	DWORD dwAddrInfoLen;
+	DWORD dw;
 
 	FUNCIPCLOGI(L"Ws2_32.dll getaddrinfo(%S, %S, AF%#010x, FL%#010x, ST%#010x, PT%#010x) called", pNodeName, pServiceName, pHintsCast ? pHintsCast->ai_family : -1, pHintsCast ? pHintsCast->ai_flags : -1, pHintsCast ? pHintsCast->ai_socktype : -1, pHintsCast ? pHintsCast->ai_protocol : -1);
 
-	iResult = orig_fpWs2_32_getaddrinfo(pNodeName, pServiceName, pHints, ppResult);
+	if (pNodeName) StringCchPrintfW(pNodeNameW, _countof(pNodeNameW), L"%S", pNodeName);
+	if (pServiceName) StringCchPrintfW(pServiceNameW, _countof(pServiceNameW), L"%S", pServiceName);
+
+	//iResult = ProxyWs2_32_GetAddrInfoW(pNodeNameW, pServiceNameW, pHintsCastW, &pResultCastW);
+	iResult = ProxyWs2_32_GetAddrInfoW(pNodeName ? pNodeNameW : NULL, pServiceName ? pServiceNameW : NULL, pHintsCastW, &pResultCastW);
 	iWSALastError = WSAGetLastError();
 	dwLastError = GetLastError();
+
+	// TODO: This should be in critical section
+
+	HeapLock(GetProcessHeap());
+	
+	for (dwAddrInfoLen = 0, pTempAddrInfoW = pResultCastW; pTempAddrInfoW; pTempAddrInfoW = pTempAddrInfoW->ai_next, dwAddrInfoLen++);
+	if (dwAddrInfoLen) {
+		arrPxchAddrInfoA = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(PXCH_ADDRINFOA) * dwAddrInfoLen);
+		utarray_push_back(g_arrHeapAllocatedPointers, &arrPxchAddrInfoA);
+	}
+
+	HeapUnlock(GetProcessHeap());
+
+	// TODO: This should be in critical section - end
+
+	ppTempAddrInfoA = ppResultCastA;
+	*ppResultCastA = NULL;
+
+	for (dw = 0, pTempAddrInfoW = pResultCastW; dw < dwAddrInfoLen; pTempAddrInfoW = pTempAddrInfoW->ai_next, dw++) {
+		*ppTempAddrInfoA = (ADDRINFOA*)&arrPxchAddrInfoA[dw];
+		pTempAddrInfoA = *ppTempAddrInfoA;
+		pTempPxchAddrInfoA = (PXCH_ADDRINFOA*)*ppTempAddrInfoA;
+
+		CopyMemory(&pTempPxchAddrInfoA->Ip, pTempAddrInfoW->ai_addr, pTempAddrInfoW->ai_addrlen);
+		StringCchPrintfA(pTempPxchAddrInfoA->HostnameBuf, _countof(pTempPxchAddrInfoA->HostnameBuf), "%ls", pTempAddrInfoW->ai_canonname ? pTempAddrInfoW->ai_canonname : L"");
+
+		pTempAddrInfoA->ai_addr = (struct sockaddr*)&pTempPxchAddrInfoA->Ip;
+		pTempAddrInfoA->ai_addrlen = pTempAddrInfoW->ai_addrlen;
+		pTempAddrInfoA->ai_canonname = (pTempAddrInfoW->ai_canonname ? pTempPxchAddrInfoA->HostnameBuf : NULL);
+		pTempAddrInfoA->ai_family = pTempAddrInfoW->ai_family;
+		pTempAddrInfoA->ai_flags = pTempAddrInfoW->ai_flags;
+		pTempAddrInfoA->ai_protocol = pTempAddrInfoW->ai_protocol;
+		pTempAddrInfoA->ai_socktype = pTempAddrInfoW->ai_socktype;
+		pTempAddrInfoA->ai_next = NULL;
+
+		ppTempAddrInfoA = &pTempAddrInfoA->ai_next;
+	}
+
+	ProxyWs2_32_freeaddrinfo(pResultCastW);
 
 	szAddrsBuf[0] = L'\0';
 	pszAddrsBuf = szAddrsBuf;
 
-	for (pResultCast = (*ppResultCast); pResultCast; pResultCast = pResultCast->ai_next) {
-		StringCchPrintfExW(pszAddrsBuf, _countof(szAddrsBuf) - (pszAddrsBuf - szAddrsBuf), &pszAddrsBuf, NULL, 0, L"%ls%ls", pResultCast == (*ppResultCast) ? L"" : L", ", FormatHostPortToStr(pResultCast->ai_addr, (int)pResultCast->ai_addrlen));
+	for (pResultCast = (*ppResultCastA); pResultCast; pResultCast = pResultCast->ai_next) {
+		StringCchPrintfExW(pszAddrsBuf, _countof(szAddrsBuf) - (pszAddrsBuf - szAddrsBuf), &pszAddrsBuf, NULL, 0, L"%ls%ls", pResultCast == (*ppResultCastA) ? L"" : L", ", FormatHostPortToStr(pResultCast->ai_addr, (int)pResultCast->ai_addrlen));
 	}
 
 	FUNCIPCLOGI(L"Ws2_32.dll getaddrinfo(" WPRS L", " WPRS L", ...) result: %ls", pNodeName, pServiceName, szAddrsBuf);
@@ -1104,18 +1159,27 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoExW)
 
 PROXY_FUNC2(Ws2_32, freeaddrinfo)
 {
+	FUNCIPCLOGI(L"Ws2_32.dll freeaddrinfo() called");
 	PXCH_DO_IN_CRITICAL_SECTION_RETURN_VOID{
 		void* pHeapAllocatedPointerElement;
-		FUNCIPCLOGI(L"Ws2_32.dll freeaddrinfo() called");
 
 		for (pHeapAllocatedPointerElement = utarray_front(g_arrHeapAllocatedPointers); pHeapAllocatedPointerElement != NULL; pHeapAllocatedPointerElement = utarray_next(g_arrHeapAllocatedPointers, pHeapAllocatedPointerElement)) {
+			// FUNCIPCLOGI(L"%p: Checking %p ~%p", pAddrInfo, *(void**)pHeapAllocatedPointerElement, (void*)(~(PXCH_UINT_PTR)(*(void**)pHeapAllocatedPointerElement)));
+			if (~(PXCH_UINT_PTR)(*(void**)pHeapAllocatedPointerElement) == (PXCH_UINT_PTR)pAddrInfo) {
+				// FUNCIPCLOGI(L"This pointer has been freed before");
+				goto lock_after_critical_section;
+			}
+
 			if (*(void**)pHeapAllocatedPointerElement == pAddrInfo) {
+				// FUNCIPCLOGI(L"%p: This pointer is now freed", pAddrInfo);
 				HeapFree(GetProcessHeap(), 0, pAddrInfo);
+				*(void**)pHeapAllocatedPointerElement = (void*)(~(PXCH_UINT_PTR)(*(void**)pHeapAllocatedPointerElement));
 				goto lock_after_critical_section;
 			}
 		}
 
 		HeapUnlock(GetProcessHeap());	// go out of critical section
+		// FUNCIPCLOGI(L"%p: This pointer is managed by winsock", pAddrInfo);
 		orig_fpWs2_32_freeaddrinfo(pAddrInfo);
 		return;
 	}
@@ -1125,13 +1189,21 @@ PROXY_FUNC2(Ws2_32, freeaddrinfo)
 
 PROXY_FUNC2(Ws2_32, FreeAddrInfoW)
 {
+	FUNCIPCLOGI(L"Ws2_32.dll FreeAddrInfoW() called");
 	PXCH_DO_IN_CRITICAL_SECTION_RETURN_VOID{
 		void* pHeapAllocatedPointerElement;
-		FUNCIPCLOGI(L"Ws2_32.dll FreeAddrInfoW() called");
 
 		for (pHeapAllocatedPointerElement = utarray_front(g_arrHeapAllocatedPointers); pHeapAllocatedPointerElement != NULL; pHeapAllocatedPointerElement = utarray_next(g_arrHeapAllocatedPointers, pHeapAllocatedPointerElement)) {
+			// FUNCIPCLOGI(L"%p: Checking %p ~%p", pAddrInfo, *(void**)pHeapAllocatedPointerElement, (void*)(~(PXCH_UINT_PTR)(*(void**)pHeapAllocatedPointerElement)));
+			if (~(PXCH_UINT_PTR)(*(void**)pHeapAllocatedPointerElement) == (PXCH_UINT_PTR)pAddrInfo) {
+				// FUNCIPCLOGI(L"This pointer has been freed before");
+				goto lock_after_critical_section;
+			}
+
 			if (*(void**)pHeapAllocatedPointerElement == pAddrInfo) {
+				// FUNCIPCLOGI(L"%p: This pointer is now freed", pAddrInfo);
 				HeapFree(GetProcessHeap(), 0, pAddrInfo);
+				*(void**)pHeapAllocatedPointerElement = (void*)(~(PXCH_UINT_PTR)(*(void**)pHeapAllocatedPointerElement));
 				goto lock_after_critical_section;
 			}
 		}

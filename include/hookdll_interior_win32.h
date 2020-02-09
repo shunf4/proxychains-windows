@@ -20,6 +20,12 @@ typedef struct _PXCH_ADDRINFOW {
 	PXCH_IP_ADDRESS Ip;
 } PXCH_ADDRINFOW;
 
+typedef struct _PXCH_ADDRINFOA {
+	ADDRINFOA AddrInfoA;
+	char HostnameBuf[MAX_HOSTNAME_BUFSIZE];
+	PXCH_IP_ADDRESS Ip;
+} PXCH_ADDRINFOA;
+
 void HostentToHostnameAndIps(PXCH_HOSTNAME* pHostname, PXCH_UINT32* pdwIpNum, PXCH_IP_ADDRESS* Ips, const struct hostent* pHostent);
 void HostnameAndIpsToHostent(struct hostent* pHostent, void* pTlsBase, const PXCH_HOSTNAME* pHostname, PXCH_UINT32 dwIpNum, const PXCH_IP_ADDRESS* Ips);
 void AddrInfoToIps(PXCH_UINT32* pdwIpNum, PXCH_IP_ADDRESS* Ips, const void* pAddrInfo, BOOL bIsW);

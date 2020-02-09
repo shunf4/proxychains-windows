@@ -299,6 +299,8 @@ void handle_sigint(int sig)
 			}
 			HeapFree(GetProcessHeap(), 0, current);
 		}
+		
+		HeapUnlock(GetProcessHeap());	// go out of critical section
 		exit(0);
 	}
 }
