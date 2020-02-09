@@ -742,14 +742,41 @@ PROXY_FUNC2(Mswsock, ConnectEx)
 	PXCH_CHAIN_NODE* TempChainNode1 = NULL;
 	PXCH_CHAIN_NODE* TempChainNode2 = NULL;
 	PXCH_MSWSOCK_TEMP_DATA TempData;
+	PXCH_HOST_PORT ResolvedHostPortFromFakeIp;
 
 	RestoreChildData();
 
-	FUNCIPCLOGI(L"mswsock.dll (FP)ConnectEx(%d, %ls, %d) called", s, FormatHostPortToStr(name, namelen), namelen);
+	FUNCIPCLOGI(L"Mswsock.dll (FP)ConnectEx(%d, %ls, %d) called", s, FormatHostPortToStr(name, namelen), namelen);
 
 	TempData.iConnectAddrFamily = ((struct sockaddr*)name)->sa_family;
 
-	bWillProxy = WillProxyByRule(NULL, NULL, NULL, NULL, pHostPort, FALSE);
+	if ((HostIsType(IPV4, *pHostPort) && Ipv4MatchCidr((const struct sockaddr_in*)pHostPort, (const struct sockaddr_in*)&g_pPxchConfig->FakeIpv4Range, g_pPxchConfig->dwFakeIpv4PrefixLength))
+		|| (HostIsType(IPV6, *pHostPort) && Ipv6MatchCidr((const struct sockaddr_in6*)pHostPort, (const struct sockaddr_in6*)&g_pPxchConfig->FakeIpv6Range, g_pPxchConfig->dwFakeIpv6PrefixLength))) {
+		// Fake Ip
+		PXCH_IPC_MSGBUF chMessageBuf;
+		PXCH_UINT32 cbMessageSize;
+		PXCH_IPC_MSGBUF chRespMessageBuf;
+		PXCH_UINT32 cbRespMessageSize;
+		PXCH_IP_ADDRESS ReqIp;
+		PXCH_IP_ADDRESS RespIps[MAX_ARRAY_IP_NUM];
+		PXCH_UINT32 dwRespIpNum;
+		PXCH_HOSTNAME EmptyHostname = { 0 };
+
+		ZeroMemory(&ReqIp, sizeof(PXCH_IP_ADDRESS));
+		CopyMemory(&ReqIp, pHostPort, namelen);
+		ReqIp.CommonHeader.wPort = 0;
+
+		if ((dwLastError = HostnameAndIpsToMessage(chMessageBuf, &cbMessageSize, GetCurrentProcessId(), &EmptyHostname, FALSE /*ignored*/, 1, &ReqIp, FALSE /*ignored*/)) != NO_ERROR) goto not_wsa_error_end;
+
+		if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) goto not_wsa_error_end;
+
+		if ((dwLastError = MessageToHostnameAndIps(NULL, (PXCH_HOSTNAME*)&ResolvedHostPortFromFakeIp, NULL, &dwRespIpNum, RespIps, &bWillProxy, chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) goto not_wsa_error_end;
+
+		ResolvedHostPortFromFakeIp.CommonHeader.wPort = pHostPort->CommonHeader.wPort;
+		pHostPort = &ResolvedHostPortFromFakeIp;
+	} else {
+		bWillProxy = WillProxyByRule(NULL, NULL, NULL, NULL, pHostPort, FALSE);
+	}
 
 	if (!bWillProxy) {
 		bReturn = Mswsock_OriginalConnectEx(&TempData, s, name, namelen, lpSendBuffer, dwSendDataLength, lpdwBytesSent, lpOverlapped);
@@ -759,7 +786,7 @@ PROXY_FUNC2(Mswsock, ConnectEx)
 	for (i = 0; i < g_pPxchConfig->dwProxyNum; i++) {
 		if ((iReturn = Ws2_32_GenericTunnelTo(&TempData, s, &Chain, &PXCHCONFIG_PROXY_ARR(g_pPxchConfig)[i])) == SOCKET_ERROR) goto record_error_end;
 	}
-	if ((iReturn = Ws2_32_GenericConnectTo(&TempData, s, &Chain, name, namelen)) == SOCKET_ERROR) goto record_error_end;
+	if ((iReturn = Ws2_32_GenericConnectTo(&TempData, s, &Chain, pHostPort, namelen)) == SOCKET_ERROR) goto record_error_end;
 
 success_set_errcode_zero_end:
 	iWSALastError = NO_ERROR;
@@ -770,6 +797,11 @@ success_set_errcode_zero_end:
 record_error_end:
 	iWSALastError = WSAGetLastError();
 	dwLastError = GetLastError();
+	goto end;
+
+not_wsa_error_end:
+	iWSALastError = WSABASEERR;
+	goto end;
 
 end:
 	FUNCIPCLOGI(L"mswsock.dll (FP)ConnectEx(%d, %ls, %d) proxied: %d", s, FormatHostPortToStr(name, namelen), namelen, bWillProxy);

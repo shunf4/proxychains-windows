@@ -31,7 +31,7 @@
 	if (prehook_ptr) do { \
 		MH_STATUS MhStatusReturn; \
 		MhStatusReturn = MH_CreateHook((LPVOID)prehook_ptr, (LPVOID)&Proxy##hooked_dll_hint##_##hooking_func_name, (LPVOID*)&orig_fp##hooked_dll_hint##_##hooking_func_name); \
-		FUNCIPCLOGI(PXCH_HOOKED_MSG, PREFIX_L(#hooking_func_name "@" #hooked_dll_hint), prehook_ptr, &Proxy##hooked_dll_hint##_##hooking_func_name, MhStatusReturn); \
+		FUNCIPCLOGI(PXCH_HOOKED_MSG, PREFIX_L(#hooking_func_name) L"@" PREFIX_L(#hooked_dll_hint), prehook_ptr, &Proxy##hooked_dll_hint##_##hooking_func_name, MhStatusReturn); \
 	} while(0)
 
 
