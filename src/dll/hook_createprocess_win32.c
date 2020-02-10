@@ -1,7 +1,8 @@
 #include "common_win32.h"
-#include "hookdll_win32.h"
 #include "hookdll_interior_win32.h"
 #include "log_win32.h"
+
+#include "hookdll_win32.h"
 
 PROXY_FUNC(CreateProcessA)
 {
@@ -17,7 +18,7 @@ PROXY_FUNC(CreateProcessA)
 		CopyMemory(lpProcessInformation, &processInformation, sizeof(PROCESS_INFORMATION));
 	}
 
-	LOGI(L"CreateProcessA: " WPRS L", " WPRS, lpApplicationName, lpCommandLine);
+	LOGD(L"CreateProcessA: " WPRS L", " WPRS, lpApplicationName, lpCommandLine);
 
 	if (!bRet) goto err_orig;
 
@@ -52,7 +53,7 @@ PROXY_FUNC(CreateProcessW)
 	// For cygwin: cygwin fork() will duplicate the data in child process, including pointer g_*.
 	RestoreChildData();
 
-	IPCLOGI(L"(In CreateProcessW) g_pRemoteData->dwDebugDepth = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
+	IPCLOGD(L"(In CreateProcessW) g_pRemoteData->dwDebugDepth = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
 
 	IPCLOGD(L"CreateProcessW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s", lpApplicationName, lpCommandLine, (UINT64)lpProcessAttributes, (UINT64)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory);
 

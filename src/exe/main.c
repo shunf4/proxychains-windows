@@ -6,8 +6,8 @@
 #include <strsafe.h>
 
 #include "log_win32.h"
-#include "hookdll_win32.h"
 #include "proc_bookkeeping_win32.h"
+#include "hookdll_win32.h"
 
 #ifdef __CYGWIN__
 #include <unistd.h>
@@ -451,6 +451,7 @@ DWORD WINAPI CygwinSpawn(LPVOID lpParam)
 	int iReturn;
 
 	iReturn = posix_spawnp(&child_pid, *p_argv_command_start, NULL, NULL, p_argv_command_start, envp);
+	(void)iReturn;
 	LOGD(L"Spawn ret: %d; CYGPID: " WPRDW L"", iReturn, child_pid);
 
 	return 0;

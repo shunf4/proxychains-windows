@@ -130,7 +130,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>PXCH_LOG_LEVEL=400;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -147,7 +147,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>PXCH_LOG_LEVEL=400;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -185,6 +185,8 @@
     <ClInclude Include="..\include\log_generic.h" />
     <ClInclude Include="..\include\log_win32.h" />
     <ClInclude Include="..\include\proc_bookkeeping_win32.h" />
+    <ClInclude Include="..\include\tls_generic.h" />
+    <ClInclude Include="..\include\tls_win32.h" />
     <ClInclude Include="..\include\uthash.h" />
     <ClInclude Include="..\include\utlist.h" />
     <ClInclude Include="..\include\ut_helpers.h" />

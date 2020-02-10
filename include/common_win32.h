@@ -4,7 +4,6 @@
 #include "common_generic.h"
 
 #define MAX_ERROR_MESSAGE_BUFSIZE 256
-#define MAX_FWPRINTF_BUFSIZE 1024
 
 extern wchar_t szErrorMessage[MAX_ERROR_MESSAGE_BUFSIZE];
 

@@ -1,26 +1,37 @@
 ﻿#include "defines_win32.h"
 #include "log_win32.h"
 #include "remote_win32.h"
-#include "hookdll_win32.h"
 #include "hookdll_interior_win32.h"
 #include <MinHook.h>
+#include "hookdll_win32.h"
 
 #ifndef __CYGWIN__
 #if defined _M_X64
+#if defined _DEBUG
 #pragma comment(lib, "libMinHook-x64-v141-mdd.lib")
+#else
+// MSVC will complain older compiler
+//#pragma comment(lib, "libMinHook-x64-v141-md.lib")
+#pragma comment(lib, "MinHook.x64.lib")
+#endif
 #elif defined _M_IX86
+#if defined _DEBUG
 #pragma comment(lib, "libMinHook-x86-v141-mdd.lib")
+#else
+//#pragma comment(lib, "libMinHook-x86-v141-md.lib")
+#pragma comment(lib, "MinHook.x86.lib")
+#endif
 #endif
 #endif
 
 PXCH_INJECT_REMOTE_DATA* g_pRemoteData;
-PXCHDLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;
-PXCHDLL_API BOOL g_bCurrentlyInWinapiCall = FALSE;
-PXCH_UINT32 g_dwTlsIndex;
+PXCH_DLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;
+PXCH_DLL_API BOOL g_bCurrentlyInWinapiCall = FALSE;
+PXCH_DLL_API PXCH_UINT32 g_dwTlsIndex;
 UT_array* g_arrHeapAllocatedPointers;
 
 // To verify that this process has its original data (not overwritten with those of parent by fork())
-PXCHDLL_API DWORD g_dwCurrentProcessIdForVerify;
+PXCH_DLL_API DWORD g_dwCurrentProcessIdForVerify;
 
 
 DWORD RemoteCopyExecute(HANDLE hProcess, PXCH_INJECT_REMOTE_DATA* pRemoteData)
@@ -229,7 +240,7 @@ error:
 }
 
 
-PXCHDLL_API DWORD __stdcall InitHookForMain(PROXYCHAINS_CONFIG* pPxchConfig)
+PXCH_DLL_API DWORD __stdcall InitHookForMain(PROXYCHAINS_CONFIG* pPxchConfig)
 {
 	g_pPxchConfig = pPxchConfig;
 
@@ -239,16 +250,18 @@ PXCHDLL_API DWORD __stdcall InitHookForMain(PROXYCHAINS_CONFIG* pPxchConfig)
 	// CREATE_HOOK(CreateProcessAsUserW);
 	MH_EnableHook(MH_ALL_HOOKS);
 
-	LOGI(L"Main Program Hooked!");
+	LOGD(L"Main Program Hooked!");
 	return 0;
 }
 
-PXCHDLL_API DWORD __stdcall InitHook(PXCH_INJECT_REMOTE_DATA* pRemoteData)
+PXCH_DLL_API DWORD __stdcall InitHook(PXCH_INJECT_REMOTE_DATA* pRemoteData)
 {
 	DWORD dwErrorCode = 0;
+	ODBGSTRLOG(L"InitHook: begin of func");
 
 	g_pPxchConfig = &pRemoteData->pxchConfig;
 	g_pRemoteData = pRemoteData;
+	ODBGSTRLOG(L"InitHook: initialize utarray");
 	utarray_new(g_arrHeapAllocatedPointers, &ut_ptr_icd);
 
 	ODBGSTRLOG(L"InitHook: start");
@@ -260,7 +273,7 @@ PXCHDLL_API DWORD __stdcall InitHook(PXCH_INJECT_REMOTE_DATA* pRemoteData)
 
 	ODBGSTRLOG(L"InitHook: hooked CreateProcess");
 
-	IPCLOGI(L"(In InitHook) g_pRemoteData->dwDebugDepth = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
+	IPCLOGD(L"(In InitHook) g_pRemoteData->dwDebugDepth = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
 
 	Win32HookWs2_32();
 	CygwinHook();
@@ -270,7 +283,7 @@ PXCHDLL_API DWORD __stdcall InitHook(PXCH_INJECT_REMOTE_DATA* pRemoteData)
 	if (g_pRemoteData->dwDebugDepth >= 0) {
 		MH_EnableHook(MH_ALL_HOOKS);
 	} else {
-		IPCLOGI(L"(In InitHook) g_pRemoteData->dwDebugDepth = " WPRDW L", skipping MH_EnableHook", g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
+		IPCLOGD(L"(In InitHook) g_pRemoteData->dwDebugDepth = " WPRDW L", skipping MH_EnableHook", g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
 	}
 	
 	ODBGSTRLOG(L"InitHook: after MH_EnableHook");
@@ -283,19 +296,19 @@ PXCHDLL_API DWORD __stdcall InitHook(PXCH_INJECT_REMOTE_DATA* pRemoteData)
 		ODBGSTRLOG(L"InitHook: after IpcClientRegisterChildProcess, IPC Succeed");
 	}
 
-	IPCLOGI(L"I'm WINPID " WPRDW L" Hooked!", log_pid);
+	IPCLOGD(L"I'm WINPID " WPRDW L" Hooked!", log_pid);
 
 	g_dwCurrentProcessIdForVerify = GetCurrentProcessId();
 	ODBGSTRLOG(L"InitHook: end");
 	return 0;
 }
 
-PXCHDLL_API void UninitHook(void)
+PXCH_DLL_API void UninitHook(void)
 {
 	MH_DisableHook(MH_ALL_HOOKS);
 	MH_Uninitialize();
 
-	IPCLOGI(L"I'm WINPID " WPRDW L" UnHooked!", log_pid);
+	IPCLOGD(L"I'm WINPID " WPRDW L" UnHooked!", log_pid);
 }
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
@@ -304,6 +317,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	switch (fdwReason)
 	{
 	case DLL_PROCESS_ATTACH:
+		ODBGSTRLOG(L"Initialize TLS");
 		if ((g_dwTlsIndex = TlsAlloc()) == TLS_OUT_OF_INDEXES) {
 			return FALSE;
 		}
@@ -311,6 +325,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	case DLL_THREAD_ATTACH:
 		pvData = HeapAlloc(GetProcessHeap(), 0, PXCH_TLS_TOTAL_SIZE);
 		TlsSetValue(g_dwTlsIndex, pvData);
+		ODBGSTRLOG(L"Initialized TLS: g_dwTlsIndex = " WPRDW, g_dwTlsIndex);
 		break;
 	case DLL_THREAD_DETACH:
 		pvData = TlsGetValue(g_dwTlsIndex);

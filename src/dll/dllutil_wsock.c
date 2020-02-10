@@ -9,10 +9,12 @@
 #include <strsafe.h>
 
 #include "log_generic.h"
+#include "tls_win32.h"
+#include "hookdll_win32.h"
 #include "ut_helpers.h"
 	
 
-const PXCH_UINT32 g_dwW32HostentSize = sizeof(struct hostent);
+PXCH_DLL_API const PXCH_UINT32 g_dwW32HostentSize = sizeof(struct hostent);
 
 void HostentToHostnameAndIps(PXCH_HOSTNAME* pHostname, PXCH_UINT32* pdwIpNum, PXCH_IP_ADDRESS* Ips, const struct hostent* pHostent)
 {

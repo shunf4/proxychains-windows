@@ -58,24 +58,27 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig)
 	if (!PathFileExistsW(pPxchConfig->szHookDllPath)) goto err_dll_not_exist;
 	if (!PathFileExistsW(pPxchConfig->szMinHookDllPath)) StringCchCopyW(pPxchConfig->szMinHookDllPath, MAX_DLL_PATH_BUFSIZE, g_szMinHookDllFileName);
 
+	pPxchConfig->dwProxyConnectionTimeoutMillisecond = 3000;
+	pPxchConfig->dwProxyHandshakeTimeoutMillisecond = 5000;
+
 	pPxchConfig->dwWillFirstTunnelUseIpv4 = TRUE;
 	pPxchConfig->dwWillFirstTunnelUseIpv6 = FALSE;
 
 	iDummy = sizeof(PXCH_IP_ADDRESS);
 	pPxchConfig->dwFakeIpv4PrefixLength = 8;
-	LOGI(L"WSAStringToAddressW() Ipv4: %d", WSAStringToAddressW(L"224.0.0.0", AF_INET, NULL, (LPSOCKADDR)&pPxchConfig->FakeIpv4Range, &iDummy));
+	WSAStringToAddressW(L"224.0.0.0", AF_INET, NULL, (LPSOCKADDR)&pPxchConfig->FakeIpv4Range, &iDummy);
 
 	iDummy = sizeof(PXCH_IP_ADDRESS);
 	pPxchConfig->dwFakeIpv6PrefixLength = 16;
-	LOGI(L"WSAStringToAddressW() Ipv6: %d", WSAStringToAddressW(L"250d::", AF_INET6, NULL, (LPSOCKADDR)&pPxchConfig->FakeIpv6Range, &iDummy));
+	WSAStringToAddressW(L"250d::", AF_INET6, NULL, (LPSOCKADDR)&pPxchConfig->FakeIpv6Range, &iDummy);
 
 	iRulePolicySet = 1;
 
 	if (iRulePolicySet == 1) {
 		pPxchConfig->dwWillDeleteFakeIpAfterChildProcessExits = TRUE;
 		pPxchConfig->dwWillUseFakeIpWhenHostnameNotMatched = TRUE;
-		pPxchConfig->dwWillMapResolvedIpToHost = TRUE;
-		pPxchConfig->dwWillSearchForHostByResolvedIp = TRUE;
+		pPxchConfig->dwWillMapResolvedIpToHost = FALSE;
+		pPxchConfig->dwWillSearchForHostByResolvedIp = FALSE;
 		pPxchConfig->dwWillForceResolveByHostsFile = TRUE;
 	}
 

@@ -1,7 +1,7 @@
 ﻿#include "defines_win32.h"
 #include "log_win32.h"
-#include "hookdll_win32.h"
 #include "hookdll_interior_win32.h"
+#include "hookdll_win32.h"
 
 
 PXCH_UINT32 IpcCommunicateWithServer(const PXCH_IPC_MSGBUF sendMessage, PXCH_UINT32 cbSendMessageSize, PXCH_IPC_MSGBUF responseMessage, PXCH_UINT32* pcbResponseMessageSize)

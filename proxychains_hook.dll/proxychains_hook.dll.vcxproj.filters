@@ -107,5 +107,11 @@
     <ClInclude Include="..\include\utlist.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\tls_generic.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\tls_win32.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

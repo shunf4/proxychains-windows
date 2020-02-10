@@ -13,8 +13,8 @@ OBJS = $(patsubst $(SRC_PREFIX)%,%,$(SRCS:.c=.o))
 
 DEPS = $(patsubst $(SRC_PREFIX)%,%,$(SRCS:.c=.d))
 
-CFLAGS = -fgnu89-inline -Wall -g -D_UNICODE -DUNICODE -I$(INCLUDE_PREFIX)
-DLL_CFLAGS = -fgnu89-inline -Wall -g -D_UNICODE -DUNICODE -DPXCHDLL_EXPORTS -I$(INCLUDE_PREFIX)
+CFLAGS = -fgnu89-inline -Wall -D_UNICODE -DUNICODE -I$(INCLUDE_PREFIX)
+DLL_CFLAGS = -fgnu89-inline -Wall -D_UNICODE -DUNICODE -DPXCH_DLL_EXPORTS -I$(INCLUDE_PREFIX)
 
 DEPFLAGS_STEM = -MT $@ -MMD -MP -MF $*.d
 DEPFLAGS_IN_PREREQ = -MT $@ -MMD -MP -MF $(filter %.d,$^)
@@ -28,7 +28,15 @@ ALL_IMPLIBS = $(DLL_IMPLIB_PATH)
 ALL_SHARED_LIBS = $(DLL_PATH)
 ALL_EXECS = $(EXEC_PATH)
 
-all : $(ALL_EXECS)
+all : release
+
+debug : CFLAGS += -g -DDEBUG -D_DEBUG
+debug : DLL_CFLAGS += -g -DDEBUG -D_DEBUG
+debug : $(ALL_EXECS)
+
+release : CFLAGS += -DPXCH_LOG_LEVEL=400
+release : DLL_CFLAGS += -DPXCH_LOG_LEVEL=400
+release : $(ALL_EXECS)
 
 $(NONDLL_OBJS) : %.o : $(SRC_PREFIX)%.c %.d
 	$(CC) $(CFLAGS) $(DEPFLAGS_STEM) -c -o$@ $<
@@ -59,5 +67,7 @@ clean :
 	$(RM) $(DEPS)
 	
 rebuild : clean all
+rebuildrelease : clean release
+rebuilddebug : clean debug
 
 include $(wildcard $(DEPS))

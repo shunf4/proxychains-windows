@@ -65,6 +65,11 @@ typedef unsigned int PXCH_UINT_PTR;
 #define MAX_PROXY_NUM 5
 #define MAX_FILEMAPPING_BUFSIZE 256
 #define MAX_ARRAY_IP_NUM 10
+
+#define PXCH_LOG_IPC_BUFSIZE 1024
+#define PXCH_LOG_ODS_BUFSIZE 256
+
+#define MAX_FWPRINTF_BUFSIZE 1024	// Also as log bufsize
 // In characters -- end
 
 #define PXCH_PROXY_TYPE_MASK    0x000000FF
@@ -119,10 +124,10 @@ typedef unsigned int PXCH_UINT_PTR;
 #define SetHostType(type, x) ((PXCH_HOST*)&(x))->wTag = PXCH_HOST_TYPE_##type
 
 
-#ifdef PXCHDLL_EXPORTS
-#define PXCHDLL_API __declspec(dllexport)	// Cygwin gcc also recognizes this
+#ifdef PXCH_DLL_EXPORTS
+#define PXCH_DLL_API __declspec(dllexport)	// Cygwin gcc also recognizes this
 #else
-#define PXCHDLL_API __declspec(dllimport)
+#define PXCH_DLL_API __declspec(dllimport)
 #endif
 
 
@@ -276,6 +281,9 @@ typedef struct _PROXYCHAINS_CONFIG {
 	PXCH_IP_ADDRESS FakeIpv6Range;
 	PXCH_UINT32 dwFakeIpv6PrefixLength;
 
+	PXCH_UINT32 dwProxyConnectionTimeoutMillisecond;	// Only take effect in non-blocking sockets (We simply use connect() to do connect)
+	PXCH_UINT32 dwProxyHandshakeTimeoutMillisecond;	// Only take effect in non-blocking sockets (We simply use send() and recv())
+
 	PXCH_UINT32 dwWillDeleteFakeIpAfterChildProcessExits;
 	PXCH_UINT32 dwWillUseFakeIpWhenHostnameNotMatched;	// usually exclusive with dwWillMapResolvedIpToHost
 	PXCH_UINT32 dwWillMapResolvedIpToHost;
@@ -300,19 +308,4 @@ static const wchar_t g_szMinHookDllFileName[] = L"MinHook.x64.dll";
 static const wchar_t g_szMinHookDllFileName[] = L"MinHook.x86.dll";
 #endif
 
-extern PXCHDLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;
-
-#define PXCH_TLS_OFFSET_W32HOSTENT 0
-#define PXCH_TLS_W32HOSTENT_IP_NUM 16
-#define PXCH_TLS_W32HOSTENT_ALIAS_NUM 16
-#define PXCH_TLS_W32HOSTENT_ALIAS_BUFSIZE 64
-
-#define PXCH_TLS_OFFSET_W32HOSTENT_IP_PTR_LIST (PXCH_TLS_OFFSET_W32HOSTENT + g_dwW32HostentSize)
-#define PXCH_TLS_OFFSET_W32HOSTENT_IP_BUF (PXCH_TLS_OFFSET_W32HOSTENT_IP_PTR_LIST + sizeof(PXCH_UINT32*[PXCH_TLS_W32HOSTENT_IP_NUM]))
-#define PXCH_TLS_OFFSET_W32HOSTENT_ALIAS_PTR_LIST (PXCH_TLS_OFFSET_W32HOSTENT_IP_BUF + sizeof(PXCH_UINT32[PXCH_TLS_W32HOSTENT_IP_NUM]))
-#define PXCH_TLS_OFFSET_W32HOSTENT_ALIAS_BUF (PXCH_TLS_OFFSET_W32HOSTENT_ALIAS_PTR_LIST + sizeof(char*[PXCH_TLS_W32HOSTENT_ALIAS_NUM]))
-#define PXCH_TLS_OFFSET_W32HOSTENT_HOSTNAME_BUF (PXCH_TLS_OFFSET_W32HOSTENT_ALIAS_PTR_LIST + sizeof(char[PXCH_TLS_W32HOSTENT_ALIAS_NUM][PXCH_TLS_W32HOSTENT_ALIAS_BUFSIZE]))
-
-#define PXCH_TLS_TOTAL_SIZE (PXCH_TLS_OFFSET_W32HOSTENT_HOSTNAME_BUF + sizeof(char[MAX_HOSTNAME_BUFSIZE]))
-
-extern const PXCH_UINT32 g_dwW32HostentSize;
+extern PXCH_DLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;
