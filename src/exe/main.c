@@ -84,9 +84,17 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 	SECURITY_ATTRIBUTES SecAttr;
 	PSECURITY_DESCRIPTOR pSecDesc;
 
+	LOGV(L"Ipc Server Initializing...");
+
 	// https://docs.microsoft.com/zh-cn/windows/win32/secauthz/security-descriptor-string-format
 	// https://stackoverflow.com/questions/9589141/low-integrity-to-medium-high-integrity-pipe-security-descriptor
-	if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(L"D:(A;;0x12019f;;;WD)S:(ML;;NW;;;LW)", SDDL_REVISION_1, &pSecDesc, NULL)) return GetLastError();
+	if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(L"D:(A;;0x12019f;;;WD)S:(ML;;NW;;;LW)", SDDL_REVISION_1, &pSecDesc, NULL)) {
+		if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(L"D:(A;;0x12019f;;;WD)", SDDL_REVISION_1, &pSecDesc, NULL)) {
+			dwErrorCode = GetLastError();
+			LOGE(L"Initializing Security Descriptor error: %ls", FormatErrorToStr(dwErrorCode));
+			return dwErrorCode;
+		}
+	}
 
 	SecAttr.nLength = sizeof(SecAttr);
 	SecAttr.bInheritHandle = FALSE;
@@ -95,6 +103,7 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 	// Initialize
 	for (i = 0; i < PXCH_IPC_INSTANCE_NUM; i++) {
 		// Manual-reset, initially signaled event
+		LOGV(L"Ipc Server Initializing Event %d", i);
 		hEvents[i] = CreateEventW(NULL, TRUE, TRUE, NULL);
 		if (hEvents[i] == 0) goto err_create_event;
 
@@ -111,6 +120,8 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 
 		ipc[i].dwState = (dwErrorCode == ERROR_PIPE_CONNECTED) ? PXCH_IPC_STATE_READING : PXCH_IPC_STATE_CONNECTING;
 	}
+
+	LocalFree(pSecDesc);
 
 	LOGD(L"[IPCALL] Waiting for clients...");
 	LOGV(L"ServerLoop: Signaling semaphore...");
@@ -381,7 +392,7 @@ int wmain(int argc, WCHAR* argv[])
 
 	LOGI(L"Config Path: %ls", g_pPxchConfig->szConfigPath);
 	LOGI(L"Pipe name: %ls", g_pPxchConfig->szIpcPipeName);
-	LOGI(L"Quiet: %ls", g_pPxchConfig->iIsQuiet ? L"Y" : L"N");
+	LOGI(L"Quiet: %ls", g_pPxchConfig->dwIsQuiet ? L"Y" : L"N");
 	LOGI(L"Command Line: %ls", g_pPxchConfig->szCommandLine);
 
 	if (CreateThread(0, 0, &ServerLoop, g_pPxchConfig, 0, &dwTid) == NULL) goto err_get;
@@ -429,6 +440,7 @@ err_get:
 	dwError = GetLastError();
 err:
 	fwprintf(stderr, L"Error: %ls\n", FormatErrorToStr(dwError));
+	fflush(stderr);	// Must flush, otherwise display messy code on xp
 	return dwError;
 }
 
@@ -491,7 +503,7 @@ int main(int argc, char* const argv[], char* const envp[])
 
 	LOGI(L"Config Path: %ls", g_pPxchConfig->szConfigPath);
 	LOGI(L"Pipe name: %ls", g_pPxchConfig->szIpcPipeName);
-	LOGI(L"Quiet: %ls", g_pPxchConfig->iIsQuiet ? L"Y" : L"N");
+	LOGI(L"Quiet: %ls", g_pPxchConfig->dwIsQuiet ? L"Y" : L"N");
 	LOGI(L"argv[iCommandStart]: " WPRS, argv[iCommandStart]);
 
 	if (CreateThread(0, 0, &ServerLoop, g_pPxchConfig, 0, &dwTid) == NULL) goto err_get;

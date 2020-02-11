@@ -22,6 +22,7 @@ void HostentToHostnameAndIps(PXCH_HOSTNAME* pHostname, PXCH_UINT32* pdwIpNum, PX
 
 	pHostname->wTag = PXCH_HOST_TYPE_HOSTNAME;
 	pHostname->wPort = 0;
+	if (pHostname == NULL) goto err_empty;
 	StringCchPrintfW(pHostname->szValue, _countof(pHostname->szValue), WPRS, pHostent->h_name);
 
 	ZeroMemory(Ips, sizeof(PXCH_IP_ADDRESS) * MAX_ARRAY_IP_NUM);
@@ -34,16 +35,22 @@ void HostentToHostnameAndIps(PXCH_HOSTNAME* pHostname, PXCH_UINT32* pdwIpNum, PX
 	}
 
 	*pdwIpNum = i;
+	return;
 
+err_empty:
+	pHostname->szValue[0] = L'\0';
 err_not_supported:
 	*pdwIpNum = 0;
 }
 
-void HostnameAndIpsToHostent(struct hostent* pHostent, void* pTlsBase, const PXCH_HOSTNAME* pHostname, PXCH_UINT32 dwIpNum, const PXCH_IP_ADDRESS* Ips)
+void HostnameAndIpsToHostent(struct hostent** ppHostent, void* pTlsBase, const PXCH_HOSTNAME* pHostname, PXCH_UINT32 dwIpNum, const PXCH_IP_ADDRESS* Ips)
 {
 	PXCH_UINT32 i;
 	PXCH_UINT32 j;
 	PXCH_UINT32** ppIp;
+	struct hostent* pHostent;
+
+	pHostent = *ppHostent = PXCH_TLS_PTR_W32HOSTENT_BY_BASE(pTlsBase);
 
 	pHostent->h_length = sizeof(PXCH_UINT32);
 	pHostent->h_addrtype = AF_INET;
@@ -53,7 +60,7 @@ void HostnameAndIpsToHostent(struct hostent* pHostent, void* pTlsBase, const PXC
 	pHostent->h_aliases = (char**)PXCH_TLS_PTR_W32HOSTENT_ALIAS_PTR_LIST_BY_BASE(pTlsBase);
 	pHostent->h_name = *PXCH_TLS_PTR_W32HOSTENT_HOSTNAME_BUF_BY_BASE(pTlsBase);
 
-	ZeroMemory(ppIp, sizeof(PXCH_UINT32 * [PXCH_TLS_W32HOSTENT_IP_NUM]));
+	ZeroMemory(ppIp, sizeof(PXCH_UINT32*[PXCH_TLS_W32HOSTENT_IP_NUM]));
 	for (i = 0, j = 0; i < dwIpNum; i++) {
 		if (HostIsType(IPV4, *(PXCH_HOST*)&Ips[i])) {
 			ppIp[j] = &PXCH_TLS_PTR_W32HOSTENT_IP_BUF_BY_BASE(pTlsBase)[j];
@@ -91,7 +98,7 @@ void AddrInfoToIps(PXCH_UINT32* pdwIpNum, PXCH_IP_ADDRESS* Ips, const void* pAdd
 	*pdwIpNum = i;
 }
 
-void HostnameAndIpsToAddrInfo_WillAllocate(ADDRINFOW** ppAddrInfoW, const PXCH_HOSTNAME* pHostname, PXCH_UINT32 dwIpNum, const PXCH_IP_ADDRESS* Ips, BOOL bCanonName, int iSockType, int iProtocol)
+void HostnameAndIpPortsToAddrInfo_WillAllocate(ADDRINFOW** ppAddrInfoW, const PXCH_HOSTNAME* pHostname, PXCH_UINT32 dwIpNum, const PXCH_IP_PORT* IpPorts, BOOL bCanonName, int iSockType, int iProtocol)
 {
 	PXCH_DO_IN_CRITICAL_SECTION_RETURN_VOID{
 		ADDRINFOW * *ppTempAddrInfoW;
@@ -113,13 +120,13 @@ void HostnameAndIpsToAddrInfo_WillAllocate(ADDRINFOW** ppAddrInfoW, const PXCH_H
 			pAddrInfoW = *ppTempAddrInfoW;
 			pPxchAddrInfoW = (PXCH_ADDRINFOW*)*ppTempAddrInfoW;
 
-			pPxchAddrInfoW->Ip = Ips[i];
+			pPxchAddrInfoW->IpPort = IpPorts[i];
 			pPxchAddrInfoW->Hostname = *pHostname;
 
-			pAddrInfoW->ai_addr = (struct sockaddr*) & pPxchAddrInfoW->Ip;
-			pAddrInfoW->ai_addrlen = HostIsType(IPV4, *(const PXCH_HOST*)&Ips[i]) ? sizeof(struct sockaddr_in) : HostIsType(IPV6, *(const PXCH_HOST*)&Ips[i]) ? sizeof(struct sockaddr_in6) : 0;
+			pAddrInfoW->ai_addr = (struct sockaddr*) & pPxchAddrInfoW->IpPort;
+			pAddrInfoW->ai_addrlen = HostIsType(IPV4, *(const PXCH_HOST*)&IpPorts[i]) ? sizeof(struct sockaddr_in) : HostIsType(IPV6, *(const PXCH_HOST*)&IpPorts[i]) ? sizeof(struct sockaddr_in6) : 0;
 			pAddrInfoW->ai_canonname = bCanonName ? pPxchAddrInfoW->Hostname.szValue : NULL;
-			pAddrInfoW->ai_family = Ips[i].Sockaddr.wTag;
+			pAddrInfoW->ai_family = IpPorts[i].Sockaddr.wTag;
 			pAddrInfoW->ai_flags = 0;
 			pAddrInfoW->ai_protocol = iProtocol;
 			pAddrInfoW->ai_socktype = iSockType;

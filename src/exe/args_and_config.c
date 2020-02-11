@@ -80,6 +80,8 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig)
 		pPxchConfig->dwWillMapResolvedIpToHost = FALSE;
 		pPxchConfig->dwWillSearchForHostByResolvedIp = FALSE;
 		pPxchConfig->dwWillForceResolveByHostsFile = TRUE;
+		pPxchConfig->dwWillUseUdpAssociateAsRemoteDns = FALSE;
+		pPxchConfig->dwWillUseFakeIpAsRemoteDns = TRUE;
 	}
 
 	pPxchConfig->dwProxyNum = iProxyNum;
@@ -103,8 +105,8 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig)
 
 		proxy->Socks5.szUsername[0] = '\0';
 		proxy->Socks5.szPassword[0] = '\0';
-		proxy->Socks5.Ws2_32_FpConnect = &Ws2_32_Socks5Connect;
-		proxy->Socks5.Ws2_32_FpHandshake = &Ws2_32_Socks5Handshake;
+		StringCchCopyA(proxy->Socks5.Ws2_32_ConnectFunctionName, _countof(proxy->Socks5.Ws2_32_ConnectFunctionName), "Ws2_32_Socks5Connect");
+		StringCchCopyA(proxy->Socks5.Ws2_32_HandshakeFunctionName, _countof(proxy->Socks5.Ws2_32_HandshakeFunctionName), "Ws2_32_Socks5Handshake");
 	}
 
 	{
@@ -210,7 +212,7 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 	int i;
 	int iCountCommands = 0;
 	BOOL bOptionFile = FALSE;
-	int iOptionPrefixLen;
+	unsigned int iOptionPrefixLen;
 	BOOL bOptionHasValue;
 	BOOL bOptionsEnd = FALSE;
 	BOOL bForceQuote = FALSE;
@@ -221,6 +223,7 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 	pConfig->szConfigPath[0] = L'\0';
 	pConfig->szCommandLine[0] = L'\0';
 	pCommandLine = pConfig->szCommandLine;
+	pConfig->dwIsQuietAlreadySet = FALSE;
 
 	for (i = 1; i < argc; i++) {
 		pWchar = argv[i];
@@ -241,7 +244,13 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 				bOptionHasValue = TRUE;
 			}
 			else if (wcsncmp(pWchar, L"-q", 2) == 0) {
-				pConfig->iIsQuiet = TRUE;
+				pConfig->dwIsQuiet = TRUE;
+				pConfig->dwIsQuietAlreadySet = TRUE;
+				continue;
+			}
+			else if (wcsncmp(pWchar, L"-Q", 2) == 0) {
+				pConfig->dwIsQuiet = FALSE;
+				pConfig->dwIsQuietAlreadySet = TRUE;
 				continue;
 			}
 			else {

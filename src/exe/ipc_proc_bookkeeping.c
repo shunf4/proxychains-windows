@@ -121,44 +121,46 @@ VOID CALLBACK ChildProcessExitedCallback(
 
 DWORD RegisterNewChildProcess(const REPORTED_CHILD_DATA* pChildData)
 {
-	PXCH_DO_IN_CRITICAL_SECTION_RETURN_DWORD{
-		tab_per_process_t* Entry;
-		HANDLE hWaitHandle;
-		HANDLE hChildHandle;
+	DWORD dwReturn;
+	tab_per_process_t* Entry;
+	HANDLE hWaitHandle;
+	HANDLE hChildHandle;
 
-		LOGV(L"Before HeapAlloc...");
-		Entry = (tab_per_process_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(tab_per_process_t));
-		LOGV(L"After HeapAlloc...");
-		if ((hChildHandle = OpenProcess(SYNCHRONIZE | PROCESS_QUERY_INFORMATION, FALSE, pChildData->dwPid)) == NULL) {
-			dwReturn = GetLastError();
-			if (dwReturn == ERROR_ACCESS_DENIED) {
-				if ((hChildHandle = OpenProcess(SYNCHRONIZE, FALSE, pChildData->dwPid)) == NULL) {
-					dwReturn = GetLastError();
-				} else {
-					goto after_open_process;
-				}
+	LOGV(L"Before HeapAlloc...");
+	Entry = (tab_per_process_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(tab_per_process_t));
+	LOGV(L"After HeapAlloc...");
+	if ((hChildHandle = OpenProcess(SYNCHRONIZE | PROCESS_QUERY_INFORMATION, FALSE, pChildData->dwPid)) == NULL) {
+		dwReturn = GetLastError();
+		if (dwReturn == ERROR_ACCESS_DENIED) {
+			if ((hChildHandle = OpenProcess(SYNCHRONIZE, FALSE, pChildData->dwPid)) == NULL) {
+				dwReturn = GetLastError();
+			} else {
+				goto after_open_process;
 			}
-			LOGC(L"OpenProcess() error: %ls", FormatErrorToStr(dwReturn));
-			goto lock_after_critical_section;
 		}
-	after_open_process:
-		LOGD(L"After OpenProcess(" WPRDW L")...", hChildHandle);
-
-		if (!RegisterWaitForSingleObject(&hWaitHandle, hChildHandle, &ChildProcessExitedCallback, Entry, INFINITE, WT_EXECUTELONGFUNCTION | WT_EXECUTEONLYONCE)) {
-			dwReturn = GetLastError();
-			LOGC(L"RegisterWaitForSingleObject() error: %ls", FormatErrorToStr(dwReturn));
-			goto lock_after_critical_section;
-		}
-		LOGV(L"After RegisterWaitForSingleObject...");
-		Entry->Data = *pChildData;
-		Entry->hProcess = hChildHandle;
-		Entry->Ips = NULL;
-		LOGV(L"After Entry->Data = *pChildData;");
-		HASH_ADD(hh, g_tabPerProcess, Data, sizeof(pid_key_t), Entry);
-		LOGV(L"After HASH_ADD");
-		LOGI(L"Registered child pid " WPRDW, pChildData->dwPid);
-		PrintTablePerProcess();
+		LOGC(L"OpenProcess() error: %ls", FormatErrorToStr(dwReturn));
+		return dwReturn;
 	}
+after_open_process:
+	LOGD(L"After OpenProcess(" WPRDW L")...", hChildHandle);
+
+	if (!RegisterWaitForSingleObject(&hWaitHandle, hChildHandle, &ChildProcessExitedCallback, Entry, INFINITE, WT_EXECUTEINIOTHREAD | WT_EXECUTELONGFUNCTION | WT_EXECUTEONLYONCE)) {
+		dwReturn = GetLastError();
+		LOGC(L"RegisterWaitForSingleObject() error: %ls", FormatErrorToStr(dwReturn));
+		return dwReturn;
+	}
+	Entry->Data = *pChildData;
+	Entry->hProcess = hChildHandle;
+	Entry->Ips = NULL;
+	LOGV(L"After Entry->Data = *pChildData;");
+	{
+		PXCH_DO_IN_CRITICAL_SECTION_RETURN_DWORD{
+			HASH_ADD(hh, g_tabPerProcess, Data, sizeof(pid_key_t), Entry);
+		}
+	}
+	LOGV(L"After HASH_ADD");
+	LOGI(L"Registered child pid " WPRDW, pChildData->dwPid);
+	PrintTablePerProcess();
 }
 
 DWORD QueryChildStorage(REPORTED_CHILD_DATA* pChildData)

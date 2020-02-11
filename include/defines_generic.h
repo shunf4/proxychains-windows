@@ -194,16 +194,20 @@ typedef int(*PXCH_WS2_32_FPCONNECT)(void* pTempData, PXCH_UINT_PTR s, const unio
 
 typedef struct _PXCH_PROXY_DIRECT_DATA {
 	PXCH_UINT32 dwTag;
-	PXCH_WS2_32_FPCONNECT Ws2_32_FpConnect;
-	PXCH_WS2_32_FPHANDSHAKE Ws2_32_FpHandshake;
+	// PXCH_WS2_32_FPCONNECT Ws2_32_FpConnect;
+	// PXCH_WS2_32_FPHANDSHAKE Ws2_32_FpHandshake;
+	char Ws2_32_ConnectFunctionName[MAX_DLL_FUNC_NAME_BUFSIZE];
+	char Ws2_32_HandshakeFunctionName[MAX_DLL_FUNC_NAME_BUFSIZE];
 	PXCH_HOST_PORT HostPort;
 	int iAddrLen;
 } PXCH_PROXY_DIRECT_DATA;
 
 typedef struct _PXCH_PROXY_SOCKS5_DATA {
 	PXCH_UINT32 dwTag;
-	PXCH_WS2_32_FPCONNECT Ws2_32_FpConnect;
-	PXCH_WS2_32_FPHANDSHAKE Ws2_32_FpHandshake;
+	// PXCH_WS2_32_FPCONNECT Ws2_32_FpConnect;
+	// PXCH_WS2_32_FPHANDSHAKE Ws2_32_FpHandshake;
+	char Ws2_32_ConnectFunctionName[MAX_DLL_FUNC_NAME_BUFSIZE];
+	char Ws2_32_HandshakeFunctionName[MAX_DLL_FUNC_NAME_BUFSIZE];
 	PXCH_HOST_PORT HostPort;
 	int iAddrLen;
 
@@ -217,8 +221,10 @@ typedef union _PXCH_PROXY_DATA {
 
 	struct {
 		PXCH_UINT32 dwTag;
-		PXCH_WS2_32_FPCONNECT Ws2_32_FpConnect;
-		PXCH_WS2_32_FPHANDSHAKE Ws2_32_FpHandshake;
+		// PXCH_WS2_32_FPCONNECT Ws2_32_FpConnect;
+		// PXCH_WS2_32_FPHANDSHAKE Ws2_32_FpHandshake;
+		char Ws2_32_ConnectFunctionName[MAX_DLL_FUNC_NAME_BUFSIZE];
+		char Ws2_32_HandshakeFunctionName[MAX_DLL_FUNC_NAME_BUFSIZE];
 		PXCH_HOST_PORT HostPort;
 		int iAddrLen;
 	} CommonHeader;
@@ -259,7 +265,8 @@ typedef struct _PXCH_HOSTS_ENTRY {
 
 typedef struct _PROXYCHAINS_CONFIG {
 	PXCH_UINT32 dwMasterProcessId;
-	PXCH_INT32 iIsQuiet;
+	PXCH_INT32 dwIsQuiet;
+	PXCH_INT32 dwIsQuietAlreadySet;
 	wchar_t szIpcPipeName[MAX_IPC_PIPE_NAME_BUFSIZE];
 	wchar_t szConfigPath[MAX_CONFIG_FILE_PATH_BUFSIZE];
 	wchar_t szHookDllPath[MAX_DLL_PATH_BUFSIZE];
@@ -284,6 +291,8 @@ typedef struct _PROXYCHAINS_CONFIG {
 	PXCH_UINT32 dwProxyConnectionTimeoutMillisecond;	// Only take effect in non-blocking sockets (We simply use connect() to do connect)
 	PXCH_UINT32 dwProxyHandshakeTimeoutMillisecond;	// Only take effect in non-blocking sockets (We simply use send() and recv())
 
+	PXCH_UINT32 dwWillUseUdpAssociateAsRemoteDns;
+	PXCH_UINT32 dwWillUseFakeIpAsRemoteDns;
 	PXCH_UINT32 dwWillDeleteFakeIpAfterChildProcessExits;
 	PXCH_UINT32 dwWillUseFakeIpWhenHostnameNotMatched;	// usually exclusive with dwWillMapResolvedIpToHost
 	PXCH_UINT32 dwWillMapResolvedIpToHost;

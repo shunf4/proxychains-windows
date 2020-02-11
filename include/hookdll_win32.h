@@ -4,6 +4,12 @@
 #include "hookdll_generic.h"
 #include "ut_helpers.h"
 
+#if defined _M_X64
+#define PXCH_INITHOOK_SYMBOL_NAME "InitHook"
+#elif defined _M_IX86
+#define PXCH_INITHOOK_SYMBOL_NAME "_InitHook@4"
+#endif
+
 PXCH_DLL_API DWORD __stdcall InitHook(PXCH_INJECT_REMOTE_DATA * pData);
 PXCH_DLL_API DWORD __stdcall InitHookForMain(PROXYCHAINS_CONFIG * pConfig);
 PXCH_DLL_API void UninitHook(void);

@@ -205,7 +205,7 @@ DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi)
 
 	IPCLOGV(L"CreateProcessW: After remoteData assignment. " WPRDW, 0);
 
-	StringCchCopyA(pRemoteData->szInitFuncName, _countof(pRemoteData->szInitFuncName), g_pRemoteData ? g_pRemoteData->szInitFuncName : "InitHook");
+	StringCchCopyA(pRemoteData->szInitFuncName, _countof(pRemoteData->szInitFuncName), g_pRemoteData ? g_pRemoteData->szInitFuncName : PXCH_INITHOOK_SYMBOL_NAME);
 	StringCchCopyA(pRemoteData->szCIWCVarName, _countof(pRemoteData->szCIWCVarName), g_pRemoteData ? g_pRemoteData->szCIWCVarName : "g_bCurrentlyInWinapiCall");
 	CopyMemory(pRemoteData->chDebugOutput, g_pRemoteData ? g_pRemoteData->chDebugOutput : "A\0B\0C\0D\0E\0F\0G\0H\0I\0J\0K\0L\0M\0N\0O\0P\0Q\0R\0S\0T\0", sizeof(pRemoteData->chDebugOutput));
 	StringCchCopyW(pRemoteData->szCygwin1ModuleName, _countof(pRemoteData->szCygwin1ModuleName), g_pRemoteData ? g_pRemoteData->szCygwin1ModuleName : L"cygwin1.dll");

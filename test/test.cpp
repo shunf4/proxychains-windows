@@ -22,15 +22,6 @@ DWORD WINAPI ThreadFunc(LPVOID lpVoid)
 int main()
 {
     setlocale(LC_ALL, "");
-    HeapLock(GetProcessHeap());
-    printf("in main thread");
-    // CreateThread(NULL, 0, &ThreadFunc, NULL, 0, NULL);
-    Sleep(3000);
-    HeapUnlock(GetProcessHeap());
-
-    HeapUnlock(GetProcessHeap());
-
-    return 0;
 
     WSADATA wsaData;
 
@@ -57,7 +48,7 @@ int main()
     struct hostent* pH;
     WCHAR szIp[100];
 
-    pH = gethostbyname("");
+    pH = gethostbyname("www.baidu.com");
     wprintf(L"gethostbyname(): addrtype=%hx name=%S(%hu)\n", pH->h_addrtype, pH->h_name, pH->h_length);
     wprintf(L" aliases:\n");
     for (char** pA = pH->h_aliases; *pA; pA++) {
