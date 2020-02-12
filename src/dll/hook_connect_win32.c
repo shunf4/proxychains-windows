@@ -101,7 +101,7 @@ static BOOL Ipv6MatchCidr(const struct sockaddr_in6* pIp, const struct sockaddr_
 	return memcmp(&MaskedIpv6, &MaskedCidr, sizeof(MaskedIpv6)) == 0;
 }
 
-static BOOL WillProxyByRule(BOOL* pbMatchedHostnameRule, BOOL* pbMatchedIpRule, BOOL* pbMatchedPortRule, BOOL* pbMatchedFinalRule, const PXCH_HOST_PORT* pHostPort, BOOL bDefault)
+static PXCH_UINT32 GetTargetByRule(BOOL* pbMatchedHostnameRule, BOOL* pbMatchedIpRule, BOOL* pbMatchedPortRule, BOOL* pbMatchedFinalRule, const PXCH_HOST_PORT* pHostPort, PXCH_UINT32 dwDefault)
 {
 	unsigned int i;
 	PXCH_RULE* pRule;
@@ -124,7 +124,7 @@ static BOOL WillProxyByRule(BOOL* pbMatchedHostnameRule, BOOL* pbMatchedIpRule, 
 		pRule = &PXCHCONFIG_RULE_ARR(g_pPxchConfig)[i];
 
 		if (RuleIsType(FINAL, *pRule)) {
-			return (BOOL)pRule->iWillProxy;
+			return pRule->dwTarget;
 		}
 
 		if (pRule->HostPort.CommonHeader.wPort && pHostPort->CommonHeader.wPort) {
@@ -135,7 +135,7 @@ static BOOL WillProxyByRule(BOOL* pbMatchedHostnameRule, BOOL* pbMatchedIpRule, 
 			else if (RuleIsType(PORT, *pRule)) {
 				// Match
 				*pbMatchedPortRule = TRUE;
-				return (BOOL)pRule->iWillProxy;
+				return pRule->dwTarget;
 			}
 		}
 
@@ -148,7 +148,7 @@ static BOOL WillProxyByRule(BOOL* pbMatchedHostnameRule, BOOL* pbMatchedIpRule, 
 				 {
 					// Match
 					*pbMatchedIpRule = TRUE;
-					return (BOOL)pRule->iWillProxy;
+					return pRule->dwTarget;
 				}
 			}
 
@@ -159,7 +159,7 @@ static BOOL WillProxyByRule(BOOL* pbMatchedHostnameRule, BOOL* pbMatchedIpRule, 
 				if (Ipv6MatchCidr(pIpv6, pRuleIpv6, pRule->dwCidrPrefixLength)) {
 					// Match
 					*pbMatchedIpRule = TRUE;
-					return (BOOL)pRule->iWillProxy;
+					return pRule->dwTarget;
 				}
 			}
 		}
@@ -168,7 +168,7 @@ static BOOL WillProxyByRule(BOOL* pbMatchedHostnameRule, BOOL* pbMatchedIpRule, 
 			if (StrCmpIW(pHostPort->HostnamePort.szValue, pRule->HostPort.HostnamePort.szValue) == 0) {
 				// Match
 				*pbMatchedHostnameRule = TRUE;
-				return (BOOL)pRule->iWillProxy;
+				return pRule->dwTarget;
 			}
 		}
 
@@ -182,7 +182,7 @@ static BOOL WillProxyByRule(BOOL* pbMatchedHostnameRule, BOOL* pbMatchedIpRule, 
 				if (StrCmpIW(pHostPort->HostnamePort.szValue + (cchLength - cchRuleLength), pRule->HostPort.HostnamePort.szValue) == 0) {
 					// Match
 					*pbMatchedHostnameRule = TRUE;
-					return (BOOL)pRule->iWillProxy;
+					return pRule->dwTarget;
 				}
 			}
 		}
@@ -191,12 +191,12 @@ static BOOL WillProxyByRule(BOOL* pbMatchedHostnameRule, BOOL* pbMatchedIpRule, 
 			if (StrStrW(pHostPort->HostnamePort.szValue, pRule->HostPort.HostnamePort.szValue) == 0) {
 				// Match
 				*pbMatchedHostnameRule = TRUE;
-				return (BOOL)pRule->iWillProxy;
+				return pRule->dwTarget;
 			}
 		}
 	}
 
-	return bDefault;
+	return dwDefault;
 }
 
 
@@ -434,7 +434,7 @@ PXCH_DLL_API int Ws2_32_DirectConnect(void* pTempData, PXCH_UINT_PTR s, const PX
 		PXCH_HOST_PORT NewHostPort = { 0 };
 
 		// FUNCIPCLOGW(L"Warning connecting directly: address is hostname.");
-
+		
 		AddrInfoHints.ai_family = AF_UNSPEC;
 		AddrInfoHints.ai_flags = 0;
 		AddrInfoHints.ai_protocol = IPPROTO_TCP;
@@ -703,7 +703,7 @@ PROXY_FUNC2(Ws2_32, connect)
 	int iReturn = 0;
 	DWORD dwLastError;
 	int iWSALastError;
-	BOOL bWillProxy;
+	PXCH_UINT32 dwTarget;
 	PXCH_CHAIN Chain = NULL;
 	PXCH_CHAIN_NODE* ChainNode = NULL;
 	PXCH_CHAIN_NODE* TempChainNode1 = NULL;
@@ -737,17 +737,21 @@ PROXY_FUNC2(Ws2_32, connect)
 
 		if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) goto not_wsa_error_end;
 
-		if ((dwLastError = MessageToHostnameAndIps(NULL, (PXCH_HOSTNAME*)&ResolvedHostPortFromFakeIp, NULL, &dwRespIpNum, RespIps, &bWillProxy, chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) goto not_wsa_error_end;
+		if ((dwLastError = MessageToHostnameAndIps(NULL, (PXCH_HOSTNAME*)&ResolvedHostPortFromFakeIp, NULL, &dwRespIpNum, RespIps, &dwTarget, chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) goto not_wsa_error_end;
 
 		ResolvedHostPortFromFakeIp.CommonHeader.wPort = pHostPort->CommonHeader.wPort;
 		pHostPort = &ResolvedHostPortFromFakeIp;
 	} else {
-		bWillProxy = WillProxyByRule(NULL, NULL, NULL, NULL, pHostPort, FALSE);
+		dwTarget = GetTargetByRule(NULL, NULL, NULL, NULL, pHostPort, PXCH_RULE_TARGET_DIRECT);
 	}
 
-	if (!bWillProxy) {
+	if (dwTarget == PXCH_RULE_TARGET_DIRECT) {
 		iReturn = Ws2_32_OriginalConnect(&TempData, s, name, namelen);
 		goto success_revert_connect_errcode_end;
+	}
+
+	if (dwTarget == PXCH_RULE_TARGET_BLOCK) {
+		goto block_end;
 	}
 
 	for (i = 0; i < g_pPxchConfig->dwProxyNum; i++) {
@@ -761,6 +765,12 @@ success_revert_connect_errcode_end:
 	iReturn = TempData.iConnectReturn;
 	goto end;
 
+block_end:
+	iWSALastError = WSAEREFUSED;
+	dwLastError = ERROR_REQUEST_REFUSED;
+	iReturn = SOCKET_ERROR;
+	goto end;
+
 record_error_end:
 	iWSALastError = WSAGetLastError();
 	dwLastError = GetLastError();
@@ -771,12 +781,12 @@ not_wsa_error_end:
 	goto end;
 
 end:
-	FUNCIPCLOGI(L"Ws2_32.dll connect(%d, %ls, %d) proxied: %d", s, FormatHostPortToStr(name, namelen), namelen, bWillProxy);
+	FUNCIPCLOGI(L"Ws2_32.dll connect(%d, %ls, %d) %ls", s, FormatHostPortToStr(name, namelen), namelen, g_szRuleTargetDesc[dwTarget]);
 	CDL_FOREACH_SAFE(Chain, ChainNode, TempChainNode1, TempChainNode2) {
 		CDL_DELETE(Chain, ChainNode);
 		HeapFree(GetProcessHeap(), 0, ChainNode);
 	}
-	if (iReturn != 0 && iWSALastError != WSAEWOULDBLOCK) {
+	if (iReturn != 0 && iWSALastError != WSAEWOULDBLOCK && !(iWSALastError == WSAEREFUSED && dwTarget == PXCH_RULE_TARGET_BLOCK)) {
 		FUNCIPCLOGW(L"Ws2_32.dll connect() ret: %d, wsa last error: %ls", iReturn, FormatErrorToStr(iWSALastError));
 	} else {
 		FUNCIPCLOGD(L"Ws2_32.dll connect() ret: %d, wsa last error: %ls", iReturn, FormatErrorToStr(iWSALastError));
@@ -813,7 +823,7 @@ PROXY_FUNC2(Mswsock, ConnectEx)
 	BOOL bReturn;
 	DWORD dwLastError;
 	int iWSALastError;
-	BOOL bWillProxy;
+	PXCH_UINT32 dwTarget;
 	PXCH_CHAIN Chain = NULL;
 	PXCH_CHAIN_NODE* ChainNode = NULL;
 	PXCH_CHAIN_NODE* TempChainNode1 = NULL;
@@ -847,17 +857,21 @@ PROXY_FUNC2(Mswsock, ConnectEx)
 
 		if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) goto not_wsa_error_end;
 
-		if ((dwLastError = MessageToHostnameAndIps(NULL, (PXCH_HOSTNAME*)&ResolvedHostPortFromFakeIp, NULL, &dwRespIpNum, RespIps, &bWillProxy, chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) goto not_wsa_error_end;
+		if ((dwLastError = MessageToHostnameAndIps(NULL, (PXCH_HOSTNAME*)&ResolvedHostPortFromFakeIp, NULL, &dwRespIpNum, RespIps, &dwTarget, chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) goto not_wsa_error_end;
 
 		ResolvedHostPortFromFakeIp.CommonHeader.wPort = pHostPort->CommonHeader.wPort;
 		pHostPort = &ResolvedHostPortFromFakeIp;
 	} else {
-		bWillProxy = WillProxyByRule(NULL, NULL, NULL, NULL, pHostPort, FALSE);
+		dwTarget = GetTargetByRule(NULL, NULL, NULL, NULL, pHostPort, PXCH_RULE_TARGET_DIRECT);
 	}
 
-	if (!bWillProxy) {
+	if (dwTarget == PXCH_RULE_TARGET_DIRECT) {
 		bReturn = Mswsock_OriginalConnectEx(&TempData, s, name, namelen, lpSendBuffer, dwSendDataLength, lpdwBytesSent, lpOverlapped);
 		goto success_set_errcode_zero_end;
+	}
+
+	if (dwTarget == PXCH_RULE_TARGET_BLOCK) {
+		goto block_end;
 	}
 
 	for (i = 0; i < g_pPxchConfig->dwProxyNum; i++) {
@@ -871,6 +885,12 @@ success_set_errcode_zero_end:
 	bReturn = TRUE;
 	goto end;
 
+block_end:
+	iWSALastError = WSAEREFUSED;
+	dwLastError = ERROR_REQUEST_REFUSED;
+	iReturn = SOCKET_ERROR;
+	goto end;
+
 record_error_end:
 	iWSALastError = WSAGetLastError();
 	dwLastError = GetLastError();
@@ -881,12 +901,12 @@ not_wsa_error_end:
 	goto end;
 
 end:
-	FUNCIPCLOGI(L"mswsock.dll (FP)ConnectEx(%d, %ls, %d) proxied: %d", s, FormatHostPortToStr(name, namelen), namelen, bWillProxy);
+	FUNCIPCLOGI(L"mswsock.dll (FP)ConnectEx(%d, %ls, %d) %ls", s, FormatHostPortToStr(name, namelen), namelen, g_szRuleTargetDesc[dwTarget]);
 	CDL_FOREACH_SAFE(Chain, ChainNode, TempChainNode1, TempChainNode2) {
 		CDL_DELETE(Chain, ChainNode);
 		HeapFree(GetProcessHeap(), 0, ChainNode);
 	}
-	if (iReturn != 0 && iWSALastError != WSAEWOULDBLOCK) {
+	if (iReturn != 0 && iWSALastError != WSAEWOULDBLOCK && !(iWSALastError == WSAEREFUSED && dwTarget == PXCH_RULE_TARGET_BLOCK)) {
 		FUNCIPCLOGW(L"mswsock.dll (FP)ConnectEx ret: %d, wsa last error: %ls", bReturn, FormatErrorToStr(iWSALastError));
 	} else {
 		FUNCIPCLOGD(L"mswsock.dll (FP)ConnectEx ret: %d, wsa last error: %ls", bReturn, FormatErrorToStr(iWSALastError));
@@ -946,7 +966,7 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 	PXCH_HOSTNAME_PORT HostnamePort;
 	PXCH_UINT32 dwIpNum;
 	PXCH_IP_ADDRESS Ips[MAX_ARRAY_IP_NUM];
-	BOOL bWillProxy;
+	PXCH_UINT32 dwTarget;
 	BOOL bMatchedHostnameRule;
 
 	FUNCIPCLOGD(L"Ws2_32.dll gethostbyname(" WPRS L") called", name);
@@ -979,7 +999,7 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 	if (g_pPxchConfig->dwWillForceResolveByHostsFile && ResolveByHostsFile(NULL, &OriginalHostname)) goto orig;
 
 	// Won't match port!
-	bWillProxy = WillProxyByRule(&bMatchedHostnameRule, NULL, NULL, NULL, (PXCH_HOST_PORT*)&HostnamePort, FALSE);
+	dwTarget = GetTargetByRule(&bMatchedHostnameRule, NULL, NULL, NULL, (PXCH_HOST_PORT*)&HostnamePort, PXCH_RULE_TARGET_DIRECT);
 
 	if (bMatchedHostnameRule || g_pPxchConfig->dwWillUseFakeIpWhenHostnameNotMatched) {
 		PXCH_IPC_MSGBUF chMessageBuf;
@@ -991,7 +1011,7 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 		int iIpFamilyAllowed;
 		PXCH_IP_ADDRESS* pFakeIps;
 
-		if ((dwLastError = HostnameAndIpsToMessage(chMessageBuf, &cbMessageSize, GetCurrentProcessId(), &OriginalHostname, g_pPxchConfig->dwWillMapResolvedIpToHost, dwIpNum, Ips, bWillProxy)) != NO_ERROR) goto err;
+		if ((dwLastError = HostnameAndIpsToMessage(chMessageBuf, &cbMessageSize, GetCurrentProcessId(), &OriginalHostname, g_pPxchConfig->dwWillMapResolvedIpToHost, dwIpNum, Ips, dwTarget)) != NO_ERROR) goto err;
 
 		if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) goto err;
 
@@ -1145,7 +1165,7 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 
 	PXCH_HOST_PORT HostPort;
 	PXCH_HOSTNAME Hostname;
-	BOOL bWillProxy;
+	PXCH_UINT32 dwTarget;
 	BOOL bMatchedHostnameRule;
 
 	ADDRINFOW RequeryAddrInfoHints;
@@ -1217,7 +1237,7 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 
 	if (g_pPxchConfig->dwWillForceResolveByHostsFile && ResolveByHostsFile(NULL, &Hostname)) goto out;
 
-	bWillProxy = WillProxyByRule(&bMatchedHostnameRule, NULL, NULL, NULL, &HostPort, FALSE);
+	dwTarget = GetTargetByRule(&bMatchedHostnameRule, NULL, NULL, NULL, &HostPort, PXCH_RULE_TARGET_DIRECT);
 
 	if (bMatchedHostnameRule || g_pPxchConfig->dwWillUseFakeIpWhenHostnameNotMatched) {
 		PXCH_IPC_MSGBUF chMessageBuf;
@@ -1233,7 +1253,7 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 
 		AddrInfoToIps(&dwIpNum, Ips, *ppResultCast, TRUE);
 
-		if ((dwLastError = HostnameAndIpsToMessage(chMessageBuf, &cbMessageSize, GetCurrentProcessId(), &Hostname, g_pPxchConfig->dwWillMapResolvedIpToHost, dwIpNum, Ips, bWillProxy)) != NO_ERROR) goto err;
+		if ((dwLastError = HostnameAndIpsToMessage(chMessageBuf, &cbMessageSize, GetCurrentProcessId(), &Hostname, g_pPxchConfig->dwWillMapResolvedIpToHost, dwIpNum, Ips, dwTarget)) != NO_ERROR) goto err;
 
 		if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) goto err;
 

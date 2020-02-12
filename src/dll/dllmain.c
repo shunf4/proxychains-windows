@@ -242,8 +242,6 @@ error:
 
 PXCH_DLL_API DWORD __stdcall InitHookForMain(PROXYCHAINS_CONFIG* pPxchConfig)
 {
-	g_pPxchConfig = pPxchConfig;
-
 	MH_Initialize();
 	// CREATE_HOOK(CreateProcessA);
 	CREATE_HOOK(CreateProcessW);

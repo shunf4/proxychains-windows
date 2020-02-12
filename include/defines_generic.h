@@ -25,6 +25,11 @@ typedef unsigned int PXCH_UINT_PTR;
 #endif
 #endif
 
+#ifdef DEBUG
+#define IsDebug() (1)
+#else
+#define IsDebug() (0)
+#endif
 
 // printf narrow string specifier
 // Only used in non-ipc log. When using ipc log, use "%ls" for wide string, and "%S" for narrow string
@@ -64,6 +69,7 @@ typedef unsigned int PXCH_UINT_PTR;
 #define MAX_PASSWORD_BUFSIZE 256
 #define MAX_PROXY_NUM 5
 #define MAX_FILEMAPPING_BUFSIZE 256
+#define MAX_CONFIGURATION_LINE_BUFSIZE 512
 #define MAX_ARRAY_IP_NUM 10
 
 #define PXCH_LOG_IPC_BUFSIZE 1024
@@ -71,6 +77,12 @@ typedef unsigned int PXCH_UINT_PTR;
 
 #define MAX_FWPRINTF_BUFSIZE 1024	// Also as log bufsize
 // In characters -- end
+
+#ifdef __CYGWIN__
+#ifndef SYSCONFDIR
+#define SYSCONFDIR "/etc"
+#endif
+#endif
 
 #define PXCH_PROXY_TYPE_MASK    0x000000FF
 #define PXCH_PROXY_TYPE_INVALID 0x00000000
@@ -101,6 +113,10 @@ typedef unsigned int PXCH_UINT_PTR;
 #define PXCH_RULE_TYPE_PORT             0x00000005
 #define PXCH_RULE_TYPE_FINAL            0x00000006
 #define PXCH_RULE_TYPE_INVALID          0x00000000
+
+#define PXCH_RULE_TARGET_PROXY          0x00000001
+#define PXCH_RULE_TARGET_DIRECT         0x00000000
+#define PXCH_RULE_TARGET_BLOCK          0x00000002
 
 #define RuleInit(x) (x).dwTag = PXCH_RULE_TYPE_INVALID
 
@@ -240,7 +256,7 @@ typedef struct _PXCH_RULE {
 	PXCH_HOST_PORT HostPort;
 	PXCH_UINT32 dwCidrPrefixLength;
 	
-	PXCH_UINT32 iWillProxy;
+	PXCH_UINT32 dwTarget;
 } PXCH_RULE;
 
 
@@ -265,8 +281,8 @@ typedef struct _PXCH_HOSTS_ENTRY {
 
 typedef struct _PROXYCHAINS_CONFIG {
 	PXCH_UINT32 dwMasterProcessId;
-	PXCH_INT32 dwIsQuiet;
-	PXCH_INT32 dwIsQuietAlreadySet;
+	PXCH_INT32 dwLogLevel;
+	PXCH_INT32 dwLogLevelAlreadySet;
 	wchar_t szIpcPipeName[MAX_IPC_PIPE_NAME_BUFSIZE];
 	wchar_t szConfigPath[MAX_CONFIG_FILE_PATH_BUFSIZE];
 	wchar_t szHookDllPath[MAX_DLL_PATH_BUFSIZE];

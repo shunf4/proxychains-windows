@@ -60,7 +60,7 @@ typedef struct _IPC_MSGHDR_HOSTNAMEANDIPS {
 	//     Server can't find fake ip/resolved ip provided by client, returning it as-is;
 	//   else: Server returns hostname and resolved ips corresponding to fake ip/resolved ip provided by client.
 	PXCH_HOSTNAME Hostname;
-	PXCH_UINT32 dwWillProxy;
+	PXCH_UINT32 dwTarget;
 	PXCH_UINT32 dwWillMapResolvedIpToHost;
 	PXCH_UINT32 dwIpNum;
 } PXCH_IPC_MSGHDR_HOSTNAMEANDIPS;
@@ -74,5 +74,5 @@ PXCH_UINT32 IpcCommunicateWithServer(const PXCH_IPC_MSGBUF sendMessage, PXCH_UIN
 PXCH_UINT32 WstrToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, const wchar_t* szWstr);
 PXCH_UINT32 MessageToWstr(wchar_t* wstr, CPXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize);
 
-PXCH_UINT32 HostnameAndIpsToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, PXCH_UINT32 dwPid, const PXCH_HOSTNAME* Hostname, BOOL bWillMapResolvedIpToHost, PXCH_UINT32 dwIpNum, const PXCH_IP_ADDRESS* Ips, BOOL bWillProxy);
-PXCH_UINT32 MessageToHostnameAndIps(PXCH_UINT32* pdwPid, PXCH_HOSTNAME* pHostname, BOOL* pbWillMapResolvedIpToHost, PXCH_UINT32* pdwIpNum, PXCH_IP_ADDRESS* Ips, BOOL* pbWillProxy, CPXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize);
+PXCH_UINT32 HostnameAndIpsToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, PXCH_UINT32 dwPid, const PXCH_HOSTNAME* Hostname, BOOL bWillMapResolvedIpToHost, PXCH_UINT32 dwIpNum, const PXCH_IP_ADDRESS* Ips, PXCH_UINT32 dwTarget);
+PXCH_UINT32 MessageToHostnameAndIps(PXCH_UINT32* pdwPid, PXCH_HOSTNAME* pHostname, BOOL* pbWillMapResolvedIpToHost, PXCH_UINT32* pdwIpNum, PXCH_IP_ADDRESS* Ips, PXCH_UINT32* pdwTarget, CPXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize);

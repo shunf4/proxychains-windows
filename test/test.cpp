@@ -95,7 +95,7 @@ int main()
         }
         WSAAddressToStringA(a->ai_addr, (DWORD)a->ai_addrlen, NULL, ipstrbuf, &ipstrbuflen);
         
-        printf("addrs[%d]\naddr: %s\naddrlen: %llu\ncanonname: %ls\nfamily: %d\nflags: %d\nprotocol: %d\nsocktype: %d\n\n", iaddr, ipstrbuf, a->ai_addrlen, a->ai_canonname, a->ai_family, a->ai_flags, a->ai_protocol, a->ai_socktype);
+        printf("addrs[%d]\naddr: %s\naddrlen: %u\ncanonname: %ls\nfamily: %d\nflags: %d\nprotocol: %d\nsocktype: %d\n\n", iaddr, ipstrbuf, (unsigned)a->ai_addrlen, a->ai_canonname, a->ai_family, a->ai_flags, a->ai_protocol, a->ai_socktype);
         printf("WSAStringToAddressA: %d\n", WSAStringToAddressA(ipstrbuf, AF_INET6, NULL, (LPSOCKADDR)&xxxx, &ilen));
     }
 

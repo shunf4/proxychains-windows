@@ -28,7 +28,7 @@ ALL_IMPLIBS = $(DLL_IMPLIB_PATH)
 ALL_SHARED_LIBS = $(DLL_PATH)
 ALL_EXECS = $(EXEC_PATH)
 
-all : release
+all : debug
 
 debug : CFLAGS += -g -DDEBUG -D_DEBUG
 debug : DLL_CFLAGS += -g -DDEBUG -D_DEBUG
@@ -54,7 +54,7 @@ $(DLL_PATH) : dll/dllmain.o dll/hook_connect_win32.o dll/hook_connect_win32.o dl
 	
 $(DLL_IMPLIB_PATH) : $(DLL_PATH)
 
-$(EXEC_PATH) : exe/main.o exe/args_and_config.o exe/ipc_proc_bookkeeping.o common.o common_wsock.o ipc_message.o log.o cygwin_strsafe/strsafe.o $(DLL_IMPLIB_PATH)
+$(EXEC_PATH) : exe/main.o exe/args_and_config.o exe/ipc_proc_bookkeeping.o stdlib_config_reader.o common.o common_wsock.o ipc_message.o log.o cygwin_strsafe/strsafe.o $(DLL_IMPLIB_PATH)
 	$(CC) -o$@ $^ -lntdllcrt -lkernel32 -lshlwapi -ladvapi32 -lcygwin -lws2_32
 
 .PHONY : clean

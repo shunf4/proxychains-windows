@@ -75,7 +75,7 @@ typedef struct {
 	PXCH_UINT32 dwOptionalPid;	// == 0 if it is fake ip; else == pid
 
 	PXCH_HOSTNAME Hostname;
-	BOOL bWillProxy;
+	PXCH_UINT32 dwTarget;
 	PXCH_UINT32 dwResovledIpNum;
 	PXCH_IP_ADDRESS ResolvedIps[MAX_ARRAY_IP_NUM];
 

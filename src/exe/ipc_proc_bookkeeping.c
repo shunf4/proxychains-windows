@@ -35,7 +35,7 @@ void PrintTablePerProcess()
 
 			if (IpHostnameEntry) {
 				PXCH_UINT32 i;
-				StringCchPrintfExW(pTempBuf, _countof(TempBuf) - (pTempBuf - TempBuf), &pTempBuf, NULL, 0, L"(FakeIp,%ls<%ls> - ", IpHostnameEntry->Hostname.szValue, IpHostnameEntry->bWillProxy ? L"Proxied" : L"Direct");
+				StringCchPrintfExW(pTempBuf, _countof(TempBuf) - (pTempBuf - TempBuf), &pTempBuf, NULL, 0, L"(FakeIp,%ls<%ls> - ", IpHostnameEntry->Hostname.szValue, g_szRuleTargetDesc[IpHostnameEntry->dwTarget]);
 				for (i = 0; i < IpHostnameEntry->dwResovledIpNum; i++) {
 					StringCchPrintfExW(pTempBuf, _countof(TempBuf) - (pTempBuf - TempBuf), &pTempBuf, NULL, 0, L"%ls%ls", i ? L"/" : L"", FormatHostPortToStr(&IpHostnameEntry->ResolvedIps[i], sizeof(PXCH_IP_ADDRESS)));
 				}
@@ -48,7 +48,7 @@ void PrintTablePerProcess()
 
 			if (IpHostnameEntry) {
 				PXCH_UINT32 i;
-				StringCchPrintfExW(pTempBuf, _countof(TempBuf) - (pTempBuf - TempBuf), &pTempBuf, NULL, 0, L"(ResolvedIp,%ls<%ls> - ", IpHostnameEntry->Hostname.szValue, IpHostnameEntry->bWillProxy ? L"Proxied" : L"Direct");
+				StringCchPrintfExW(pTempBuf, _countof(TempBuf) - (pTempBuf - TempBuf), &pTempBuf, NULL, 0, L"(ResolvedIp,%ls<%ls> - ", IpHostnameEntry->Hostname.szValue, g_szRuleTargetDesc[IpHostnameEntry->dwTarget]);
 				for (i = 0; i < IpHostnameEntry->dwResovledIpNum; i++) {
 					StringCchPrintfExW(pTempBuf, _countof(TempBuf) - (pTempBuf - TempBuf), &pTempBuf, NULL, 0, L"%ls%ls", i ? L"/" : L"", FormatHostPortToStr(&IpHostnameEntry->ResolvedIps[i], sizeof(PXCH_IP_ADDRESS)));
 				}
@@ -267,7 +267,7 @@ DWORD RegisterHostnameAndGetFakeIp(PXCH_IP_ADDRESS* pFakeIpv4, PXCH_IP_ADDRESS* 
 		FakeIpv4Entry->Ip = pIpv4Node->Ip;
 		FakeIpv4Entry->dwOptionalPid = 0;
 		FakeIpv4Entry->Hostname = TempEntry->Hostname;
-		FakeIpv4Entry->bWillProxy = TempEntry->bWillProxy;
+		FakeIpv4Entry->dwTarget = TempEntry->dwTarget;
 		FakeIpv4Entry->dwResovledIpNum = TempEntry->dwResovledIpNum;
 		LOGD(L"Fake Ipv4: %ls", FormatHostPortToStr(&pIpv4Node->Ip, sizeof(PXCH_IP_ADDRESS)));
 		CopyMemory(FakeIpv4Entry->ResolvedIps, TempEntry->ResolvedIps, sizeof(PXCH_IP_ADDRESS) * FakeIpv4Entry->dwResovledIpNum);
@@ -280,7 +280,7 @@ DWORD RegisterHostnameAndGetFakeIp(PXCH_IP_ADDRESS* pFakeIpv4, PXCH_IP_ADDRESS* 
 		FakeIpv6Entry->Ip = pIpv6Node->Ip;
 		FakeIpv6Entry->dwOptionalPid = 0;
 		FakeIpv6Entry->Hostname = TempEntry->Hostname;
-		FakeIpv6Entry->bWillProxy = TempEntry->bWillProxy;
+		FakeIpv6Entry->dwTarget = TempEntry->dwTarget;
 		FakeIpv6Entry->dwResovledIpNum = TempEntry->dwResovledIpNum;
 		LOGD(L"Fake Ipv6: %ls", FormatHostPortToStr(&pIpv6Node->Ip, sizeof(PXCH_IP_ADDRESS)));
 		CopyMemory(FakeIpv6Entry->ResolvedIps, TempEntry->ResolvedIps, sizeof(PXCH_IP_ADDRESS) * FakeIpv6Entry->dwResovledIpNum);
@@ -345,8 +345,8 @@ DWORD GetMsgHostnameAndResolvedIpsFromMsgIp(PXCH_IPC_MSGBUF chMessageBuf, PXCH_U
 		HASH_FIND(hh, g_tabFakeIpHostname, &AsKey.Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), Entry);
 
 		if (Entry) {
-			LOGI(L"ResolvedIp %ls -> Hostname %ls, %ls", FormatHostPortToStr(PXCH_IPC_IP_ARR(pMsgIp), sizeof(PXCH_IP_ADDRESS)), Entry->Hostname.szValue, Entry->bWillProxy ? L"Proxied" : L"Direct");
-			dwErrorCode = HostnameAndIpsToMessage(chMessageBuf, pcbMessageSize, pMsgIp->dwPid, &Entry->Hostname, FALSE /*ignored*/, Entry->dwResovledIpNum, Entry->ResolvedIps, Entry->bWillProxy);
+			LOGI(L"ResolvedIp %ls -> Hostname %ls, %ls", FormatHostPortToStr(PXCH_IPC_IP_ARR(pMsgIp), sizeof(PXCH_IP_ADDRESS)), Entry->Hostname.szValue, g_szRuleTargetDesc[Entry->dwTarget]);
+			dwErrorCode = HostnameAndIpsToMessage(chMessageBuf, pcbMessageSize, pMsgIp->dwPid, &Entry->Hostname, FALSE /*ignored*/, Entry->dwResovledIpNum, Entry->ResolvedIps, Entry->dwTarget);
 			if (dwErrorCode != NO_ERROR) goto error;
 
 			return NO_ERROR;
@@ -358,8 +358,8 @@ DWORD GetMsgHostnameAndResolvedIpsFromMsgIp(PXCH_IPC_MSGBUF chMessageBuf, PXCH_U
 	HASH_FIND(hh, g_tabFakeIpHostname, &AsKey.Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), Entry);
 
 	if (Entry) {
-		LOGI(L"FakeIp %ls -> Hostname %ls, %ls", FormatHostPortToStr(PXCH_IPC_IP_ARR(pMsgIp), sizeof(PXCH_IP_ADDRESS)), Entry->Hostname.szValue, Entry->bWillProxy ? L"Proxied" : L"Direct");
-		dwErrorCode = HostnameAndIpsToMessage(chMessageBuf, pcbMessageSize, pMsgIp->dwPid, &Entry->Hostname, FALSE /*ignored*/, Entry->dwResovledIpNum, Entry->ResolvedIps, Entry->bWillProxy);
+		LOGI(L"FakeIp %ls -> Hostname %ls, %ls", FormatHostPortToStr(PXCH_IPC_IP_ARR(pMsgIp), sizeof(PXCH_IP_ADDRESS)), Entry->Hostname.szValue, g_szRuleTargetDesc[Entry->dwTarget]);
+		dwErrorCode = HostnameAndIpsToMessage(chMessageBuf, pcbMessageSize, pMsgIp->dwPid, &Entry->Hostname, FALSE /*ignored*/, Entry->dwResovledIpNum, Entry->ResolvedIps, Entry->dwTarget);
 		if (dwErrorCode != NO_ERROR) goto error;
 
 		return NO_ERROR;
@@ -417,7 +417,7 @@ DWORD HandleMessage(int i, PXCH_IPC_INSTANCE* pipc)
 		PXCH_IP_ADDRESS FakeIps[2];
 		
 		LOGV(L"Message is HOSTNAMEANDIPS");
-		MessageToHostnameAndIps(&dwPid, &Entry.Hostname, &bWillMapResolvedIpToHost, &Entry.dwResovledIpNum, Entry.ResolvedIps, &Entry.bWillProxy, pMsg, pipc->cbRead);
+		MessageToHostnameAndIps(&dwPid, &Entry.Hostname, &bWillMapResolvedIpToHost, &Entry.dwResovledIpNum, Entry.ResolvedIps, &Entry.dwTarget, pMsg, pipc->cbRead);
 
 		if (HostIsType(HOSTNAME, Entry.Hostname) && Entry.Hostname.szValue[0]) {
 			LOGV(L"Client is registering hostname, retrieving fake ips");

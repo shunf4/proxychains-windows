@@ -352,7 +352,7 @@ BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
 	}
 }
 
-DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig);
+DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* pTempPxchConfig);
 
 DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCommandStart);
 
@@ -373,26 +373,26 @@ int wmain(int argc, WCHAR* argv[])
 	DWORD dwTid;
 	STARTUPINFO startupInfo = { 0 };
 	PROCESS_INFORMATION processInformation = { 0 };
+	PROXYCHAINS_CONFIG TempProxychainsConfig;
 	int iCommandStart;
+	const char* szLocale;
 
 	setvbuf(stderr, NULL, _IOFBF, 65536);
-	LOGI(L"Locale: " WPRS, setlocale(LC_ALL, ""));
+	szLocale = setlocale(LC_ALL, "");
+	LOGI(L"Locale: " WPRS, szLocale);
+
 	if ((dwError = Init()) != NOERROR) goto err;
-
 	if ((dwError = InitProcessBookkeeping()) != NOERROR) goto err;
-
-	if ((dwError = LoadConfiguration(&g_pPxchConfig)) != NOERROR) goto err;
-
-	LOGI(L"DLL Path: %ls", g_pPxchConfig->szHookDllPath);
-	LOGI(L"MinHook DLL Path: %ls", g_pPxchConfig->szMinHookDllPath);
+	if ((dwError = ParseArgs(&TempProxychainsConfig, argc, argv, &iCommandStart)) != NOERROR) goto err;
+	if ((dwError = LoadConfiguration(&g_pPxchConfig, &TempProxychainsConfig)) != NOERROR) goto err;
 
 	InitHookForMain(g_pPxchConfig);
 
-	if ((dwError = ParseArgs(g_pPxchConfig, argc, argv, &iCommandStart)) != NOERROR) goto err;
-
+	LOGI(L"DLL Path: %ls", g_pPxchConfig->szHookDllPath);
+	LOGI(L"MinHook DLL Path: %ls", g_pPxchConfig->szMinHookDllPath);
 	LOGI(L"Config Path: %ls", g_pPxchConfig->szConfigPath);
 	LOGI(L"Pipe name: %ls", g_pPxchConfig->szIpcPipeName);
-	LOGI(L"Quiet: %ls", g_pPxchConfig->dwIsQuiet ? L"Y" : L"N");
+	LOGI(L"Log level: " WPRDW, g_pPxchConfig->dwLogLevel);
 	LOGI(L"Command Line: %ls", g_pPxchConfig->szCommandLine);
 
 	if (CreateThread(0, 0, &ServerLoop, g_pPxchConfig, 0, &dwTid) == NULL) goto err_get;
@@ -475,6 +475,8 @@ int main(int argc, char* const argv[], char* const envp[])
 	DWORD dwTid;
 	int iCommandStart;
 	int i;
+	const char* szLocale;
+	PROXYCHAINS_CONFIG TempProxychainsConfig;
 
 	// char* spawn_argv[] = { "bash.exe", NULL };
 	WCHAR** wargv = malloc(argc * sizeof(WCHAR*));
@@ -488,22 +490,21 @@ int main(int argc, char* const argv[], char* const envp[])
 		MultiByteToWideChar(CP_UTF8, 0, argv[i], -1, wargv[i], iNeededChars);
 	}
 
-	LOGI(L"Locale: " WPRS, setlocale(LC_ALL, ""));
+	setvbuf(stderr, NULL, _IOFBF, 65536);
+	szLocale = setlocale(LC_ALL, "");
+	LOGI(L"Locale: " WPRS, szLocale);
 
 	if ((dwError = Init()) != NOERROR) goto err;
 	if ((dwError = InitProcessBookkeeping()) != NOERROR) goto err;
-	if ((dwError = LoadConfiguration(&g_pPxchConfig)) != NOERROR) goto err;
+	if ((dwError = ParseArgs(&TempProxychainsConfig, argc, wargv, &iCommandStart)) != NOERROR) goto err;
+	if ((dwError = LoadConfiguration(&g_pPxchConfig, &TempProxychainsConfig)) != NOERROR) goto err;
+	InitHookForMain(g_pPxchConfig);
 
 	LOGI(L"DLL Path: %ls", g_pPxchConfig->szHookDllPath);
 	LOGI(L"MinHook DLL Path: %ls", g_pPxchConfig->szMinHookDllPath);
-
-	InitHookForMain(g_pPxchConfig);
-
-	if ((dwError = ParseArgs(g_pPxchConfig, argc, wargv, &iCommandStart)) != NOERROR) goto err;
-
 	LOGI(L"Config Path: %ls", g_pPxchConfig->szConfigPath);
 	LOGI(L"Pipe name: %ls", g_pPxchConfig->szIpcPipeName);
-	LOGI(L"Quiet: %ls", g_pPxchConfig->dwIsQuiet ? L"Y" : L"N");
+	LOGI(L"Log level: " WPRDW, g_pPxchConfig->dwLogLevel);
 	LOGI(L"argv[iCommandStart]: " WPRS, argv[iCommandStart]);
 
 	if (CreateThread(0, 0, &ServerLoop, g_pPxchConfig, 0, &dwTid) == NULL) goto err_get;

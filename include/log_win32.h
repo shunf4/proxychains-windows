@@ -65,53 +65,59 @@ static void __attribute__((unused)) suppress_unused_variables(void)
 #define PXCH_LOG_IPC_PID_VALUE   PXCH_LOG_IPC_PID_VALUE_WIN
 #endif
 
-#define PXCH_LOG_REAL(real_fmt, ...) \
+#define PXCH_LOG_REAL(levelno, real_fmt, ...) \
 	do { \
+		if ((g_pPxchConfig && g_pPxchConfig->dwLogLevel < levelno) || (!g_pPxchConfig && !IsDebug() && levelno >= PXCH_LOG_LEVEL_INFO)) break; \
 		GetLocalTime(&log_time); \
 		StdWprintf(STD_OUTPUT_HANDLE, real_fmt, log_time.wYear, log_time.wMonth, log_time.wDay, log_time.wHour, log_time.wMinute, log_time.wSecond, ##__VA_ARGS__); \
 		StdFlush(STD_OUTPUT_HANDLE); \
 	} while(0)
 
-#define PXCH_LOG_REAL_E(real_fmt, ...) \
+#define PXCH_LOG_REAL_E(levelno, real_fmt, ...) \
 	do { \
+		if ((g_pPxchConfig && g_pPxchConfig->dwLogLevel < levelno) || (!g_pPxchConfig && !IsDebug() && levelno >= PXCH_LOG_LEVEL_INFO)) break; \
 		GetLocalTime(&log_time); \
 		StdWprintf(STD_ERROR_HANDLE, real_fmt, log_time.wYear, log_time.wMonth, log_time.wDay, log_time.wHour, log_time.wMinute, log_time.wSecond, ##__VA_ARGS__); \
 		StdFlush(STD_ERROR_HANDLE); \
 	} while(0)
 
-#define PXCH_LOG_IPC_REAL(real_fmt, ...) do { \
-	GetLocalTime(&log_time); \
-	log_szLogLine[0] = L'\0'; \
-	StringCchPrintfW(log_szLogLine, MAX_FWPRINTF_BUFSIZE, real_fmt, PXCH_LOG_IPC_PID_VALUE, log_time.wYear, log_time.wMonth, log_time.wDay, log_time.wHour, log_time.wMinute, log_time.wSecond, ##__VA_ARGS__); \
-	if (log_szLogLine[MAX_FWPRINTF_BUFSIZE - 2]) log_szLogLine[MAX_FWPRINTF_BUFSIZE - 2] = L'\n'; \
-	log_szLogLine[MAX_FWPRINTF_BUFSIZE - 1] = L'\0'; \
-	WstrToMessage(log_msg, &log_cbMsgSize, log_szLogLine); \
-	IpcCommunicateWithServer(log_msg, log_cbMsgSize, log_respMsg, &log_cbRespMsgSize); \
-} while(0)
-
-#define PXCH_LOG_IPC(level, fmt, ...) \
+#define PXCH_LOG_IPC_REAL(levelno, real_fmt, ...) \
 	do { \
+		if ((g_pPxchConfig && g_pPxchConfig->dwLogLevel < levelno) || (!g_pPxchConfig && !IsDebug() && levelno >= PXCH_LOG_LEVEL_INFO)) break; \
+		GetLocalTime(&log_time); \
+		log_szLogLine[0] = L'\0'; \
+		StringCchPrintfW(log_szLogLine, MAX_FWPRINTF_BUFSIZE, real_fmt, PXCH_LOG_IPC_PID_VALUE, log_time.wYear, log_time.wMonth, log_time.wDay, log_time.wHour, log_time.wMinute, log_time.wSecond, ##__VA_ARGS__); \
+		if (log_szLogLine[MAX_FWPRINTF_BUFSIZE - 2]) log_szLogLine[MAX_FWPRINTF_BUFSIZE - 2] = L'\n'; \
+		log_szLogLine[MAX_FWPRINTF_BUFSIZE - 1] = L'\0'; \
+		WstrToMessage(log_msg, &log_cbMsgSize, log_szLogLine); \
+		IpcCommunicateWithServer(log_msg, log_cbMsgSize, log_respMsg, &log_cbRespMsgSize); \
+	} while(0)
+
+#define PXCH_LOG_IPC(levelno, leveltag, fmt, ...) \
+	do { \
+		if ((g_pPxchConfig && g_pPxchConfig->dwLogLevel < levelno) || (!g_pPxchConfig && !IsDebug() && levelno >= PXCH_LOG_LEVEL_INFO)) break; \
 		PXCH_LOG_IPC_PID_QUERY(); \
 		if (g_pPxchConfig && log_pid == g_pPxchConfig->dwMasterProcessId) {\
-			PXCH_LOG_REAL(PXCH_LOG_CONCAT_FMT(level, fmt), ##__VA_ARGS__); \
+			PXCH_LOG_REAL(levelno, PXCH_LOG_CONCAT_FMT(leveltag, fmt), ##__VA_ARGS__); \
 		} else { \
-			PXCH_LOG_IPC_REAL(PXCH_LOG_IPC_CONCAT_FMT(level, fmt), ##__VA_ARGS__); \
+			PXCH_LOG_IPC_REAL(levelno, PXCH_LOG_IPC_CONCAT_FMT(leveltag, fmt), ##__VA_ARGS__); \
 		} \
 	} while(0)
 
-#define PXCH_LOG_IPC_E(level, fmt, ...) \
+#define PXCH_LOG_IPC_E(levelno, leveltag, fmt, ...) \
 	do { \
+		if ((g_pPxchConfig && g_pPxchConfig->dwLogLevel < levelno) || (!g_pPxchConfig && !IsDebug() && levelno >= PXCH_LOG_LEVEL_INFO)) break; \
 		PXCH_LOG_IPC_PID_QUERY(); \
 		if (g_pPxchConfig && log_pid == g_pPxchConfig->dwMasterProcessId) {\
-			PXCH_LOG_REAL_E(PXCH_LOG_CONCAT_FMT(level, fmt), ##__VA_ARGS__); \
+			PXCH_LOG_REAL_E(levelno, PXCH_LOG_CONCAT_FMT(leveltag, fmt), ##__VA_ARGS__); \
 		} else { \
-			PXCH_LOG_IPC_REAL(PXCH_LOG_IPC_CONCAT_FMT(level, fmt), ##__VA_ARGS__); \
+			PXCH_LOG_IPC_REAL(levelno, PXCH_LOG_IPC_CONCAT_FMT(leveltag, fmt), ##__VA_ARGS__); \
 		} \
 	} while(0)
 
-#define PXCH_LOG(level, fmt, ...) PXCH_LOG_REAL(PXCH_LOG_CONCAT_FMT(level, fmt), ##__VA_ARGS__)
+#define PXCH_LOG(levelno, leveltag, fmt, ...) PXCH_LOG_REAL(levelno, PXCH_LOG_CONCAT_FMT(leveltag, fmt), ##__VA_ARGS__)
 
-#define PXCH_LOG_E(level, fmt, ...) PXCH_LOG_REAL_E(PXCH_LOG_CONCAT_FMT(level, fmt), ##__VA_ARGS__)
+#define PXCH_LOG_E(levelno, leveltag, fmt, ...) PXCH_LOG_REAL_E(levelno, PXCH_LOG_CONCAT_FMT(leveltag, fmt), ##__VA_ARGS__)
 
 #if PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_DEBUG
 #define ODBGSTRLOG(fmt, ...) do { StringCchPrintfW(log_ods_buf, PXCH_LOG_ODS_BUFSIZE, fmt, ##__VA_ARGS__); OutputDebugStringW(log_ods_buf); } while(0)
@@ -120,48 +126,48 @@ static void __attribute__((unused)) suppress_unused_variables(void)
 #endif
 
 #if PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_CRITICAL
-#define LOGC(fmt, ...) PXCH_LOG_E(C, fmt, ##__VA_ARGS__)
-#define IPCLOGC(fmt, ...) PXCH_LOG_IPC_E(C, fmt, ##__VA_ARGS__)
+#define LOGC(fmt, ...) PXCH_LOG_E(PXCH_LOG_LEVEL_CRITICAL, C, fmt, ##__VA_ARGS__)
+#define IPCLOGC(fmt, ...) PXCH_LOG_IPC_E(PXCH_LOG_LEVEL_CRITICAL, C, fmt, ##__VA_ARGS__)
 #else
 #define LOGC(...)
 #define IPCLOGC(...)
 #endif
 
 #if PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_ERROR
-#define LOGE(fmt, ...) PXCH_LOG_E(E, fmt, ##__VA_ARGS__)
-#define IPCLOGE(fmt, ...) PXCH_LOG_IPC_E(E, fmt, ##__VA_ARGS__)
+#define LOGE(fmt, ...) PXCH_LOG_E(PXCH_LOG_LEVEL_ERROR, E, fmt, ##__VA_ARGS__)
+#define IPCLOGE(fmt, ...) PXCH_LOG_IPC_E(PXCH_LOG_LEVEL_ERROR, E, fmt, ##__VA_ARGS__)
 #else
 #define LOGE(...)
 #define IPCLOGE(...)
 #endif
 
 #if PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_WARNING
-#define LOGW(fmt, ...) PXCH_LOG(W, fmt, ##__VA_ARGS__)
-#define IPCLOGW(fmt, ...) PXCH_LOG_IPC(W, fmt, ##__VA_ARGS__)
+#define LOGW(fmt, ...) PXCH_LOG(PXCH_LOG_LEVEL_WARNING, W, fmt, ##__VA_ARGS__)
+#define IPCLOGW(fmt, ...) PXCH_LOG_IPC(PXCH_LOG_LEVEL_WARNING, W, fmt, ##__VA_ARGS__)
 #else
 #define LOGW(...)
 #define IPCLOGW(...)
 #endif
 
 #if PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_INFO
-#define LOGI(fmt, ...) PXCH_LOG(I, fmt, ##__VA_ARGS__)
-#define IPCLOGI(fmt, ...) PXCH_LOG_IPC(I, fmt, ##__VA_ARGS__)
+#define LOGI(fmt, ...) PXCH_LOG(PXCH_LOG_LEVEL_INFO, I, fmt, ##__VA_ARGS__)
+#define IPCLOGI(fmt, ...) PXCH_LOG_IPC(PXCH_LOG_LEVEL_INFO, I, fmt, ##__VA_ARGS__)
 #else
 #define LOGI(...)
 #define IPCLOGI(...)
 #endif
 
 #if PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_DEBUG
-#define LOGD(fmt, ...) PXCH_LOG(D, fmt, ##__VA_ARGS__)
-#define IPCLOGD(fmt, ...) PXCH_LOG_IPC(D, fmt, ##__VA_ARGS__)
+#define LOGD(fmt, ...) PXCH_LOG(PXCH_LOG_LEVEL_DEBUG, D, fmt, ##__VA_ARGS__)
+#define IPCLOGD(fmt, ...) PXCH_LOG_IPC(PXCH_LOG_LEVEL_DEBUG, D, fmt, ##__VA_ARGS__)
 #else
 #define LOGD(...)
 #define IPCLOGD(...)
 #endif
 
 #if PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_VERBOSE
-#define LOGV(fmt, ...) PXCH_LOG(V, fmt, ##__VA_ARGS__)
-#define IPCLOGV(fmt, ...) PXCH_LOG_IPC(V, fmt, ##__VA_ARGS__)
+#define LOGV(fmt, ...) PXCH_LOG(PXCH_LOG_LEVEL_VERBOSE, V, fmt, ##__VA_ARGS__)
+#define IPCLOGV(fmt, ...) PXCH_LOG_IPC(PXCH_LOG_LEVEL_VERBOSE, V, fmt, ##__VA_ARGS__)
 #else
 #define LOGV(...)
 #define IPCLOGV(...)

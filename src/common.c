@@ -4,6 +4,11 @@
 WCHAR szErrorMessage[MAX_ERROR_MESSAGE_BUFSIZE];
 static WCHAR szFwprintfWbuf[MAX_FWPRINTF_BUFSIZE];
 static CHAR szFwprintfBuf[MAX_FWPRINTF_BUFSIZE];
+const wchar_t* g_szRuleTargetDesc[3] = {
+	L"DIRECT",
+	L"PROXY",
+	L"BLOCK",
+};
 
 void StdVwprintf(DWORD dwStdHandle, const WCHAR* fmt, va_list args)
 {

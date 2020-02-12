@@ -63,7 +63,7 @@ DWORD MessageToQueryStorage(DWORD* pdwChildPid, CPXCH_IPC_MSGBUF chMessageBuf, D
 	return 0;
 }
 
-PXCH_UINT32 HostnameAndIpsToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, PXCH_UINT32 dwPid, const PXCH_HOSTNAME* Hostname, BOOL bWillMapResolvedIpToHost, PXCH_UINT32 dwIpNum, const PXCH_IP_ADDRESS* Ips, BOOL bWillProxy)
+PXCH_UINT32 HostnameAndIpsToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, PXCH_UINT32 dwPid, const PXCH_HOSTNAME* Hostname, BOOL bWillMapResolvedIpToHost, PXCH_UINT32 dwIpNum, const PXCH_IP_ADDRESS* Ips, PXCH_UINT32 dwTarget)
 {
 	PXCH_IPC_MSGHDR_HOSTNAMEANDIPS* pHdr = (PXCH_IPC_MSGHDR_HOSTNAMEANDIPS*)chMessageBuf;
 
@@ -72,14 +72,14 @@ PXCH_UINT32 HostnameAndIpsToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* p
 	pHdr->dwWillMapResolvedIpToHost = bWillMapResolvedIpToHost;
 	pHdr->Hostname = *Hostname;
 	pHdr->dwPid = dwPid;
-	pHdr->dwWillProxy = bWillProxy;
+	pHdr->dwTarget = dwTarget;
 
 	CopyMemory((char*)chMessageBuf + sizeof(PXCH_IPC_MSGHDR_HOSTNAMEANDIPS), Ips, sizeof(PXCH_IP_ADDRESS) * dwIpNum);
 	*pcbMessageSize = sizeof(PXCH_IPC_MSGHDR_HOSTNAMEANDIPS) + sizeof(PXCH_IP_ADDRESS) * dwIpNum;
 	return 0;
 }
 
-PXCH_UINT32 MessageToHostnameAndIps(PXCH_UINT32* pdwPid, PXCH_HOSTNAME* pHostname, BOOL* pbWillMapResolvedIpToHost, PXCH_UINT32* pdwIpNum, PXCH_IP_ADDRESS* Ips, BOOL* pbWillProxy, CPXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize)
+PXCH_UINT32 MessageToHostnameAndIps(PXCH_UINT32* pdwPid, PXCH_HOSTNAME* pHostname, BOOL* pbWillMapResolvedIpToHost, PXCH_UINT32* pdwIpNum, PXCH_IP_ADDRESS* Ips, PXCH_UINT32* pdwTarget, CPXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize)
 {
 	const PXCH_IPC_MSGHDR_HOSTNAMEANDIPS* pHdr = (const PXCH_IPC_MSGHDR_HOSTNAMEANDIPS*)chMessageBuf;
 	if (!MsgIsType(HOSTNAMEANDIPS, chMessageBuf)) return ERROR_INVALID_PARAMETER;
@@ -88,7 +88,7 @@ PXCH_UINT32 MessageToHostnameAndIps(PXCH_UINT32* pdwPid, PXCH_HOSTNAME* pHostnam
 	if (pbWillMapResolvedIpToHost) *pbWillMapResolvedIpToHost = pHdr->dwWillMapResolvedIpToHost;
 	if (pdwIpNum) *pdwIpNum = pHdr->dwIpNum;
 	if (pdwPid) *pdwPid = pHdr->dwPid;
-	if (pbWillProxy) *pbWillProxy = (BOOL)pHdr->dwWillProxy;
+	if (pdwTarget) *pdwTarget = pHdr->dwTarget;
 	
 	if (Ips) CopyMemory(Ips, (const char*)chMessageBuf + sizeof(PXCH_IPC_MSGHDR_HOSTNAMEANDIPS), sizeof(PXCH_IP_ADDRESS) * pHdr->dwIpNum);
 	return 0;

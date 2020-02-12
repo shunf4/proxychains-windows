@@ -48,6 +48,8 @@
         "windef.h": "c",
         "minwindef.h": "c",
         "proxy_core.h": "c",
-        "minhook.h": "c"
+        "minhook.h": "c",
+        "common_generic.h": "c",
+        "sstream": "c"
     }
 }
