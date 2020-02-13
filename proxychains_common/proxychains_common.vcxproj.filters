@@ -27,7 +27,7 @@
     <ClCompile Include="..\src\common_wsock.c">
       <Filter>Sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\exe\stdlib_config_reader.c">
+    <ClCompile Include="..\src\stdlib_config_reader.c">
       <Filter>Sources</Filter>
     </ClCompile>
   </ItemGroup>

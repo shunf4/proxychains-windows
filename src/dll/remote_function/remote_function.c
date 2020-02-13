@@ -15,22 +15,11 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 	if (pRemoteData->dwSize != sizeof(PXCH_INJECT_REMOTE_DATA) + PXCHCONFIG_EXTRA_SIZE(&pRemoteData->pxchConfig)) {
 		return ERROR_INCORRECT_SIZE;
 	}
-	pRemoteData->dwEverExecuted = 1;
 
+	pRemoteData->dwEverExecuted = 1;
 	DBGCHR('B');
 
-#ifndef __CYGWIN__
-	do {
-		HMODULE hCygwinModule;
-
-		hCygwinModule = pRemoteData->fpGetModuleHandleW(pRemoteData->szCygwin1ModuleName);
-		if (hCygwinModule) {
-			pRemoteData->dwErrorCode = ERROR_NOT_SUPPORTED;
-			return ERROR_NOT_SUPPORTED;
-		}
-	} while (0);
-#endif
-
+	
 	DBGCHR('C');
 
 	if (pRemoteData->pxchConfig.szMinHookDllPath[0] != L'\0') {
@@ -40,7 +29,7 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 			// return pRemoteData->dwErrorCode;
 		}
 	}
-
+	
 	DBGCHR('D');
 
 	hHookDllModule = pRemoteData->fpGetModuleHandleW(pRemoteData->szHookDllModuleName);

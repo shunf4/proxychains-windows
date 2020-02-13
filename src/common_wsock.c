@@ -20,7 +20,11 @@ const wchar_t* FormatHostPortToStr(const void* pHostPort, int iAddrLen)
 	g_HostPrintBuf[0] = L'\0';
 
 	if (HostIsType(HOSTNAME, *(PXCH_HOST*)pHostPort)) {
-		StringCchPrintfW(g_HostPrintBuf, dwLen, L"%ls:%hu", ((PXCH_HOSTNAME*)pHostPort)->szValue, ntohs(((PXCH_HOSTNAME*)pHostPort)->wPort));
+		if (((PXCH_HOSTNAME*)pHostPort)->wPort) {
+			StringCchPrintfW(g_HostPrintBuf, dwLen, L"%ls:%hu", ((PXCH_HOSTNAME*)pHostPort)->szValue, ntohs(((PXCH_HOSTNAME*)pHostPort)->wPort));
+		} else {
+			StringCchPrintfW(g_HostPrintBuf, dwLen, L"%ls", ((PXCH_HOSTNAME*)pHostPort)->szValue);
+		}
 	} else {
 		WSAAddressToStringW((struct sockaddr*)(pHostPort), iAddrLen, NULL, g_HostPrintBuf, &dwLen);
 	}

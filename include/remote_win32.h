@@ -4,7 +4,7 @@
 
 #define PXCHDEBUG_ODS
 
-#ifdef PXCHDEBUG_ODS
+#if defined(PXCHDEBUG_ODS) && defined(_DEBUG)
 #define DBGCHR(ch) do { pRemoteData->fpOutputDebugStringA(pRemoteData->chDebugOutput + ((ch) - 'A') * 2); } while(0)
 #define DBGCHR_GP(ch) do { if (g_pRemoteData) g_pRemoteData->fpOutputDebugStringA(g_pRemoteData->chDebugOutput + ((ch) - 'A') * 2); } while(0)
 #define DBGSTR_GP(str) do { if (g_pRemoteData) g_pRemoteData->fpOutputDebugStringA(str); } while(0)

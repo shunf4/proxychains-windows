@@ -12,5 +12,3 @@ void StdWprintf(DWORD dwStdHandle, const WCHAR* fmt, ...);
 void StdVwprintf(DWORD dwStdHandle, const WCHAR* fmt, va_list args);
 void StdFlush(DWORD dwStdHandle);
 void DumpMemory(const void* p, int iLength);
-
-FILE* GetConfigurationFile();

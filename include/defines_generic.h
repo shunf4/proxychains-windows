@@ -25,7 +25,7 @@ typedef unsigned int PXCH_UINT_PTR;
 #endif
 #endif
 
-#ifdef DEBUG
+#ifdef _DEBUG
 #define IsDebug() (1)
 #else
 #define IsDebug() (0)
@@ -59,6 +59,7 @@ typedef unsigned int PXCH_UINT_PTR;
 // In characters -- start
 #define MAX_DLL_PATH_BUFSIZE 512
 #define MAX_CONFIG_FILE_PATH_BUFSIZE 512
+#define MAX_HOSTS_FILE_PATH_BUFSIZE 512
 #define MAX_DLL_FILE_NAME_BUFSIZE 64
 #define MAX_DLL_FUNC_NAME_BUFSIZE 64
 #define MAX_IPC_PIPE_NAME_BUFSIZE 128
@@ -70,6 +71,7 @@ typedef unsigned int PXCH_UINT_PTR;
 #define MAX_PROXY_NUM 5
 #define MAX_FILEMAPPING_BUFSIZE 256
 #define MAX_CONFIGURATION_LINE_BUFSIZE 512
+#define MAX_HOSTS_LINE_BUFSIZE 512
 #define MAX_ARRAY_IP_NUM 10
 
 #define PXCH_LOG_IPC_BUFSIZE 1024
@@ -266,9 +268,9 @@ typedef struct _PXCH_HOSTS_ENTRY {
 } PXCH_HOSTS_ENTRY;
 
 
-#define PXCHCONFIG_EXTRA_SIZE(pPxchConfig) ((sizeof(PXCH_RULE) * (pPxchConfig)->dwRuleNum) + (sizeof(PXCH_PROXY_DATA) * (pPxchConfig)->dwProxyNum))
 #define PXCHCONFIG_EXTRA_SIZE_G PXCHCONFIG_EXTRA_SIZE(g_pPxchConfig)
 #define PXCHCONFIG_EXTRA_SIZE_BY_N(proxyNum, ruleNum, hostsEntryNum) ((sizeof(PXCH_RULE) * ruleNum) + (sizeof(PXCH_PROXY_DATA) * proxyNum) + (sizeof(PXCH_HOSTS_ENTRY) * hostsEntryNum))
+#define PXCHCONFIG_EXTRA_SIZE(pPxchConfig) PXCHCONFIG_EXTRA_SIZE_BY_N((pPxchConfig)->dwRuleNum, (pPxchConfig)->dwProxyNum, (pPxchConfig)->dwHostsEntryNum)
 
 #define PXCHCONFIG_PROXY_ARR(pPxchConfig) ((PXCH_PROXY_DATA*)((char*)(pPxchConfig) + pPxchConfig->cbProxyListOffset))
 #define PXCHCONFIG_RULE_ARR(pPxchConfig) ((PXCH_RULE*)((char*)(pPxchConfig) + pPxchConfig->cbRuleListOffset))
@@ -287,6 +289,7 @@ typedef struct _PROXYCHAINS_CONFIG {
 	wchar_t szConfigPath[MAX_CONFIG_FILE_PATH_BUFSIZE];
 	wchar_t szHookDllPath[MAX_DLL_PATH_BUFSIZE];
 	wchar_t szMinHookDllPath[MAX_DLL_PATH_BUFSIZE];
+	wchar_t szHostsFilePath[MAX_HOSTS_FILE_PATH_BUFSIZE];
 	wchar_t szCommandLine[MAX_COMMAND_LINE_BUFSIZE];
 	
 	PXCH_UINT32 cbProxyListOffset;

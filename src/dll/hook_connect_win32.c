@@ -51,6 +51,7 @@ typedef union _PXCH_TEMP_DATA {
 static BOOL ResolveByHostsFile(PXCH_IP_ADDRESS* pIp, const PXCH_HOSTNAME* pHostname)
 {
 	PXCH_UINT32 i;
+	
 	for (i = 0; i < g_pPxchConfig->dwHostsEntryNum; i++) {
 		if (StrCmpW(PXCHCONFIG_HOSTS_ENTRY_ARR_G[i].Hostname.szValue, pHostname->szValue) == 0) {
 			if (pIp) *pIp = PXCHCONFIG_HOSTS_ENTRY_ARR_G[i].Ip;
@@ -188,7 +189,7 @@ static PXCH_UINT32 GetTargetByRule(BOOL* pbMatchedHostnameRule, BOOL* pbMatchedI
 		}
 
 		if (HostIsType(HOSTNAME, *pHostPort) && RuleIsType(DOMAIN_KEYWORD, *pRule)) {
-			if (StrStrW(pHostPort->HostnamePort.szValue, pRule->HostPort.HostnamePort.szValue) == 0) {
+			if (StrStrW(pHostPort->HostnamePort.szValue, pRule->HostPort.HostnamePort.szValue)) {
 				// Match
 				*pbMatchedHostnameRule = TRUE;
 				return pRule->dwTarget;
@@ -699,6 +700,7 @@ PROXY_FUNC2(Ws2_32, connect)
 {
 	// SOCKET real_s = s;
 	const PXCH_HOST_PORT* pHostPort = name;
+	const PXCH_IP_PORT* pIpPortToConnectDirectly = name;
 	unsigned int i;
 	int iReturn = 0;
 	DWORD dwLastError;
@@ -709,7 +711,8 @@ PROXY_FUNC2(Ws2_32, connect)
 	PXCH_CHAIN_NODE* TempChainNode1 = NULL;
 	PXCH_CHAIN_NODE* TempChainNode2 = NULL;
 	PXCH_WS2_32_TEMP_DATA TempData;
-	PXCH_HOST_PORT ResolvedHostPortFromFakeIp;
+	PXCH_HOST_PORT ReverseResolvedHostPortFromFakeIp;
+	PXCH_IP_PORT ResolvedIpFromFakeIp = { 0 };
 
 	RestoreChildData();
 
@@ -737,16 +740,26 @@ PROXY_FUNC2(Ws2_32, connect)
 
 		if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) goto not_wsa_error_end;
 
-		if ((dwLastError = MessageToHostnameAndIps(NULL, (PXCH_HOSTNAME*)&ResolvedHostPortFromFakeIp, NULL, &dwRespIpNum, RespIps, &dwTarget, chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) goto not_wsa_error_end;
+		if ((dwLastError = MessageToHostnameAndIps(NULL, (PXCH_HOSTNAME*)&ReverseResolvedHostPortFromFakeIp, NULL, &dwRespIpNum, RespIps, &dwTarget, chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) goto not_wsa_error_end;
 
-		ResolvedHostPortFromFakeIp.CommonHeader.wPort = pHostPort->CommonHeader.wPort;
-		pHostPort = &ResolvedHostPortFromFakeIp;
+		for (i = 0; i < dwRespIpNum; i++) {
+			if (RespIps[i].CommonHeader.wTag == pHostPort->CommonHeader.wTag) {
+				break;
+			}
+		}
+		if (i == dwRespIpNum) goto addr_not_supported_end;
+		ResolvedIpFromFakeIp = RespIps[i];
+		ResolvedIpFromFakeIp.CommonHeader.wPort = pHostPort->CommonHeader.wPort;
+		pIpPortToConnectDirectly = &ResolvedIpFromFakeIp;
+
+		ReverseResolvedHostPortFromFakeIp.CommonHeader.wPort = pHostPort->CommonHeader.wPort;
+		pHostPort = &ReverseResolvedHostPortFromFakeIp;
 	} else {
 		dwTarget = GetTargetByRule(NULL, NULL, NULL, NULL, pHostPort, PXCH_RULE_TARGET_DIRECT);
 	}
 
 	if (dwTarget == PXCH_RULE_TARGET_DIRECT) {
-		iReturn = Ws2_32_OriginalConnect(&TempData, s, name, namelen);
+		iReturn = Ws2_32_OriginalConnect(&TempData, s, pIpPortToConnectDirectly, namelen);
 		goto success_revert_connect_errcode_end;
 	}
 
@@ -768,6 +781,12 @@ success_revert_connect_errcode_end:
 block_end:
 	iWSALastError = WSAEREFUSED;
 	dwLastError = ERROR_REQUEST_REFUSED;
+	iReturn = SOCKET_ERROR;
+	goto end;
+
+addr_not_supported_end:
+	iWSALastError = WSAEAFNOSUPPORT;
+	dwLastError = ERROR_NOT_SUPPORTED;
 	iReturn = SOCKET_ERROR;
 	goto end;
 
@@ -818,6 +837,7 @@ Mswsock_ConnectEx_SIGN_WITH_PTEMPDATA(Mswsock_OriginalConnectEx)
 PROXY_FUNC2(Mswsock, ConnectEx)
 {
 	const PXCH_HOST_PORT* pHostPort = name;
+	const PXCH_IP_PORT* pIpPortToConnectDirectly = name;
 	unsigned int i;
 	int iReturn;
 	BOOL bReturn;
@@ -829,7 +849,8 @@ PROXY_FUNC2(Mswsock, ConnectEx)
 	PXCH_CHAIN_NODE* TempChainNode1 = NULL;
 	PXCH_CHAIN_NODE* TempChainNode2 = NULL;
 	PXCH_MSWSOCK_TEMP_DATA TempData;
-	PXCH_HOST_PORT ResolvedHostPortFromFakeIp;
+	PXCH_HOST_PORT ReverseResolvedHostPortFromFakeIp;
+	PXCH_IP_PORT ResolvedIpFromFakeIp = { 0 };
 
 	RestoreChildData();
 
@@ -857,16 +878,26 @@ PROXY_FUNC2(Mswsock, ConnectEx)
 
 		if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) goto not_wsa_error_end;
 
-		if ((dwLastError = MessageToHostnameAndIps(NULL, (PXCH_HOSTNAME*)&ResolvedHostPortFromFakeIp, NULL, &dwRespIpNum, RespIps, &dwTarget, chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) goto not_wsa_error_end;
+		if ((dwLastError = MessageToHostnameAndIps(NULL, (PXCH_HOSTNAME*)&ReverseResolvedHostPortFromFakeIp, NULL, &dwRespIpNum, RespIps, &dwTarget, chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) goto not_wsa_error_end;
 
-		ResolvedHostPortFromFakeIp.CommonHeader.wPort = pHostPort->CommonHeader.wPort;
-		pHostPort = &ResolvedHostPortFromFakeIp;
+		for (i = 0; i < dwRespIpNum; i++) {
+			if (RespIps[i].CommonHeader.wTag == pHostPort->CommonHeader.wTag) {
+				break;
+			}
+		}
+		if (i == dwRespIpNum) goto addr_not_supported_end;
+		ResolvedIpFromFakeIp = RespIps[i];
+		ResolvedIpFromFakeIp.CommonHeader.wPort = pHostPort->CommonHeader.wPort;
+		pIpPortToConnectDirectly = &ResolvedIpFromFakeIp;
+
+		ReverseResolvedHostPortFromFakeIp.CommonHeader.wPort = pHostPort->CommonHeader.wPort;
+		pHostPort = &ReverseResolvedHostPortFromFakeIp;
 	} else {
 		dwTarget = GetTargetByRule(NULL, NULL, NULL, NULL, pHostPort, PXCH_RULE_TARGET_DIRECT);
 	}
 
 	if (dwTarget == PXCH_RULE_TARGET_DIRECT) {
-		bReturn = Mswsock_OriginalConnectEx(&TempData, s, name, namelen, lpSendBuffer, dwSendDataLength, lpdwBytesSent, lpOverlapped);
+		bReturn = Mswsock_OriginalConnectEx(&TempData, s, pIpPortToConnectDirectly, namelen, lpSendBuffer, dwSendDataLength, lpdwBytesSent, lpOverlapped);
 		goto success_set_errcode_zero_end;
 	}
 
@@ -883,6 +914,12 @@ success_set_errcode_zero_end:
 	iWSALastError = NO_ERROR;
 	dwLastError = NO_ERROR;
 	bReturn = TRUE;
+	goto end;
+
+addr_not_supported_end:
+	iWSALastError = WSAEAFNOSUPPORT;
+	dwLastError = ERROR_NOT_SUPPORTED;
+	iReturn = SOCKET_ERROR;
 	goto end;
 
 block_end:
@@ -1171,6 +1208,8 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 	ADDRINFOW RequeryAddrInfoHints;
 	ADDRINFOW* pRequeryAddrInfo = NULL;
 
+	DWORD dw;
+
 	ZeroMemory(&DefaultHints, sizeof(DefaultHints));
 	DefaultHints.ai_family = -1;
 	DefaultHints.ai_flags = -1;
@@ -1250,8 +1289,19 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 		ADDRINFOW* pNewAddrInfoWResult;
 		int iIpFamilyAllowed;
 		PXCH_IP_PORT* pFakeIpPorts;
+		BOOL bAnyResolvedIpv4 = FALSE;
+		BOOL bAnyResolvedIpv6 = FALSE;
 
 		AddrInfoToIps(&dwIpNum, Ips, *ppResultCast, TRUE);
+
+		for (dw = 0; dw < dwIpNum; dw++) {
+			if (Ips[dw].CommonHeader.wTag == PXCH_HOST_TYPE_IPV4) {
+				bAnyResolvedIpv4 = TRUE;
+			}
+			if (Ips[dw].CommonHeader.wTag == PXCH_HOST_TYPE_IPV6) {
+				bAnyResolvedIpv6 = TRUE;
+			}
+		}
 
 		if ((dwLastError = HostnameAndIpsToMessage(chMessageBuf, &cbMessageSize, GetCurrentProcessId(), &Hostname, g_pPxchConfig->dwWillMapResolvedIpToHost, dwIpNum, Ips, dwTarget)) != NO_ERROR) goto err;
 
@@ -1265,11 +1315,11 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 		iIpFamilyAllowed = 0;
 		pFakeIpPorts = FakeIpPorts + 1;
 
-		if (g_pPxchConfig->dwWillFirstTunnelUseIpv4) {
+		if (g_pPxchConfig->dwWillFirstTunnelUseIpv4 && bAnyResolvedIpv4) {
 			iIpFamilyAllowed++;
 			pFakeIpPorts--;
 		}
-		if (g_pPxchConfig->dwWillFirstTunnelUseIpv6) {
+		if (g_pPxchConfig->dwWillFirstTunnelUseIpv6 && bAnyResolvedIpv6) {
 			iIpFamilyAllowed++;
 		}
 		HostnameAndIpPortsToAddrInfo_WillAllocate(&pNewAddrInfoWResult, &Hostname, iIpFamilyAllowed, pFakeIpPorts, !!(pHintsCast->ai_flags & AI_CANONNAME), (*ppResultCast)->ai_socktype, (*ppResultCast)->ai_protocol);

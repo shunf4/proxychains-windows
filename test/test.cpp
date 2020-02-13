@@ -32,6 +32,30 @@ int main()
         return 1;
     }
 
+    {
+        //char ipstrbuf[100] = "192.168.1.1:65535";
+        char ipstrbuf[100] = "[2005::1]:1";
+        char ipstrbuf2[100] = { 0 };
+        DWORD ipstrbuflen = _countof(ipstrbuf2);
+        struct sockaddr_storage s;
+        ADDRINFOW RequeryAddrInfoHints;
+        ADDRINFOW* pRequeryAddrInfo = NULL;
+
+        ZeroMemory(&RequeryAddrInfoHints, sizeof(RequeryAddrInfoHints));
+        RequeryAddrInfoHints.ai_family = AF_UNSPEC;
+        RequeryAddrInfoHints.ai_protocol = IPPROTO_TCP;
+        RequeryAddrInfoHints.ai_socktype = SOCK_STREAM;
+        RequeryAddrInfoHints.ai_flags = AI_NUMERICHOST;
+
+        int addrlen = sizeof(s);
+
+        printf("%d\n", WSAStringToAddressA(ipstrbuf, AF_INET6, NULL, (LPSOCKADDR)&s, &addrlen));
+        printf("%d\n", WSAAddressToStringA((LPSOCKADDR)&s, addrlen, NULL, ipstrbuf2, &ipstrbuflen));
+        printf("%s\n", ipstrbuf2);
+
+        return 1;
+    }
+
     DWORD dwLen;
     WCHAR g_HostPrintBuf[400];
     dwLen = _countof(g_HostPrintBuf);

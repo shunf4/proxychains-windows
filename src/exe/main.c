@@ -353,7 +353,7 @@ BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
 }
 
 DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* pTempPxchConfig);
-
+void PrintConfiguration(PROXYCHAINS_CONFIG* pPxchConfig);
 DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCommandStart);
 
 DWORD Init(void)
@@ -385,15 +385,10 @@ int wmain(int argc, WCHAR* argv[])
 	if ((dwError = InitProcessBookkeeping()) != NOERROR) goto err;
 	if ((dwError = ParseArgs(&TempProxychainsConfig, argc, argv, &iCommandStart)) != NOERROR) goto err;
 	if ((dwError = LoadConfiguration(&g_pPxchConfig, &TempProxychainsConfig)) != NOERROR) goto err;
+	if (PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_INFO) PrintConfiguration(g_pPxchConfig);
 
 	InitHookForMain(g_pPxchConfig);
 
-	LOGI(L"DLL Path: %ls", g_pPxchConfig->szHookDllPath);
-	LOGI(L"MinHook DLL Path: %ls", g_pPxchConfig->szMinHookDllPath);
-	LOGI(L"Config Path: %ls", g_pPxchConfig->szConfigPath);
-	LOGI(L"Pipe name: %ls", g_pPxchConfig->szIpcPipeName);
-	LOGI(L"Log level: " WPRDW, g_pPxchConfig->dwLogLevel);
-	LOGI(L"Command Line: %ls", g_pPxchConfig->szCommandLine);
 
 	if (CreateThread(0, 0, &ServerLoop, g_pPxchConfig, 0, &dwTid) == NULL) goto err_get;
 	LOGI(L"IPC Server Tid: " WPRDW, dwTid);
@@ -498,14 +493,8 @@ int main(int argc, char* const argv[], char* const envp[])
 	if ((dwError = InitProcessBookkeeping()) != NOERROR) goto err;
 	if ((dwError = ParseArgs(&TempProxychainsConfig, argc, wargv, &iCommandStart)) != NOERROR) goto err;
 	if ((dwError = LoadConfiguration(&g_pPxchConfig, &TempProxychainsConfig)) != NOERROR) goto err;
+	if (PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_INFO) PrintConfiguration(g_pPxchConfig);
 	InitHookForMain(g_pPxchConfig);
-
-	LOGI(L"DLL Path: %ls", g_pPxchConfig->szHookDllPath);
-	LOGI(L"MinHook DLL Path: %ls", g_pPxchConfig->szMinHookDllPath);
-	LOGI(L"Config Path: %ls", g_pPxchConfig->szConfigPath);
-	LOGI(L"Pipe name: %ls", g_pPxchConfig->szIpcPipeName);
-	LOGI(L"Log level: " WPRDW, g_pPxchConfig->dwLogLevel);
-	LOGI(L"argv[iCommandStart]: " WPRS, argv[iCommandStart]);
 
 	if (CreateThread(0, 0, &ServerLoop, g_pPxchConfig, 0, &dwTid) == NULL) goto err_get;
 	LOGI(L"IPC Server Tid: " WPRDW, dwTid);

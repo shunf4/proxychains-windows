@@ -70,7 +70,7 @@ DWORD RemoteCopyExecute(HANDLE hProcess, PXCH_INJECT_REMOTE_DATA* pRemoteData)
 	cbCodeSize = ((char*)pAfterCode - (char*)pCode);
 	cbCodeSizeAligned = (cbCodeSize + (sizeof(LONG_PTR) - 1)) & ~(sizeof(LONG_PTR) - 1);
 
-	IPCLOGV(L"CreateProcessW: Before VirtualAllocEx. %lld %lld", cbCodeSize, cbCodeSizeAligned);
+	IPCLOGV(L"CreateProcessW: Before VirtualAllocEx. %lld %lld", (long long)cbCodeSize, (long long)cbCodeSizeAligned);
 
 	// Allocate memory (code + data) in remote process
 	pTargetBuf = VirtualAllocEx(hProcess, NULL, cbCodeSizeAligned + dwRemoteDataSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
@@ -182,7 +182,7 @@ DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi)
 
 	pRemoteData = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(PXCH_INJECT_REMOTE_DATA) + dwExtraSize);
 
-	IPCLOGV(L"CreateProcessW: Entering InjectTargetProcess. %llu", sizeof(*pRemoteData) + dwExtraSize);
+	IPCLOGI(L"CreateProcessW: Entering InjectTargetProcess. %llu", (unsigned long long)(sizeof(*pRemoteData) + dwExtraSize));
 
 	hProcess = pPi->hProcess;
 	IPCLOGV(L"CreateProcessW: Before CopyMemory. " WPRDW, 0);
