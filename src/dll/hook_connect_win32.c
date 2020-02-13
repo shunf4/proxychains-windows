@@ -919,22 +919,24 @@ success_set_errcode_zero_end:
 addr_not_supported_end:
 	iWSALastError = WSAEAFNOSUPPORT;
 	dwLastError = ERROR_NOT_SUPPORTED;
-	iReturn = SOCKET_ERROR;
+	bReturn = FALSE;
 	goto end;
 
 block_end:
 	iWSALastError = WSAEREFUSED;
 	dwLastError = ERROR_REQUEST_REFUSED;
-	iReturn = SOCKET_ERROR;
+	bReturn = FALSE;
 	goto end;
 
 record_error_end:
 	iWSALastError = WSAGetLastError();
 	dwLastError = GetLastError();
+	bReturn = FALSE;
 	goto end;
 
 not_wsa_error_end:
 	iWSALastError = WSABASEERR;
+	bReturn = FALSE;
 	goto end;
 
 end:
@@ -943,7 +945,7 @@ end:
 		CDL_DELETE(Chain, ChainNode);
 		HeapFree(GetProcessHeap(), 0, ChainNode);
 	}
-	if (iReturn != 0 && iWSALastError != WSAEWOULDBLOCK && !(iWSALastError == WSAEREFUSED && dwTarget == PXCH_RULE_TARGET_BLOCK)) {
+	if (bReturn && iWSALastError != WSAEWOULDBLOCK && !(iWSALastError == WSAEREFUSED && dwTarget == PXCH_RULE_TARGET_BLOCK)) {
 		FUNCIPCLOGW(L"mswsock.dll (FP)ConnectEx ret: %d, wsa last error: %ls", bReturn, FormatErrorToStr(iWSALastError));
 	} else {
 		FUNCIPCLOGD(L"mswsock.dll (FP)ConnectEx ret: %d, wsa last error: %ls", bReturn, FormatErrorToStr(iWSALastError));
