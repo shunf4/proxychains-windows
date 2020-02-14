@@ -340,3 +340,10 @@ ASALocalRun/
 healthchecksdb
 
 cygwin-archive
+cygwin-build/**/*.d
+cygwin-build/**/*.o
+cygwin-build/**/*.dll
+cygwin-build/**/*.exe
+cygwin-build/**/*.a
+cygwin-build/**/*.lib
+cygwin-build/**/MAKING_*
