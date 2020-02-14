@@ -1,4 +1,22 @@
-﻿#define PXCH_DO_NOT_INCLUDE_STRSAFE_NOW
+﻿// SPDX-License-Identifier: GPL-2.0-or-later
+/* main.c
+ * Copyright (C) 2020 Feng Shun.
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License version 2 as 
+ *   published by the Free Software Foundation, either version 3 of the
+ *   License, or (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+#define PXCH_DO_NOT_INCLUDE_STRSAFE_NOW
+#include "version.h"
 #include "includes_win32.h"
 #include <ShellAPI.h>
 #include <Sddl.h>
@@ -286,6 +304,60 @@ err_connect_overlapped_error:
 
 }
 
+void PrintUsage(const WCHAR* szArgv0, BOOL bError)
+{
+	static const WCHAR* szUsage =
+		L"Proxychains.exe "
+#ifdef __CYGWIN__
+		L"Cygwin"
+#else
+		L"Win32"
+#endif
+		L" "
+#if defined(_M_X64) || defined(__x86_64__)
+		L"64-bit"
+#else
+		L"32-bit"
+#endif
+		L" %u.%u - proxifier for Win32 and Cygwin.\n"
+		L"\n"
+		L"Usage: "
+#ifdef __CYGWIN__
+		L"[PROXYCHAINS_CONF_FILE=<CUSTOM_CONFIG_FILE>] "
+#endif
+		L"%ls [-q] [-Q] [-f <CUSTOM_CONFIG_FILE>] [-l <LOG_LEVEL>] <PROGRAM_NAME> <ARGUMENTS>...\n"
+		L"\n"
+		L" -q              Forces quiet (not printing any information except errors)\n"
+		L" -Q              Forces non-quiet (ignoring quiet option in configuration files)\n"
+		L" -f              Manually specify a configuration file.\n"
+		L"                 By default, configuration file is searched in:\n"
+#ifdef __CYGWIN__
+		L"                  - $HOME/.proxychains/proxychains.conf\n"
+		L"                  - (SYSCONFDIR)/proxychains.conf\n"
+		L"                  - /etc/proxychains.conf\n"
+#else
+		L"                  - %%USERPROFILE%%\\.proxychains\\proxychains.conf\n"
+		L"                  - (Roaming directory of current user)\\Proxychains\\proxychains.conf\n"
+		L"                  - (Global ProgramData directory)\\Proxychains\\proxychains.conf\n"
+#endif
+		L" -l <LOG_LEVEL>  Manually set log level. <LOG_LEVEL> can be:\n"
+		L"                  - V/VERBOSE\n"
+		L"                  - D/DEBUG\n"
+		L"                  - I/INFO\n"
+		L"                  - W/WARNING\n"
+		L"                  - E/ERROR\n"
+		L"                  - C/CRITICAL\n"
+		L"                 Note that some levels are always unavailable in a Release build.\n";
+
+	if (bError) {
+		fwprintf(stderr, szUsage, PXCH_VERSION_MAJOR, PXCH_VERSION_MINOR, szArgv0);
+		fflush(stderr);
+	} else {
+		fwprintf(stdout, szUsage, PXCH_VERSION_MAJOR, PXCH_VERSION_MINOR, szArgv0);
+		fflush(stdout);
+	}
+}
+
 void handle_sigint(int sig)
 {
 	// Once hooked, a cygwin program cannot handle Ctrl-C signal.
@@ -379,11 +451,11 @@ int wmain(int argc, WCHAR* argv[])
 
 	setvbuf(stderr, NULL, _IOFBF, 65536);
 	szLocale = setlocale(LC_ALL, "");
-	LOGI(L"Locale: " WPRS, szLocale);
+	LOGD(L"Locale: " WPRS, szLocale);
 
 	if ((dwError = Init()) != NOERROR) goto err;
 	if ((dwError = InitProcessBookkeeping()) != NOERROR) goto err;
-	if ((dwError = ParseArgs(&TempProxychainsConfig, argc, argv, &iCommandStart)) != NOERROR) goto err;
+	if ((dwError = ParseArgs(&TempProxychainsConfig, argc, argv, &iCommandStart)) != NOERROR) goto err_args;
 	if ((dwError = LoadConfiguration(&g_pPxchConfig, &TempProxychainsConfig)) != NOERROR) goto err;
 	if (PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_INFO) PrintConfiguration(g_pPxchConfig);
 
@@ -391,7 +463,7 @@ int wmain(int argc, WCHAR* argv[])
 
 
 	if (CreateThread(0, 0, &ServerLoop, g_pPxchConfig, 0, &dwTid) == NULL) goto err_get;
-	LOGI(L"IPC Server Tid: " WPRDW, dwTid);
+	LOGD(L"IPC Server Tid: " WPRDW, dwTid);
 
 	if (g_hIpcServerSemaphore != NULL) {
 		DWORD dwWaitResult;
@@ -437,6 +509,10 @@ err:
 	fwprintf(stderr, L"Error: %ls\n", FormatErrorToStr(dwError));
 	fflush(stderr);	// Must flush, otherwise display messy code on xp
 	return dwError;
+
+err_args:
+	PrintUsage(argv[0], dwError != ERROR_CANCELLED);
+	return dwError == ERROR_CANCELLED ? 0 : dwError;
 }
 
 #else 
@@ -487,17 +563,18 @@ int main(int argc, char* const argv[], char* const envp[])
 
 	setvbuf(stderr, NULL, _IOFBF, 65536);
 	szLocale = setlocale(LC_ALL, "");
-	LOGI(L"Locale: " WPRS, szLocale);
+	(void)szLocale;
+	LOGD(L"Locale: " WPRS, szLocale);
 
 	if ((dwError = Init()) != NOERROR) goto err;
 	if ((dwError = InitProcessBookkeeping()) != NOERROR) goto err;
-	if ((dwError = ParseArgs(&TempProxychainsConfig, argc, wargv, &iCommandStart)) != NOERROR) goto err;
+	if ((dwError = ParseArgs(&TempProxychainsConfig, argc, wargv, &iCommandStart)) != NOERROR) goto err_args;
 	if ((dwError = LoadConfiguration(&g_pPxchConfig, &TempProxychainsConfig)) != NOERROR) goto err;
 	if (PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_INFO) PrintConfiguration(g_pPxchConfig);
 	InitHookForMain(g_pPxchConfig);
 
 	if (CreateThread(0, 0, &ServerLoop, g_pPxchConfig, 0, &dwTid) == NULL) goto err_get;
-	LOGI(L"IPC Server Tid: " WPRDW, dwTid);
+	LOGD(L"IPC Server Tid: " WPRDW, dwTid);
 
 	if (g_hIpcServerSemaphore != NULL) {
 		DWORD dwWaitResult;
@@ -531,11 +608,12 @@ int main(int argc, char* const argv[], char* const envp[])
 		}
 	}
 
+	LOGD(L"iCommandStart: %d", iCommandStart);
 	ctx[0] = &argv[iCommandStart];
 	ctx[1] = envp;
 
 	// if (CreateThread(0, 0, &CygwinSpawn, ctx, 0, &dwTid) == NULL) goto err_get;
-	LOGI(L"Cygwin spawn Tid: " WPRDW, dwTid);
+	LOGD(L"Cygwin spawn Tid: " WPRDW, dwTid);
 	
 	CygwinSpawn(ctx);
 	// i = posix_spawnp(&child_pid, &argv[iCommandStart], NULL, NULL, p_argv_command_start, p_envp);
@@ -544,7 +622,7 @@ int main(int argc, char* const argv[], char* const envp[])
 	signal(SIGINT, handle_sigint);
 	signal(SIGCHLD, handle_sigchld);
 
-	pause();
+	while(1) pause();
 
 #ifdef __CYGWIN_PXCH_FORK__
 	child_pid = fork();
@@ -569,5 +647,9 @@ err_get:
 err:
 	fwprintf(stderr, L"Error: %ls\n", FormatErrorToStr(dwError));
 	return dwError;
+
+err_args:
+	PrintUsage(wargv[0], dwError != ERROR_CANCELLED);
+	return dwError == ERROR_CANCELLED ? 0 : dwError;
 }
 #endif

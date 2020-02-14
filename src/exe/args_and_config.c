@@ -1,4 +1,21 @@
-﻿#define PXCH_DO_NOT_INCLUDE_STRSAFE_NOW
+﻿// SPDX-License-Identifier: GPL-2.0-or-later
+/* args_and_config.c
+ * Copyright (C) 2020 Feng Shun.
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License version 2 as 
+ *   published by the Free Software Foundation, either version 3 of the
+ *   License, or (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+#define PXCH_DO_NOT_INCLUDE_STRSAFE_NOW
 #define PXCH_DO_NOT_INCLUDE_STD_HEADERS_NOW
 #include "includes_win32.h"
 #include <Shlwapi.h>
@@ -369,8 +386,8 @@ static int OptionParseAdditionalHostnameRule(PXCH_RULE* pRule, WCHAR* sOptionNam
 	sHostnameEnd = ConsumeStringUntilSet(sHostnameStart, NULL, PXCH_CONFIG_PARSE_WHITE L",:");
 
 	if (sHostnameStart == sHostnameEnd) {
-		pszParseErrorMessage = L"Empty match string";
-		return -1;
+		//pszParseErrorMessage = L"Empty match string";
+		//return -1;
 	}
 
 	StringCchCopyNW(pRule->HostPort.HostnamePort.szValue, _countof(pRule->HostPort.HostnamePort.szValue), sHostnameStart, sHostnameEnd - sHostnameStart);
@@ -405,13 +422,14 @@ void PrintConfiguration(PROXYCHAINS_CONFIG* pPxchConfig)
 	const WCHAR* pszTagDesc;
 	const WCHAR* pszTargetDesc;
 
+	(void)arrRule;
 	(void)arrProxy;
 	(void)arrHostsEntry;
 	(void)pszTagDesc;
 	(void)pszTargetDesc;
 
 	LOGD(L"Configuration fixed part size: " WPRDW, (PXCH_UINT32)(sizeof(PROXYCHAINS_CONFIG)));
-	LOGD(L"Configuration total size: " WPRDW, (PXCH_UINT32)(sizeof(PROXYCHAINS_CONFIG) + PXCHCONFIG_EXTRA_SIZE_BY_N(pPxchConfig->dwProxyNum, pPxchConfig->dwRuleNum, pPxchConfig->dwHostsEntryNum)));
+	LOGD(L"Configuration total size: " WPRDW, (PXCH_UINT32)(sizeof(PROXYCHAINS_CONFIG) + PXCH_CONFIG_EXTRA_SIZE_BY_N(pPxchConfig->dwProxyNum, pPxchConfig->dwRuleNum, pPxchConfig->dwHostsEntryNum)));
 	
 	LOGD(L"MasterProcessId: " WPRDW, pPxchConfig->dwMasterProcessId);
 	LOGD(L"LogLevel: " WPRDW, pPxchConfig->dwLogLevel);
@@ -430,13 +448,13 @@ void PrintConfiguration(PROXYCHAINS_CONFIG* pPxchConfig)
 	LOGD(L"WillDeleteFakeIpAfterChildProcessExits: " WPRDW, pPxchConfig->dwWillDeleteFakeIpAfterChildProcessExits);
 	LOGD(L"WillUseFakeIpWhenHostnameNotMatched: " WPRDW, pPxchConfig->dwWillUseFakeIpWhenHostnameNotMatched);
 	LOGD(L"WillMapResolvedIpToHost: " WPRDW, pPxchConfig->dwWillMapResolvedIpToHost);
-	LOGD(L"WillSearchForHostByResolvedIp: " WPRDW, pPxchConfig->dwWillSearchForHostByResolvedIp);
+	LOGD(L"WillLookupForHostByResolvedIp: " WPRDW, pPxchConfig->dwWillLookupForHostByResolvedIp);
 	LOGD(L"WillForceResolveByHostsFile: " WPRDW, pPxchConfig->dwWillForceResolveByHostsFile);
 	LOGD(L"WillFirstTunnelUseIpv4: " WPRDW, pPxchConfig->dwWillFirstTunnelUseIpv4);
 	LOGD(L"WillFirstTunnelUseIpv6: " WPRDW, pPxchConfig->dwWillFirstTunnelUseIpv6);
 	LOGD(L"");
 	LOGD(L"[RuleList] " WPRDW L", Offset " WPRDW, pPxchConfig->dwRuleNum, pPxchConfig->cbRuleListOffset);
-	arrRule = PXCHCONFIG_RULE_ARR(pPxchConfig);
+	arrRule = PXCH_CONFIG_RULE_ARR(pPxchConfig);
 	for (dw = 0; dw < pPxchConfig->dwRuleNum; dw++) {
 		switch (arrRule[dw].dwTag) {
 			case PXCH_RULE_TYPE_DOMAIN_KEYWORD: pszTagDesc = L"DOMAIN_KEYWORD"; break;
@@ -460,7 +478,7 @@ void PrintConfiguration(PROXYCHAINS_CONFIG* pPxchConfig)
 	}
 	LOGD(L"");
 	LOGD(L"[ProxyList] " WPRDW L", Offset " WPRDW, pPxchConfig->dwProxyNum, pPxchConfig->cbProxyListOffset);
-	arrProxy = PXCHCONFIG_PROXY_ARR(pPxchConfig);
+	arrProxy = PXCH_CONFIG_PROXY_ARR(pPxchConfig);
 	for (dw = 0; dw < pPxchConfig->dwProxyNum; dw++) {
 		switch (arrProxy[dw].dwTag) {
 			case PXCH_PROXY_TYPE_INVALID: pszTagDesc = L"INVALID"; break;
@@ -482,7 +500,7 @@ void PrintConfiguration(PROXYCHAINS_CONFIG* pPxchConfig)
 	}
 	LOGD(L"");
 	LOGD(L"[HostsEntry] " WPRDW L", Offset " WPRDW, pPxchConfig->dwHostsEntryNum, pPxchConfig->cbHostsEntryListOffset);
-	arrHostsEntry = PXCHCONFIG_HOSTS_ENTRY_ARR(pPxchConfig);
+	arrHostsEntry = PXCH_CONFIG_HOSTS_ENTRY_ARR(pPxchConfig);
 	for (dw = 0; dw < pPxchConfig->dwHostsEntryNum; dw++) {
 		LOGD(L"[" WPRDW L"] %ls %ls", dw, arrHostsEntry[dw].Hostname.szValue, FormatHostPortToStr(&arrHostsEntry[dw].Ip, sizeof(PXCH_IP_ADDRESS)));
 	}
@@ -497,8 +515,8 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 	ULARGE_INTEGER uli;
 	PROXYCHAINS_CONFIG* pPxchConfig;
 	int iDummy;
-	WCHAR szConfigurationLine[MAX_CONFIGURATION_LINE_BUFSIZE];
-	WCHAR szHostsLine[MAX_HOSTS_LINE_BUFSIZE];
+	WCHAR szConfigurationLine[PXCH_MAXCONFIGURATION_LINE_BUFSIZE];
+	WCHAR szHostsLine[PXCH_MAXHOSTS_LINE_BUFSIZE];
 	unsigned long long ullLineNum;
 	BOOL bIntoProxyList;
 	DWORD dwRuleNum = 0;
@@ -520,19 +538,19 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 	uli.LowPart = ft.dwLowDateTime;
 	StringCchPrintfW(pPxchConfig->szIpcPipeName, _countof(pPxchConfig->szIpcPipeName), L"\\\\.\\pipe\\proxychains_" WPRDW L"_%" PREFIX_L(PRIu64) L"", GetCurrentProcessId(), uli.QuadPart);
 
-	dwRet = GetModuleFileNameW(NULL, pPxchConfig->szHookDllPath, MAX_DLL_PATH_BUFSIZE);
+	dwRet = GetModuleFileNameW(NULL, pPxchConfig->szHookDllPath, PXCH_MAXDLL_PATH_BUFSIZE);
 	if (dwRet == 0) goto err_insuf_buf;
-	if (dwRet == MAX_DLL_PATH_BUFSIZE) goto err_insuf_buf;
+	if (dwRet == PXCH_MAXDLL_PATH_BUFSIZE) goto err_insuf_buf;
 
 	if (!PathRemoveFileSpecW(pPxchConfig->szHookDllPath)) goto err_insuf_buf;
 
-	if (FAILED(StringCchCatW(pPxchConfig->szHookDllPath, MAX_DLL_PATH_BUFSIZE, L"\\"))) goto err_insuf_buf;
-	if (FAILED(StringCchCopyW(pPxchConfig->szMinHookDllPath, MAX_DLL_PATH_BUFSIZE, pPxchConfig->szHookDllPath))) goto err_insuf_buf;
-	if (FAILED(StringCchCatW(pPxchConfig->szHookDllPath, MAX_DLL_PATH_BUFSIZE, g_szHookDllFileName))) goto err_insuf_buf;
-	if (FAILED(StringCchCatW(pPxchConfig->szMinHookDllPath, MAX_DLL_PATH_BUFSIZE, g_szMinHookDllFileName))) goto err_insuf_buf;
+	if (FAILED(StringCchCatW(pPxchConfig->szHookDllPath, PXCH_MAXDLL_PATH_BUFSIZE, L"\\"))) goto err_insuf_buf;
+	if (FAILED(StringCchCopyW(pPxchConfig->szMinHookDllPath, PXCH_MAXDLL_PATH_BUFSIZE, pPxchConfig->szHookDllPath))) goto err_insuf_buf;
+	if (FAILED(StringCchCatW(pPxchConfig->szHookDllPath, PXCH_MAXDLL_PATH_BUFSIZE, g_szHookDllFileName))) goto err_insuf_buf;
+	if (FAILED(StringCchCatW(pPxchConfig->szMinHookDllPath, PXCH_MAXDLL_PATH_BUFSIZE, g_szMinHookDllFileName))) goto err_insuf_buf;
 
 	if (!PathFileExistsW(pPxchConfig->szHookDllPath)) goto err_dll_not_exist;
-	if (!PathFileExistsW(pPxchConfig->szMinHookDllPath)) StringCchCopyW(pPxchConfig->szMinHookDllPath, MAX_DLL_PATH_BUFSIZE, g_szMinHookDllFileName);
+	if (!PathFileExistsW(pPxchConfig->szMinHookDllPath)) StringCchCopyW(pPxchConfig->szMinHookDllPath, PXCH_MAXDLL_PATH_BUFSIZE, g_szMinHookDllFileName);
 
 #ifdef __CYGWIN__
     StringCchCopyW(pPxchConfig->szHostsFilePath, _countof(pPxchConfig->szHostsFilePath), L"/etc/hosts");
@@ -558,10 +576,10 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 	pPxchConfig->dwWillDeleteFakeIpAfterChildProcessExits = TRUE;
 	pPxchConfig->dwWillUseFakeIpWhenHostnameNotMatched = TRUE;
 	pPxchConfig->dwWillMapResolvedIpToHost = FALSE;
-	pPxchConfig->dwWillSearchForHostByResolvedIp = FALSE;
+	pPxchConfig->dwWillLookupForHostByResolvedIp = FALSE;
 	pPxchConfig->dwWillForceResolveByHostsFile = TRUE;
 	pPxchConfig->dwWillUseUdpAssociateAsRemoteDns = FALSE;
-	pPxchConfig->dwWillUseFakeIpAsRemoteDns = TRUE;
+	pPxchConfig->dwWillUseFakeIpAsRemoteDns = FALSE;
 
 	// Parse configuration file
 
@@ -569,7 +587,6 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 
 	bIntoProxyList = FALSE;
 	while ((dwLastError = ConfigurationFileReadLine(&ullLineNum, szConfigurationLine, _countof(szConfigurationLine))) == NO_ERROR) {
-		// wprintf(L"%ls Line %llu: %ls", pTempPxchConfig->szConfigPath, ullLineNum, szConfigurationLine);
 		WCHAR* sOption;
 		WCHAR* sOptionNameEnd;
 		long lValue;
@@ -580,14 +597,12 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 		if (*sOption == L'#' || *sOption == L'\0') continue;
 		sOptionNameEnd = ConsumeStringUntilSet(sOption, NULL, PXCH_CONFIG_PARSE_WHITE L",#");
 
-		// wprintf(L"Line %llu: %d, %.*ls\n", ullLineNum, (int)(sOptionNameEnd - sOption), sOptionNameEnd - sOption, sOption);
-
 		if (WSTR_EQUAL(sOption, sOptionNameEnd, L"[ProxyList]")) {
 			bIntoProxyList = TRUE;
 		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"socks5")) {
 			dwProxyNum++;
 		} else if (bIntoProxyList) {
-			LOGE(L"Line %llu: Unknown proxy: %.*ls", ullLineNum, sOptionNameEnd - sOption, sOption);
+			LOGE(L"Config line %llu: Unknown proxy: %.*ls", ullLineNum, sOptionNameEnd - sOption, sOption);
 			goto err_invalid_config;
 		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"strict_chain")) {
 			LOGD(L"Use strict chain");
@@ -601,6 +616,11 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 			if (!pTempPxchConfig->dwLogLevelAlreadySet) {
 				LOGD(L"Queit mode enabled in configuration file");
 				pTempPxchConfig->dwLogLevel = PXCH_LOG_LEVEL_ERROR;
+			}
+		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"log_level")) {
+			if (!pTempPxchConfig->dwLogLevelAlreadySet) {
+				if (OptionGetNumberValueAfterOptionName(&lValue, sOptionNameEnd, NULL, 0, 1000) == -1) goto err_invalid_config_with_msg;
+				pPxchConfig->dwLogLevel = (DWORD)lValue;
 			}
 		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"proxy_dns")) {
 			LOGD(L"Proxy dns using fake IP");
@@ -672,7 +692,7 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 			pPxchConfig->dwWillMapResolvedIpToHost = lValue;
 		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"search_for_host_by_resolved_ip")) {
 			if (OptionGetNumberValueAfterOptionName(&lValue, sOptionNameEnd, NULL, 0, 1) == -1) goto err_invalid_config_with_msg;
-			pPxchConfig->dwWillSearchForHostByResolvedIp = lValue;
+			pPxchConfig->dwWillLookupForHostByResolvedIp = lValue;
 		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"force_resolve_by_hosts_file")) {
 			if (OptionGetNumberValueAfterOptionName(&lValue, sOptionNameEnd, NULL, 0, 1) == -1) goto err_invalid_config_with_msg;
 			pPxchConfig->dwWillForceResolveByHostsFile = lValue;
@@ -688,7 +708,7 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 			if (OptionGetStringValueAfterOptionName(&pPathStart, &pPathEnd, sOptionNameEnd, NULL) == -1) goto err_invalid_config_with_msg;
 			if (FAILED(StringCchCopyNW(pPxchConfig->szHostsFilePath, _countof(pPxchConfig->szHostsFilePath), pPathStart, pPathEnd - pPathStart))) goto err_insuf_buf;
 		} else {
-			LOGE(L"Line %llu: Unknown option: %.*ls", ullLineNum, sOptionNameEnd - sOption, sOption);
+			LOGE(L"Config line %llu: Unknown option: %.*ls", ullLineNum, sOptionNameEnd - sOption, sOption);
 			goto err_invalid_config;
 		}
 	}
@@ -738,7 +758,7 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 
 	if (dwLastError != ERROR_END_OF_MEDIA) goto err_read_hosts;
 
-	pPxchConfig = *ppPxchConfig = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(PROXYCHAINS_CONFIG) + PXCHCONFIG_EXTRA_SIZE_BY_N(dwProxyNum, dwRuleNum, dwHostsEntryNum));
+	pPxchConfig = *ppPxchConfig = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(PROXYCHAINS_CONFIG) + PXCH_CONFIG_EXTRA_SIZE_BY_N(dwProxyNum, dwRuleNum, dwHostsEntryNum));
 
 	CopyMemory(pPxchConfig, pTempPxchConfig, sizeof(PROXYCHAINS_CONFIG));
 
@@ -772,7 +792,7 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 			WCHAR* sUserPassEnd;
 			long lPort;
 
-			PXCH_PROXY_SOCKS5_DATA* pSocks5 = &PXCHCONFIG_PROXY_ARR(pPxchConfig)[dwProxyCounter].Socks5;
+			PXCH_PROXY_SOCKS5_DATA* pSocks5 = &PXCH_CONFIG_PROXY_ARR(pPxchConfig)[dwProxyCounter].Socks5;
 
 			pSocks5->dwTag = PXCH_PROXY_TYPE_SOCKS5;
 
@@ -785,7 +805,7 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 			}
 
 			if (OptionGetIpPortValue((PXCH_IP_PORT*)&pSocks5->HostPort, NULL, sHostStart, sHostEnd, FALSE, TRUE) == 0) {
-				if (PXCHCONFIG_PROXY_ARR(pPxchConfig)[dwProxyCounter].Socks5.HostPort.CommonHeader.wPort != 0) {
+				if (PXCH_CONFIG_PROXY_ARR(pPxchConfig)[dwProxyCounter].Socks5.HostPort.CommonHeader.wPort != 0) {
 					pszParseErrorMessage = L"SOCKS5 server host address should not have port (place port number after the address and separate them with whitespaces)";
 					goto err_invalid_config_with_msg;
 				}
@@ -835,23 +855,23 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 			pSocks5->iAddrLen = sizeof(PXCH_HOST_PORT);
 			dwProxyCounter++;
 		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"localnet")) {
-			PXCH_RULE* pRule = &PXCHCONFIG_RULE_ARR(pPxchConfig)[dwRuleCounter];
+			PXCH_RULE* pRule = &PXCH_CONFIG_RULE_ARR(pPxchConfig)[dwRuleCounter];
 			if (OptionGetIpPortValueAfterOptionName(&pRule->HostPort.IpPort, &pRule->dwCidrPrefixLength, sOptionNameEnd, NULL, TRUE, TRUE)) goto err_invalid_config_with_msg;
 			pRule->dwTag = PXCH_RULE_TYPE_IP_CIDR;
 			pRule->dwTarget = PXCH_RULE_TARGET_DIRECT;
 			dwRuleCounter++;
 		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"DOMAIN-KEYWORD")) {
-			PXCH_RULE* pRule = &PXCHCONFIG_RULE_ARR(pPxchConfig)[dwRuleCounter];
+			PXCH_RULE* pRule = &PXCH_CONFIG_RULE_ARR(pPxchConfig)[dwRuleCounter];
 			pRule->dwTag = PXCH_RULE_TYPE_DOMAIN_KEYWORD;
 			if (OptionParseAdditionalHostnameRule(pRule, sOptionNameEnd)) goto err_invalid_config_with_msg;
 			dwRuleCounter++;
 		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"DOMAIN-SUFFIX")) {
-			PXCH_RULE* pRule = &PXCHCONFIG_RULE_ARR(pPxchConfig)[dwRuleCounter];
+			PXCH_RULE* pRule = &PXCH_CONFIG_RULE_ARR(pPxchConfig)[dwRuleCounter];
 			pRule->dwTag = PXCH_RULE_TYPE_DOMAIN_SUFFIX;
 			if (OptionParseAdditionalHostnameRule(pRule, sOptionNameEnd)) goto err_invalid_config_with_msg;
 			dwRuleCounter++;
 		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"DOMAIN-FULL") || WSTR_EQUAL(sOption, sOptionNameEnd, L"DOMAIN")) {
-			PXCH_RULE* pRule = &PXCHCONFIG_RULE_ARR(pPxchConfig)[dwRuleCounter];
+			PXCH_RULE* pRule = &PXCH_CONFIG_RULE_ARR(pPxchConfig)[dwRuleCounter];
 			pRule->dwTag = PXCH_RULE_TYPE_DOMAIN;
 			if (OptionParseAdditionalHostnameRule(pRule, sOptionNameEnd)) goto err_invalid_config_with_msg;
 			dwRuleCounter++;
@@ -860,7 +880,7 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 			WCHAR* sCidrStart;
 			WCHAR* sCidrEnd;
 			WCHAR* sTargetStart;
-			PXCH_RULE* pRule = &PXCHCONFIG_RULE_ARR(pPxchConfig)[dwRuleCounter];
+			PXCH_RULE* pRule = &PXCH_CONFIG_RULE_ARR(pPxchConfig)[dwRuleCounter];
 
 			pRule->dwTag = PXCH_RULE_TYPE_IP_CIDR;
 
@@ -896,7 +916,7 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 			WCHAR* sPortEnd;
 			WCHAR* sTargetStart;
 			long lPort;
-			PXCH_RULE* pRule = &PXCHCONFIG_RULE_ARR(pPxchConfig)[dwRuleCounter];
+			PXCH_RULE* pRule = &PXCH_CONFIG_RULE_ARR(pPxchConfig)[dwRuleCounter];
 
 			pRule->dwTag = PXCH_RULE_TYPE_PORT;
 
@@ -914,6 +934,10 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 			}
 
 			if (OptionGetNumberValue(&lPort, sPortStart, sPortEnd, 1, 65535, TRUE)) goto err_invalid_config_with_msg;
+			pRule->HostPort.HostnamePort.wTag = PXCH_HOST_TYPE_HOSTNAME;
+			pRule->HostPort.HostnamePort.szValue[0] = L'*';
+			pRule->HostPort.HostnamePort.szValue[1] = L'\0';
+			pRule->HostPort.HostnamePort.wPort = ntohs((PXCH_UINT16)lPort);
 
 			sComma = ConsumeStringUntilSet(sPortEnd, NULL, L",");
 
@@ -929,7 +953,7 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"FINAL")) {
 			WCHAR* sComma;
 			WCHAR* sTargetStart;
-			PXCH_RULE* pRule = &PXCHCONFIG_RULE_ARR(pPxchConfig)[dwRuleCounter];
+			PXCH_RULE* pRule = &PXCH_CONFIG_RULE_ARR(pPxchConfig)[dwRuleCounter];
 
 			pRule->dwTag = PXCH_RULE_TYPE_FINAL;
 
@@ -987,7 +1011,7 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 		}
 
 		while (1) {
-			pHostsEntry = &PXCHCONFIG_HOSTS_ENTRY_ARR(pPxchConfig)[dwHostsEntryCounter++];
+			pHostsEntry = &PXCH_CONFIG_HOSTS_ENTRY_ARR(pPxchConfig)[dwHostsEntryCounter++];
 			pHostsEntry->Hostname.wTag = PXCH_HOST_TYPE_HOSTNAME;
 			StringCchCopyNW(pHostsEntry->Hostname.szValue, _countof(pHostsEntry->Hostname.szValue), sHostnameStart, sHostnameEnd - sHostnameStart);
 			pHostsEntry->Ip = TempIp;
@@ -1009,6 +1033,7 @@ err_general:
 err_insuf_buf:
 	return ERROR_INSUFFICIENT_BUFFER;
 err_dll_not_exist:
+	LOGE(L"Error initializing DLL: DLL not found.");
 	return ERROR_FILE_NOT_FOUND;
 err_read_config:
 	LOGE(L"Error reading configuration: %ls", FormatErrorToStr(dwLastError));
@@ -1017,7 +1042,7 @@ err_read_hosts:
 	LOGE(L"Error reading hosts file: %ls", FormatErrorToStr(dwLastError));
 	return dwLastError;
 err_invalid_config_with_msg:
-	LOGE(L"Line %llu: %ls", ullLineNum, pszParseErrorMessage);
+	LOGE(L"Config line %llu: %ls", ullLineNum, pszParseErrorMessage);
 	goto err_invalid_config;
 err_invalid_hosts_with_msg:
 	LOGE(L"Hosts file line %llu: %ls", ullLineNum, pszParseErrorMessage);
@@ -1033,6 +1058,7 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 	int i;
 	int iCountCommands = 0;
 	BOOL bOptionFile = FALSE;
+	BOOL bOptionLogLevel = FALSE;
 	unsigned int iOptionPrefixLen;
 	BOOL bOptionHasValue;
 	BOOL bOptionsEnd = FALSE;
@@ -1058,10 +1084,38 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 				continue;
 			}
 
+			if (bOptionLogLevel) {
+				WCHAR* pSavedWchar = pWchar;
+				for (; *pSavedWchar; pSavedWchar++) *pSavedWchar = tolower(*pSavedWchar);
+				if (wcscmp(pWchar, L"verbose") == 0 || wcscmp(pWchar, L"v") == 0) {
+					pConfig->dwLogLevel = PXCH_LOG_LEVEL_VERBOSE;
+				} else if (wcscmp(pWchar, L"debug") == 0 || wcscmp(pWchar, L"d") == 0) {
+					pConfig->dwLogLevel = PXCH_LOG_LEVEL_DEBUG;
+				} else if (wcscmp(pWchar, L"info") == 0 || wcscmp(pWchar, L"i") == 0) {
+					pConfig->dwLogLevel = PXCH_LOG_LEVEL_INFO;
+				} else if (wcscmp(pWchar, L"warning") == 0 || wcscmp(pWchar, L"w") == 0) {
+					pConfig->dwLogLevel = PXCH_LOG_LEVEL_WARNING;
+				} else if (wcscmp(pWchar, L"error") == 0 || wcscmp(pWchar, L"e") == 0) {
+					pConfig->dwLogLevel = PXCH_LOG_LEVEL_ERROR;
+				} else if (wcscmp(pWchar, L"critical") == 0 || wcscmp(pWchar, L"c") == 0) {
+					pConfig->dwLogLevel = PXCH_LOG_LEVEL_CRITICAL;
+				} else {
+					goto err_log_level;
+				}
+				bOptionLogLevel = FALSE;
+				pConfig->dwLogLevelAlreadySet = TRUE;
+				continue;
+			}
+
 			bOptionHasValue = FALSE;
 
 			if (wcsncmp(pWchar, L"-f", 2) == 0) {
 				bOptionFile = TRUE;
+				iOptionPrefixLen = 2;
+				bOptionHasValue = TRUE;
+			}
+			else if (wcsncmp(pWchar, L"-l", 2) == 0) {
+				bOptionLogLevel = TRUE;
 				iOptionPrefixLen = 2;
 				bOptionHasValue = TRUE;
 			}
@@ -1071,8 +1125,17 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 				pConfig->dwLogLevelAlreadySet = TRUE;
 				continue;
 			}
-			else if (wcsncmp(pWchar, L"-Q", 2) == 0) {
+			else if (wcsncmp(pWchar, L"-Q", 2) == 0 || wcsncmp(pWchar, L"-d", 2) == 0) {
 				LOGD(L"Queit mode disabled in arguments");
+				pConfig->dwLogLevelAlreadySet = TRUE;
+				continue;
+			}
+			else if (wcsncmp(pWchar, L"-h", 2) == 0 || wcsncmp(pWchar, L"--help", 4) == 0) {
+				return ERROR_CANCELLED;
+			}
+			else if (wcsncmp(pWchar, L"--help", 2) == 0) {
+				LOGD(L"Queit mode enabled in arguments");
+				pConfig->dwLogLevel = PXCH_LOG_LEVEL_ERROR;
 				pConfig->dwLogLevelAlreadySet = TRUE;
 				continue;
 			}
@@ -1093,7 +1156,7 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 		// else
 		// Option Ends, Command starts
 #ifdef __CYGWIN__
-		* piCommandStart = i;
+		*piCommandStart = i;
 		return 0;
 #endif
 		LOGD(L"Argv[%d] = %ls", i, pWchar);
@@ -1105,7 +1168,7 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 			*(pCommandLine++) = L' ';
 		}
 		else {
-			WCHAR szExecPath[MAX_COMMAND_EXEC_PATH_BUFSIZE];
+			WCHAR szExecPath[PXCH_MAXCOMMAND_EXEC_PATH_BUFSIZE];
 			LPWSTR lpDummyFilePart;
 			if (SearchPathW(NULL, pWchar, L"", _countof(szExecPath), szExecPath, &lpDummyFilePart) == 0) {
 				if (SearchPathW(NULL, pWchar, L".exe", _countof(szExecPath), szExecPath, &lpDummyFilePart) == 0) {
@@ -1187,6 +1250,10 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 	if (iCountCommands == 0) goto err_cmdline;
 
 	return 0;
+
+err_log_level:
+	LOGE(L"Error when parsing args: Unexpected log level");
+	return ERROR_INVALID_PARAMETER;
 
 err_insuf_buf:
 	LOGE(L"Error when parsing args: Insufficient Buffer");

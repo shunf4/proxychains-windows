@@ -32,7 +32,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\include_generic.h">
+    <ClInclude Include="..\include\includes_generic.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\include\includes_win32.h">

@@ -1,0 +1,6 @@
+[submodule "minhook"]
+	path = minhook
+	url = https://github.com/TsudaKageyu/minhook
+[submodule "uthash"]
+	path = uthash
+	url = https://github.com/troydhanson/uthash

@@ -1,28 +1,26 @@
-﻿#include "defines_win32.h"
+﻿// SPDX-License-Identifier: GPL-2.0-or-later
+/* dllmain.c
+ * Copyright (C) 2020 Feng Shun.
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License version 2 as 
+ *   published by the Free Software Foundation, either version 3 of the
+ *   License, or (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+#include "defines_win32.h"
 #include "log_win32.h"
 #include "remote_win32.h"
 #include "hookdll_interior_win32.h"
 #include <MinHook.h>
 #include "hookdll_win32.h"
-
-#ifndef __CYGWIN__
-#if defined _M_X64
-#if defined _DEBUG
-#pragma comment(lib, "libMinHook-x64-v141-mdd.lib")
-#else
-// MSVC will complain older compiler
-//#pragma comment(lib, "libMinHook-x64-v141-md.lib")
-#pragma comment(lib, "MinHook.x64.lib")
-#endif
-#elif defined _M_IX86
-#if defined _DEBUG
-#pragma comment(lib, "libMinHook-x86-v141-mdd.lib")
-#else
-//#pragma comment(lib, "libMinHook-x86-v141-md.lib")
-#pragma comment(lib, "MinHook.x86.lib")
-#endif
-#endif
-#endif
 
 PXCH_INJECT_REMOTE_DATA* g_pRemoteData;
 PXCH_DLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;
@@ -178,7 +176,7 @@ DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi)
 	HANDLE hProcess;
 	PXCH_INJECT_REMOTE_DATA* pRemoteData;
 	DWORD dwReturn;
-	DWORD dwExtraSize = PXCHCONFIG_EXTRA_SIZE_G;
+	DWORD dwExtraSize = PXCH_CONFIG_EXTRA_SIZE_G;
 
 	pRemoteData = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(PXCH_INJECT_REMOTE_DATA) + dwExtraSize);
 

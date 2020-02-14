@@ -34,7 +34,7 @@
         "log_generic.h": "c",
         "hookdll_generic.h": "c",
         "defines_generic.h": "c",
-        "include_generic.h": "c",
+        "includes_generic.h": "c",
         "includes_win32.h": "c",
         "stddef.h": "c",
         "hookdll_cygwin.h": "c",
@@ -50,6 +50,7 @@
         "proxy_core.h": "c",
         "minhook.h": "c",
         "common_generic.h": "c",
-        "sstream": "c"
+        "sstream": "c",
+        "version.h": "c"
     }
 }

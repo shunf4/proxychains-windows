@@ -1,4 +1,21 @@
-﻿#define PXCH_DO_NOT_INCLUDE_STD_HEADERS_NOW
+﻿// SPDX-License-Identifier: GPL-2.0-or-later
+/* hook_connect_win32.c
+ * Copyright (C) 2020 Feng Shun.
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License version 2 as 
+ *   published by the Free Software Foundation, either version 3 of the
+ *   License, or (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+#define PXCH_DO_NOT_INCLUDE_STD_HEADERS_NOW
 #define PXCH_DO_NOT_INCLUDE_STRSAFE_NOW
 #define PXCH_INCLUDE_WINSOCK_UTIL
 #include "includes_win32.h"
@@ -27,14 +44,14 @@ static PXCH_PROXY_DIRECT_DATA g_proxyDirect;
 typedef struct _PXCH_WS2_32_TEMP_DATA {
 	DWORD iConnectLastError;
 	int iConnectWSALastError;
-	int iConnectAddrFamily;
+	int iOriginalAddrFamily;
 	int iConnectReturn;
 } PXCH_WS2_32_TEMP_DATA;
 
 typedef struct _PXCH_MSWSOCK_TEMP_DATA {
 	DWORD iConnectLastError;
 	int iConnectWSALastError;
-	int iConnectAddrFamily;
+	int iOriginalAddrFamily;
 	BOOL bConnectReturn;
 } PXCH_MSWSOCK_TEMP_DATA;
 
@@ -42,7 +59,7 @@ typedef union _PXCH_TEMP_DATA {
 	struct {
 		DWORD iConnectLastError;
 		int iConnectWSALastError;
-		int iConnectAddrFamily;
+		int iOriginalAddrFamily;
 	} CommonHeader;
 	PXCH_MSWSOCK_TEMP_DATA Mswsock_TempData;
 	PXCH_WS2_32_TEMP_DATA Ws2_32_TempData;
@@ -53,8 +70,8 @@ static BOOL ResolveByHostsFile(PXCH_IP_ADDRESS* pIp, const PXCH_HOSTNAME* pHostn
 	PXCH_UINT32 i;
 	
 	for (i = 0; i < g_pPxchConfig->dwHostsEntryNum; i++) {
-		if (StrCmpW(PXCHCONFIG_HOSTS_ENTRY_ARR_G[i].Hostname.szValue, pHostname->szValue) == 0) {
-			if (pIp) *pIp = PXCHCONFIG_HOSTS_ENTRY_ARR_G[i].Ip;
+		if (StrCmpW(PXCH_CONFIG_HOSTS_ENTRY_ARR_G[i].Hostname.szValue, pHostname->szValue) == 0) {
+			if (pIp) *pIp = PXCH_CONFIG_HOSTS_ENTRY_ARR_G[i].Ip;
 			break;
 		}
 	}
@@ -122,7 +139,7 @@ static PXCH_UINT32 GetTargetByRule(BOOL* pbMatchedHostnameRule, BOOL* pbMatchedI
 	*pbMatchedFinalRule = FALSE;
 
 	for (i = 0; i < g_pPxchConfig->dwRuleNum; i++) {
-		pRule = &PXCHCONFIG_RULE_ARR(g_pPxchConfig)[i];
+		pRule = &PXCH_CONFIG_RULE_ARR(g_pPxchConfig)[i];
 
 		if (RuleIsType(FINAL, *pRule)) {
 			return pRule->dwTarget;
@@ -189,7 +206,7 @@ static PXCH_UINT32 GetTargetByRule(BOOL* pbMatchedHostnameRule, BOOL* pbMatchedI
 		}
 
 		if (HostIsType(HOSTNAME, *pHostPort) && RuleIsType(DOMAIN_KEYWORD, *pRule)) {
-			if (StrStrW(pHostPort->HostnamePort.szValue, pRule->HostPort.HostnamePort.szValue)) {
+			if (pRule->HostPort.HostnamePort.szValue[0] == L'\0' || StrStrIW(pHostPort->HostnamePort.szValue, pRule->HostPort.HostnamePort.szValue)) {
 				// Match
 				*pbMatchedHostnameRule = TRUE;
 				return pRule->dwTarget;
@@ -200,6 +217,110 @@ static PXCH_UINT32 GetTargetByRule(BOOL* pbMatchedHostnameRule, BOOL* pbMatchedI
 	return dwDefault;
 }
 
+PXCH_UINT32 ReverseLookupForHost(PXCH_HOSTNAME_PORT* pReverseLookedupHostnamePort, PXCH_IP_PORT* pReverseLookedupResolvedIpPort, const PXCH_IP_PORT** ppIpPortForDirectConnection, const PXCH_HOST_PORT** ppHostPortForProxiedConnection, PXCH_UINT32* pdwTarget, const PXCH_IP_PORT* pOriginalIpPort, int iOriginalAddrLen)
+{
+	PXCH_IPC_MSGBUF chMessageBuf;
+	PXCH_UINT32 cbMessageSize;
+	PXCH_IPC_MSGBUF chRespMessageBuf;
+	PXCH_UINT32 cbRespMessageSize;
+	PXCH_IP_ADDRESS ReqIp;
+	PXCH_IP_ADDRESS RespIps[PXCH_MAXARRAY_IP_NUM];
+	PXCH_UINT32 dwRespIpNum;
+	PXCH_HOSTNAME EmptyHostname = { 0 };
+	DWORD dwLastError;
+	DWORD dw;
+
+	if ((HostIsType(IPV4, *pOriginalIpPort) 
+			&& Ipv4MatchCidr(
+				(const struct sockaddr_in*)pOriginalIpPort,
+				(const struct sockaddr_in*)&g_pPxchConfig->FakeIpv4Range,
+				g_pPxchConfig->dwFakeIpv4PrefixLength))
+		|| (HostIsType(IPV6, *pOriginalIpPort)
+			&& Ipv6MatchCidr(
+				(const struct sockaddr_in6*)pOriginalIpPort,
+				(const struct sockaddr_in6*)&g_pPxchConfig->FakeIpv6Range,
+				g_pPxchConfig->dwFakeIpv6PrefixLength))) {
+		
+		// Fake Ip
+
+		// Some application will pass OriginalIpPort with garbage in memory sections which ought to be zero, which will affect our reverse lookup
+		ZeroMemory(&ReqIp, sizeof(PXCH_IP_ADDRESS));
+		ReqIp.CommonHeader.wTag = pOriginalIpPort->CommonHeader.wTag;
+		if (HostIsType(IPV4, ReqIp)) {
+			((struct sockaddr_in*)&ReqIp)->sin_addr = ((struct sockaddr_in*)pOriginalIpPort)->sin_addr;
+		} else if (HostIsType(IPV6, ReqIp)) {
+			((struct sockaddr_in6*)&ReqIp)->sin6_addr = ((struct sockaddr_in6*)pOriginalIpPort)->sin6_addr;
+			((struct sockaddr_in6*)&ReqIp)->sin6_flowinfo = ((struct sockaddr_in6*)pOriginalIpPort)->sin6_flowinfo;
+			((struct sockaddr_in6*)&ReqIp)->sin6_scope_id = ((struct sockaddr_in6*)pOriginalIpPort)->sin6_scope_id;
+			((struct sockaddr_in6*)&ReqIp)->sin6_scope_struct = ((struct sockaddr_in6*)pOriginalIpPort)->sin6_scope_struct;
+		}
+		ReqIp.CommonHeader.wPort = 0;
+
+		if ((dwLastError = HostnameAndIpsToMessage(chMessageBuf, &cbMessageSize, GetCurrentProcessId(), &EmptyHostname, FALSE /*ignored*/, 1, &ReqIp, FALSE /*ignored*/)) != NO_ERROR) goto err_general;
+
+		if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) goto err_general;
+
+		if ((dwLastError = MessageToHostnameAndIps(NULL, (PXCH_HOSTNAME*)pReverseLookedupHostnamePort, NULL, &dwRespIpNum, RespIps, pdwTarget, chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) goto err_general;
+
+		for (dw = 0; dw < dwRespIpNum; dw++) {
+			if (RespIps[dw].CommonHeader.wTag == pOriginalIpPort->CommonHeader.wTag) {
+				break;
+			}
+		}
+		if (dw == dwRespIpNum) goto addr_not_supported_end;
+		*pReverseLookedupResolvedIpPort = RespIps[dw];
+		pReverseLookedupResolvedIpPort->CommonHeader.wPort = pOriginalIpPort->CommonHeader.wPort;
+		*ppIpPortForDirectConnection = pReverseLookedupResolvedIpPort;
+
+		pReverseLookedupHostnamePort->wPort = pOriginalIpPort->CommonHeader.wPort;
+		*ppHostPortForProxiedConnection = (const PXCH_HOST_PORT*)pReverseLookedupHostnamePort;
+	} else {
+		*pdwTarget = GetTargetByRule(NULL, NULL, NULL, NULL, (const PXCH_HOST_PORT*)pOriginalIpPort, PXCH_RULE_TARGET_DIRECT);
+	}
+
+	return NO_ERROR;
+
+err_general:
+	return dwLastError;
+addr_not_supported_end:
+	return ERROR_NOT_SUPPORTED;
+}
+
+void PrintConnectResultAndFreeResources(const WCHAR* szPrintPrefix, PXCH_UINT_PTR SocketHandle, const void* pOriginalAddr, int iOriginalAddrLen, const PXCH_IP_PORT* pIpPortForDirectConnection, const PXCH_HOST_PORT* pHostPortForProxiedConnection, PXCH_UINT32 dwTarget, PXCH_CHAIN* pChain, int iReturn, BOOL bIsConnectSuccessful, int iWSALastError)
+{
+	WCHAR chPrintBuf[256];
+	WCHAR* pPrintBuf;
+	PXCH_CHAIN_NODE* ChainNode = NULL;
+	PXCH_CHAIN_NODE* TempChainNode1 = NULL;
+	PXCH_CHAIN_NODE* TempChainNode2 = NULL;
+
+	pPrintBuf = chPrintBuf;
+	StringCchCopyExW(pPrintBuf, _countof(chPrintBuf) - (pPrintBuf - chPrintBuf), szPrintPrefix, &pPrintBuf, NULL, 0);
+
+	StringCchPrintfExW(pPrintBuf, _countof(chPrintBuf) - (pPrintBuf - chPrintBuf), &pPrintBuf, NULL, 0, L"(%d %ls %d)", (unsigned long)SocketHandle, FormatHostPortToStr(pOriginalAddr, iOriginalAddrLen), iOriginalAddrLen);
+
+	if (dwTarget == PXCH_RULE_TARGET_DIRECT && (const void*)pIpPortForDirectConnection != pOriginalAddr) {
+		StringCchPrintfExW(pPrintBuf, _countof(chPrintBuf) - (pPrintBuf - chPrintBuf), &pPrintBuf, NULL, 0, L" -> %ls", FormatHostPortToStr(pIpPortForDirectConnection, iOriginalAddrLen));
+	} else if (dwTarget == PXCH_RULE_TARGET_PROXY && HostIsType(HOSTNAME, *pHostPortForProxiedConnection)) {
+		StringCchPrintfExW(pPrintBuf, _countof(chPrintBuf) - (pPrintBuf - chPrintBuf), &pPrintBuf, NULL, 0, L" -> %ls", FormatHostPortToStr(pHostPortForProxiedConnection, sizeof(PXCH_HOST_PORT)));
+	}
+
+	StringCchPrintfExW(pPrintBuf, _countof(chPrintBuf) - (pPrintBuf - chPrintBuf), &pPrintBuf, NULL, 0, L" %ls", g_szRuleTargetDesc[dwTarget]);
+
+	CDL_FOREACH_SAFE(*pChain, ChainNode, TempChainNode1, TempChainNode2) {
+		CDL_DELETE(*pChain, ChainNode);
+		HeapFree(GetProcessHeap(), 0, ChainNode);
+	}
+	if (!bIsConnectSuccessful && iWSALastError != WSAEWOULDBLOCK && !(iWSALastError == WSAEREFUSED && dwTarget == PXCH_RULE_TARGET_BLOCK)) {
+		FUNCIPCLOGW(L"%ls ret: %d, wsa last error: %ls", chPrintBuf, iReturn, FormatErrorToStr(iWSALastError));
+	} else {
+		if (g_pPxchConfig->dwLogLevel < PXCH_LOG_LEVEL_DEBUG) {
+			FUNCIPCLOGI(L"%ls", chPrintBuf);
+		} else {
+			FUNCIPCLOGD(L"%ls ret: %d, wsa last error: %ls", chPrintBuf, iReturn, FormatErrorToStr(iWSALastError));
+		}
+	}
+}
 
 int Ws2_32_OriginalConnect(void* pTempData, PXCH_UINT_PTR s, const void* pAddr, int iAddrLen)
 {
@@ -271,6 +392,8 @@ err_select_unexpected:
 	goto err_return;
 
 err_select:
+	dwLastError = GetLastError();
+	iWSALastError = WSAGetLastError();
 	FUNCIPCLOGW(L"select() error: %ls", FormatErrorToStr(iWSALastError));
 	goto err_return;
 
@@ -281,6 +404,8 @@ err_timeout:
 	goto err_return;
 
 err_connect:
+	dwLastError = GetLastError();
+	iWSALastError = WSAGetLastError();
 	FUNCIPCLOGW(L"connect() error: %ls", FormatErrorToStr(iWSALastError));
 	goto err_return;
 
@@ -335,10 +460,14 @@ err_select_unexpected:
 	goto err_return;
 
 err_send:
+	dwLastError = GetLastError();
+	iWSALastError = WSAGetLastError();
 	FUNCIPCLOGW(L"send() error: %ls", FormatErrorToStr(iWSALastError));
 	goto err_return;
 
 err_select:
+	dwLastError = GetLastError();
+	iWSALastError = WSAGetLastError();
 	FUNCIPCLOGW(L"select() error: %ls", FormatErrorToStr(iWSALastError));
 	goto err_return;
 
@@ -404,10 +533,14 @@ err_timeout:
 	goto err_return;
 
 err_recv:
+	dwLastError = GetLastError();
+	iWSALastError = WSAGetLastError();
 	FUNCIPCLOGW(L"recv() error: %ls", FormatErrorToStr(iWSALastError));
 	goto err_return;
 
 err_select:
+	dwLastError = GetLastError();
+	iWSALastError = WSAGetLastError();
 	FUNCIPCLOGW(L"select() error: %ls", FormatErrorToStr(iWSALastError));
 	goto err_return;
 
@@ -446,7 +579,7 @@ PXCH_DLL_API int Ws2_32_DirectConnect(void* pTempData, PXCH_UINT_PTR s, const PX
 		}
 
 		for (pTempAddrInfo = pAddrInfo; pTempAddrInfo; pTempAddrInfo = pTempAddrInfo->ai_next) {
-			if (pTempAddrInfo->ai_family == ((const PXCH_TEMP_DATA*)pTempData)->CommonHeader.iConnectAddrFamily) {
+			if (pTempAddrInfo->ai_family == ((const PXCH_TEMP_DATA*)pTempData)->CommonHeader.iOriginalAddrFamily) {
 				break;
 			}
 		}
@@ -473,9 +606,9 @@ PXCH_DLL_API int Ws2_32_Socks5Connect(void* pTempData, PXCH_UINT_PTR s, const PX
 	const struct sockaddr_in6* pSockAddrIpv6;
 	const PXCH_HOSTNAME_PORT* pAddrHostname;
 	char* pszHostnameEnd;
-	int iResult;
-	char SendBuf[MAX_HOSTNAME_BUFSIZE + 10];
-	char RecvBuf[MAX_HOSTNAME_BUFSIZE + 10];
+	int iReturn;
+	char SendBuf[PXCH_MAXHOSTNAME_BUFSIZE + 10];
+	char RecvBuf[PXCH_MAXHOSTNAME_BUFSIZE + 10];
 	char ServerBoundAddrType;
 	int iWSALastError;
 	DWORD dwLastError;
@@ -495,7 +628,7 @@ PXCH_DLL_API int Ws2_32_Socks5Connect(void* pTempData, PXCH_UINT_PTR s, const PX
 		CopyMemory(SendBuf, "\05\01\00\x04\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xEE\xEE", 10);
 		CopyMemory(SendBuf + 4, &pSockAddrIpv6->sin6_addr, 4);
 		CopyMemory(SendBuf + 4 + 16, &pSockAddrIpv6->sin6_port, 2);
-		if ((iResult = Ws2_32_LoopSend(pTempData, s, SendBuf, 22)) == SOCKET_ERROR) goto err_general;
+		if ((iReturn = Ws2_32_LoopSend(pTempData, s, SendBuf, 22)) == SOCKET_ERROR) goto err_general;
 	}
 	else if (HostIsType(IPV4, *pHostPort)) {
 		pSockAddrIpv4 = (const struct sockaddr_in*)pHostPort;
@@ -504,31 +637,31 @@ PXCH_DLL_API int Ws2_32_Socks5Connect(void* pTempData, PXCH_UINT_PTR s, const PX
 		CopyMemory(SendBuf, "\05\01\00\x01\xFF\xFF\xFF\xFF\xEE\xEE", 10);
 		CopyMemory(SendBuf + 4, &pSockAddrIpv4->sin_addr, 4);
 		CopyMemory(SendBuf + 8, &pSockAddrIpv4->sin_port, 2);
-		if ((iResult = Ws2_32_LoopSend(pTempData, s, SendBuf, 10)) == SOCKET_ERROR) goto err_general;
+		if ((iReturn = Ws2_32_LoopSend(pTempData, s, SendBuf, 10)) == SOCKET_ERROR) goto err_general;
 	} else if (HostIsType(HOSTNAME, *pHostPort)) {
 		pAddrHostname = (const PXCH_HOSTNAME*)pHostPort;
 
 		// Connect
 		CopyMemory(SendBuf, "\05\01\00\x03", 4);
-		StringCchPrintfExA(SendBuf + 5, MAX_HOSTNAME_BUFSIZE, &pszHostnameEnd, NULL, 0, "%ls", pAddrHostname->szValue);
+		StringCchPrintfExA(SendBuf + 5, PXCH_MAXHOSTNAME_BUFSIZE, &pszHostnameEnd, NULL, 0, "%ls", pAddrHostname->szValue);
 		*(unsigned char*)(SendBuf + 4) = (unsigned char)(pszHostnameEnd - (SendBuf + 5));
 		CopyMemory(pszHostnameEnd, &pHostPort->HostnamePort.wPort, 2);
-		if ((iResult = Ws2_32_LoopSend(pTempData, s, SendBuf, (int)(pszHostnameEnd + 2 - SendBuf))) == SOCKET_ERROR) goto err_general;
+		if ((iReturn = Ws2_32_LoopSend(pTempData, s, SendBuf, (int)(pszHostnameEnd + 2 - SendBuf))) == SOCKET_ERROR) goto err_general;
 	} else goto err_not_supported;
 
-	if ((iResult = Ws2_32_LoopRecv(pTempData, s, RecvBuf, 4)) == SOCKET_ERROR) goto err_general;
+	if ((iReturn = Ws2_32_LoopRecv(pTempData, s, RecvBuf, 4)) == SOCKET_ERROR) goto err_general;
 	if (RecvBuf[1] != '\00') goto err_data_invalid_2;
 	ServerBoundAddrType = RecvBuf[3];
 	if (ServerBoundAddrType == '\01') {
 		// IPv4
-		if ((iResult = Ws2_32_LoopRecv(pTempData, s, RecvBuf, 4+2)) == SOCKET_ERROR) goto err_general;
+		if ((iReturn = Ws2_32_LoopRecv(pTempData, s, RecvBuf, 4+2)) == SOCKET_ERROR) goto err_general;
 	} else if (ServerBoundAddrType == '\03') {
 		// Hostname
-		if ((iResult = Ws2_32_LoopRecv(pTempData, s, RecvBuf, 1)) == SOCKET_ERROR) goto err_general;
-		if ((iResult = Ws2_32_LoopRecv(pTempData, s, RecvBuf, ((unsigned char*)RecvBuf)[0] + 2)) == SOCKET_ERROR) goto err_general;
+		if ((iReturn = Ws2_32_LoopRecv(pTempData, s, RecvBuf, 1)) == SOCKET_ERROR) goto err_general;
+		if ((iReturn = Ws2_32_LoopRecv(pTempData, s, RecvBuf, ((unsigned char*)RecvBuf)[0] + 2)) == SOCKET_ERROR) goto err_general;
 	} else if (ServerBoundAddrType == '\01') {
 		// IPv6
-		if ((iResult = Ws2_32_LoopRecv(pTempData, s, RecvBuf, 16 + 2)) == SOCKET_ERROR) goto err_general;
+		if ((iReturn = Ws2_32_LoopRecv(pTempData, s, RecvBuf, 16 + 2)) == SOCKET_ERROR) goto err_general;
 	}
 
 	SetLastError(NO_ERROR);
@@ -537,13 +670,14 @@ PXCH_DLL_API int Ws2_32_Socks5Connect(void* pTempData, PXCH_UINT_PTR s, const PX
 
 err_not_supported:
 	FUNCIPCLOGW(L"Error connecting through Socks5: addresses not implemented.");
-	iResult = SOCKET_ERROR;
+	iReturn = SOCKET_ERROR;
 	dwLastError = ERROR_NOT_SUPPORTED;
 	iWSALastError = WSAEAFNOSUPPORT;
 	goto err_return;
 
 err_data_invalid_2:
 	FUNCIPCLOGW(L"Socks5 data format invalid: server disallows this connection");
+	iReturn = SOCKET_ERROR;
 	dwLastError = ERROR_ACCESS_DENIED;
 	iWSALastError = WSAEACCES;
 	goto err_return;
@@ -555,12 +689,12 @@ err_return:
 	shutdown(s, SD_BOTH);
 	WSASetLastError(iWSALastError);
 	SetLastError(dwLastError);
-	return iResult;
+	return iReturn;
 }
 
 PXCH_DLL_API int Ws2_32_Socks5Handshake(void* pTempData, PXCH_UINT_PTR s, const PXCH_PROXY_DATA* pProxy /* Mostly myself */)
 {
-	int iResult;
+	int iReturn;
 	char RecvBuf[256];
 	int iWSALastError;
 	DWORD dwLastError;
@@ -570,8 +704,8 @@ PXCH_DLL_API int Ws2_32_Socks5Handshake(void* pTempData, PXCH_UINT_PTR s, const 
 
 	bUsePassword = pProxy->Socks5.szUsername[0] && pProxy->Socks5.szPassword[0];
 
-	if ((iResult = Ws2_32_LoopSend(pTempData, s, bUsePassword ? "\05\01\02" : "\05\01\00", 3)) == SOCKET_ERROR) goto err_general;
-	if ((iResult = Ws2_32_LoopRecv(pTempData, s, RecvBuf, 2)) == SOCKET_ERROR) goto err_general;
+	if ((iReturn = Ws2_32_LoopSend(pTempData, s, bUsePassword ? "\05\01\02" : "\05\01\00", 3)) == SOCKET_ERROR) goto err_general;
+	if ((iReturn = Ws2_32_LoopRecv(pTempData, s, RecvBuf, 2)) == SOCKET_ERROR) goto err_general;
 	if ((!bUsePassword && RecvBuf[1] != '\00') || (bUsePassword && RecvBuf[1] != '\02')) goto err_data_invalid_1;
 
 	if (bUsePassword) {
@@ -579,17 +713,29 @@ PXCH_DLL_API int Ws2_32_Socks5Handshake(void* pTempData, PXCH_UINT_PTR s, const 
 		size_t cbPasswordLength;
 		unsigned char chUsernameLength;
 		unsigned char chPasswordLength;
+		char UserPassSendBuf[PXCH_MAXUSERNAME_BUFSIZE + PXCH_MAXPASSWORD_BUFSIZE + 16];
+		char *pUserPassSendBuf;
 
 		StringCchLengthA(pProxy->Socks5.szUsername, _countof(pProxy->Socks5.szUsername), &cbUsernameLength);
 		StringCchLengthA(pProxy->Socks5.szPassword, _countof(pProxy->Socks5.szPassword), &cbPasswordLength);
 		chUsernameLength = (unsigned char)cbUsernameLength;
 		chPasswordLength = (unsigned char)cbPasswordLength;
-		if ((iResult = Ws2_32_LoopSend(pTempData, s, "\01", 1)) == SOCKET_ERROR) goto err_general;
-		if ((iResult = Ws2_32_LoopSend(pTempData, s, (char*)&chUsernameLength, 1)) == SOCKET_ERROR) goto err_general;
-		if ((iResult = Ws2_32_LoopSend(pTempData, s, pProxy->Socks5.szUsername, chUsernameLength)) == SOCKET_ERROR) goto err_general;
-		if ((iResult = Ws2_32_LoopSend(pTempData, s, (char*)&chPasswordLength, 1)) == SOCKET_ERROR) goto err_general;
-		if ((iResult = Ws2_32_LoopSend(pTempData, s, pProxy->Socks5.szPassword, chPasswordLength)) == SOCKET_ERROR) goto err_general;
-		if ((iResult = Ws2_32_LoopRecv(pTempData, s, RecvBuf, 2)) == SOCKET_ERROR) goto err_general;
+
+		pUserPassSendBuf = UserPassSendBuf;
+
+		CopyMemory(pUserPassSendBuf, "\01", 1);
+		pUserPassSendBuf += 1;
+		CopyMemory(pUserPassSendBuf, &chUsernameLength, 1);
+		pUserPassSendBuf += 1;
+		CopyMemory(pUserPassSendBuf, pProxy->Socks5.szUsername, chUsernameLength);
+		pUserPassSendBuf += chUsernameLength;
+		CopyMemory(pUserPassSendBuf, &chPasswordLength, 1);
+		pUserPassSendBuf += 1;
+		CopyMemory(pUserPassSendBuf, pProxy->Socks5.szPassword, chPasswordLength);
+		pUserPassSendBuf += chPasswordLength;
+
+		if ((iReturn = Ws2_32_LoopSend(pTempData, s, UserPassSendBuf, (int)(pUserPassSendBuf - UserPassSendBuf))) == SOCKET_ERROR) goto err_general;
+		if ((iReturn = Ws2_32_LoopRecv(pTempData, s, RecvBuf, 2)) == SOCKET_ERROR) goto err_general;
 		if (RecvBuf[1] != '\00') goto err_data_invalid_2;
 	}
 
@@ -603,12 +749,14 @@ err_data_invalid_1:
 	FUNCIPCLOGW(L"Socks5 data format invalid: server disallows authentication method");
 	dwLastError = ERROR_ACCESS_DENIED;
 	iWSALastError = WSAEACCES;
+	iReturn = SOCKET_ERROR;
 	goto err_return;
 
 err_data_invalid_2:
 	FUNCIPCLOGW(L"Socks5 error: authentication failed");
 	dwLastError = ERROR_ACCESS_DENIED;
 	iWSALastError = WSAEACCES;
+	iReturn = SOCKET_ERROR;
 	goto err_return;
 
 err_general:
@@ -618,7 +766,7 @@ err_return:
 	shutdown(s, SD_BOTH);
 	WSASetLastError(iWSALastError);
 	SetLastError(dwLastError);
-	return iResult;
+	return iReturn;
 }
 
 int Ws2_32_GenericConnectTo(void* pTempData, PXCH_UINT_PTR s, PPXCH_CHAIN pChain, const PXCH_HOST_PORT* pHostPort, int iAddrLen)
@@ -698,68 +846,41 @@ err_return:
 
 PROXY_FUNC2(Ws2_32, connect)
 {
-	// SOCKET real_s = s;
-	const PXCH_HOST_PORT* pHostPort = name;
-	const PXCH_IP_PORT* pIpPortToConnectDirectly = name;
-	unsigned int i;
 	int iReturn = 0;
 	DWORD dwLastError;
 	int iWSALastError;
+
+	const PXCH_HOST_PORT* pHostPortForProxiedConnection = name;
+	const PXCH_IP_PORT* pIpPortForDirectConnection = name;
+	const PXCH_IP_PORT* pOriginalIpPort = name;
+	int iOriginalAddrLen = namelen;
 	PXCH_UINT32 dwTarget;
+
 	PXCH_CHAIN Chain = NULL;
-	PXCH_CHAIN_NODE* ChainNode = NULL;
-	PXCH_CHAIN_NODE* TempChainNode1 = NULL;
-	PXCH_CHAIN_NODE* TempChainNode2 = NULL;
 	PXCH_WS2_32_TEMP_DATA TempData;
-	PXCH_HOST_PORT ReverseResolvedHostPortFromFakeIp;
-	PXCH_IP_PORT ResolvedIpFromFakeIp = { 0 };
+
+	PXCH_HOSTNAME_PORT ReverseLookedupHostnamePort = { 0 };
+	PXCH_IP_PORT ReverseLookedupResolvedIpPort = { 0 };
+
+	DWORD dw;
 
 	RestoreChildData();
 
 	FUNCIPCLOGD(L"Ws2_32.dll connect(%d, %ls, %d) called", s, FormatHostPortToStr(name, namelen), namelen);
 
-	TempData.iConnectAddrFamily = ((struct sockaddr*)name)->sa_family;
+	TempData.iOriginalAddrFamily = ((struct sockaddr*)pOriginalIpPort)->sa_family;
 
-	if ((HostIsType(IPV4, *pHostPort) && Ipv4MatchCidr((const struct sockaddr_in*)pHostPort, (const struct sockaddr_in*)&g_pPxchConfig->FakeIpv4Range, g_pPxchConfig->dwFakeIpv4PrefixLength))
-		|| (HostIsType(IPV6, *pHostPort) && Ipv6MatchCidr((const struct sockaddr_in6*)pHostPort, (const struct sockaddr_in6*)&g_pPxchConfig->FakeIpv6Range, g_pPxchConfig->dwFakeIpv6PrefixLength))) {
-		// Fake Ip
-		PXCH_IPC_MSGBUF chMessageBuf;
-		PXCH_UINT32 cbMessageSize;
-		PXCH_IPC_MSGBUF chRespMessageBuf;
-		PXCH_UINT32 cbRespMessageSize;
-		PXCH_IP_ADDRESS ReqIp;
-		PXCH_IP_ADDRESS RespIps[MAX_ARRAY_IP_NUM];
-		PXCH_UINT32 dwRespIpNum;
-		PXCH_HOSTNAME EmptyHostname = { 0 };
-
-		ZeroMemory(&ReqIp, sizeof(PXCH_IP_ADDRESS));
-		CopyMemory(&ReqIp, pHostPort, namelen);
-		ReqIp.CommonHeader.wPort = 0;
-
-		if ((dwLastError = HostnameAndIpsToMessage(chMessageBuf, &cbMessageSize, GetCurrentProcessId(), &EmptyHostname, FALSE /*ignored*/, 1, &ReqIp, FALSE /*ignored*/)) != NO_ERROR) goto not_wsa_error_end;
-
-		if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) goto not_wsa_error_end;
-
-		if ((dwLastError = MessageToHostnameAndIps(NULL, (PXCH_HOSTNAME*)&ReverseResolvedHostPortFromFakeIp, NULL, &dwRespIpNum, RespIps, &dwTarget, chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) goto not_wsa_error_end;
-
-		for (i = 0; i < dwRespIpNum; i++) {
-			if (RespIps[i].CommonHeader.wTag == pHostPort->CommonHeader.wTag) {
-				break;
-			}
-		}
-		if (i == dwRespIpNum) goto addr_not_supported_end;
-		ResolvedIpFromFakeIp = RespIps[i];
-		ResolvedIpFromFakeIp.CommonHeader.wPort = pHostPort->CommonHeader.wPort;
-		pIpPortToConnectDirectly = &ResolvedIpFromFakeIp;
-
-		ReverseResolvedHostPortFromFakeIp.CommonHeader.wPort = pHostPort->CommonHeader.wPort;
-		pHostPort = &ReverseResolvedHostPortFromFakeIp;
-	} else {
-		dwTarget = GetTargetByRule(NULL, NULL, NULL, NULL, pHostPort, PXCH_RULE_TARGET_DIRECT);
+	switch (ReverseLookupForHost(&ReverseLookedupHostnamePort, &ReverseLookedupResolvedIpPort, &pIpPortForDirectConnection, &pHostPortForProxiedConnection, &dwTarget, pOriginalIpPort, iOriginalAddrLen)) {
+	case NO_ERROR:
+		break;
+	case ERROR_NOT_SUPPORTED:
+		goto addr_not_supported_end;
+	default:
+		goto not_wsa_error_end;
 	}
 
 	if (dwTarget == PXCH_RULE_TARGET_DIRECT) {
-		iReturn = Ws2_32_OriginalConnect(&TempData, s, pIpPortToConnectDirectly, namelen);
+		iReturn = Ws2_32_OriginalConnect(&TempData, s, pIpPortForDirectConnection, namelen);
 		goto success_revert_connect_errcode_end;
 	}
 
@@ -767,10 +888,10 @@ PROXY_FUNC2(Ws2_32, connect)
 		goto block_end;
 	}
 
-	for (i = 0; i < g_pPxchConfig->dwProxyNum; i++) {
-		if ((iReturn = Ws2_32_GenericTunnelTo(&TempData, s, &Chain, &PXCHCONFIG_PROXY_ARR(g_pPxchConfig)[i])) == SOCKET_ERROR) goto record_error_end;
+	for (dw = 0; dw < g_pPxchConfig->dwProxyNum; dw++) {
+		if ((iReturn = Ws2_32_GenericTunnelTo(&TempData, s, &Chain, &PXCH_CONFIG_PROXY_ARR(g_pPxchConfig)[dw])) == SOCKET_ERROR) goto record_error_end;
 	}
-	if ((iReturn = Ws2_32_GenericConnectTo(&TempData, s, &Chain, pHostPort, namelen)) == SOCKET_ERROR) goto record_error_end;
+	if ((iReturn = Ws2_32_GenericConnectTo(&TempData, s, &Chain, pHostPortForProxiedConnection, namelen)) == SOCKET_ERROR) goto record_error_end;
 
 success_revert_connect_errcode_end:
 	iWSALastError = TempData.iConnectWSALastError;
@@ -778,15 +899,15 @@ success_revert_connect_errcode_end:
 	iReturn = TempData.iConnectReturn;
 	goto end;
 
-block_end:
-	iWSALastError = WSAEREFUSED;
-	dwLastError = ERROR_REQUEST_REFUSED;
-	iReturn = SOCKET_ERROR;
-	goto end;
-
 addr_not_supported_end:
 	iWSALastError = WSAEAFNOSUPPORT;
 	dwLastError = ERROR_NOT_SUPPORTED;
+	iReturn = SOCKET_ERROR;
+	goto end;
+
+block_end:
+	iWSALastError = WSAECONNREFUSED;
+	dwLastError = ERROR_REQUEST_REFUSED;
 	iReturn = SOCKET_ERROR;
 	goto end;
 
@@ -800,16 +921,8 @@ not_wsa_error_end:
 	goto end;
 
 end:
-	FUNCIPCLOGI(L"Ws2_32.dll connect(%d, %ls, %d) %ls", s, FormatHostPortToStr(name, namelen), namelen, g_szRuleTargetDesc[dwTarget]);
-	CDL_FOREACH_SAFE(Chain, ChainNode, TempChainNode1, TempChainNode2) {
-		CDL_DELETE(Chain, ChainNode);
-		HeapFree(GetProcessHeap(), 0, ChainNode);
-	}
-	if (iReturn != 0 && iWSALastError != WSAEWOULDBLOCK && !(iWSALastError == WSAEREFUSED && dwTarget == PXCH_RULE_TARGET_BLOCK)) {
-		FUNCIPCLOGW(L"Ws2_32.dll connect() ret: %d, wsa last error: %ls", iReturn, FormatErrorToStr(iWSALastError));
-	} else {
-		FUNCIPCLOGD(L"Ws2_32.dll connect() ret: %d, wsa last error: %ls", iReturn, FormatErrorToStr(iWSALastError));
-	}
+	PrintConnectResultAndFreeResources(L"Ws2_32.dll connect", s, pOriginalIpPort, iOriginalAddrLen, pIpPortForDirectConnection, pHostPortForProxiedConnection, dwTarget, &Chain, iReturn, iReturn == 0, iWSALastError);
+	
 	WSASetLastError(iWSALastError);
 	SetLastError(dwLastError);
 	return iReturn;
@@ -836,68 +949,42 @@ Mswsock_ConnectEx_SIGN_WITH_PTEMPDATA(Mswsock_OriginalConnectEx)
 
 PROXY_FUNC2(Mswsock, ConnectEx)
 {
-	const PXCH_HOST_PORT* pHostPort = name;
-	const PXCH_IP_PORT* pIpPortToConnectDirectly = name;
-	unsigned int i;
 	int iReturn;
 	BOOL bReturn;
 	DWORD dwLastError;
 	int iWSALastError;
+
+	const PXCH_HOST_PORT* pHostPortForProxiedConnection = name;
+	const PXCH_IP_PORT* pIpPortForDirectConnection = name;
+	const PXCH_IP_PORT* pOriginalIpPort = name;
+	int iOriginalAddrLen = namelen;
 	PXCH_UINT32 dwTarget;
+
 	PXCH_CHAIN Chain = NULL;
-	PXCH_CHAIN_NODE* ChainNode = NULL;
-	PXCH_CHAIN_NODE* TempChainNode1 = NULL;
-	PXCH_CHAIN_NODE* TempChainNode2 = NULL;
 	PXCH_MSWSOCK_TEMP_DATA TempData;
-	PXCH_HOST_PORT ReverseResolvedHostPortFromFakeIp;
-	PXCH_IP_PORT ResolvedIpFromFakeIp = { 0 };
+
+	PXCH_HOSTNAME_PORT ReverseLookedupHostnamePort = { 0 };
+	PXCH_IP_PORT ReverseLookedupResolvedIpPort = { 0 };
+
+	DWORD dw;
 
 	RestoreChildData();
 
 	FUNCIPCLOGD(L"Mswsock.dll (FP)ConnectEx(%d, %ls, %d) called", s, FormatHostPortToStr(name, namelen), namelen);
 
-	TempData.iConnectAddrFamily = ((struct sockaddr*)name)->sa_family;
+	TempData.iOriginalAddrFamily = ((struct sockaddr*)pOriginalIpPort)->sa_family;
 
-	if ((HostIsType(IPV4, *pHostPort) && Ipv4MatchCidr((const struct sockaddr_in*)pHostPort, (const struct sockaddr_in*)&g_pPxchConfig->FakeIpv4Range, g_pPxchConfig->dwFakeIpv4PrefixLength))
-		|| (HostIsType(IPV6, *pHostPort) && Ipv6MatchCidr((const struct sockaddr_in6*)pHostPort, (const struct sockaddr_in6*)&g_pPxchConfig->FakeIpv6Range, g_pPxchConfig->dwFakeIpv6PrefixLength))) {
-		// Fake Ip
-		PXCH_IPC_MSGBUF chMessageBuf;
-		PXCH_UINT32 cbMessageSize;
-		PXCH_IPC_MSGBUF chRespMessageBuf;
-		PXCH_UINT32 cbRespMessageSize;
-		PXCH_IP_ADDRESS ReqIp;
-		PXCH_IP_ADDRESS RespIps[MAX_ARRAY_IP_NUM];
-		PXCH_UINT32 dwRespIpNum;
-		PXCH_HOSTNAME EmptyHostname = { 0 };
-
-		ZeroMemory(&ReqIp, sizeof(PXCH_IP_ADDRESS));
-		CopyMemory(&ReqIp, pHostPort, namelen);
-		ReqIp.CommonHeader.wPort = 0;
-
-		if ((dwLastError = HostnameAndIpsToMessage(chMessageBuf, &cbMessageSize, GetCurrentProcessId(), &EmptyHostname, FALSE /*ignored*/, 1, &ReqIp, FALSE /*ignored*/)) != NO_ERROR) goto not_wsa_error_end;
-
-		if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) goto not_wsa_error_end;
-
-		if ((dwLastError = MessageToHostnameAndIps(NULL, (PXCH_HOSTNAME*)&ReverseResolvedHostPortFromFakeIp, NULL, &dwRespIpNum, RespIps, &dwTarget, chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) goto not_wsa_error_end;
-
-		for (i = 0; i < dwRespIpNum; i++) {
-			if (RespIps[i].CommonHeader.wTag == pHostPort->CommonHeader.wTag) {
-				break;
-			}
-		}
-		if (i == dwRespIpNum) goto addr_not_supported_end;
-		ResolvedIpFromFakeIp = RespIps[i];
-		ResolvedIpFromFakeIp.CommonHeader.wPort = pHostPort->CommonHeader.wPort;
-		pIpPortToConnectDirectly = &ResolvedIpFromFakeIp;
-
-		ReverseResolvedHostPortFromFakeIp.CommonHeader.wPort = pHostPort->CommonHeader.wPort;
-		pHostPort = &ReverseResolvedHostPortFromFakeIp;
-	} else {
-		dwTarget = GetTargetByRule(NULL, NULL, NULL, NULL, pHostPort, PXCH_RULE_TARGET_DIRECT);
+	switch (ReverseLookupForHost(&ReverseLookedupHostnamePort, &ReverseLookedupResolvedIpPort, &pIpPortForDirectConnection, &pHostPortForProxiedConnection, &dwTarget, pOriginalIpPort, iOriginalAddrLen)) {
+	case NO_ERROR:
+		break;
+	case ERROR_NOT_SUPPORTED:
+		goto addr_not_supported_end;
+	default:
+		goto not_wsa_error_end;
 	}
 
 	if (dwTarget == PXCH_RULE_TARGET_DIRECT) {
-		bReturn = Mswsock_OriginalConnectEx(&TempData, s, pIpPortToConnectDirectly, namelen, lpSendBuffer, dwSendDataLength, lpdwBytesSent, lpOverlapped);
+		bReturn = Mswsock_OriginalConnectEx(&TempData, s, pIpPortForDirectConnection, namelen, lpSendBuffer, dwSendDataLength, lpdwBytesSent, lpOverlapped);
 		goto success_set_errcode_zero_end;
 	}
 
@@ -905,10 +992,10 @@ PROXY_FUNC2(Mswsock, ConnectEx)
 		goto block_end;
 	}
 
-	for (i = 0; i < g_pPxchConfig->dwProxyNum; i++) {
-		if ((iReturn = Ws2_32_GenericTunnelTo(&TempData, s, &Chain, &PXCHCONFIG_PROXY_ARR(g_pPxchConfig)[i])) == SOCKET_ERROR) goto record_error_end;
+	for (dw = 0; dw < g_pPxchConfig->dwProxyNum; dw++) {
+		if ((iReturn = Ws2_32_GenericTunnelTo(&TempData, s, &Chain, &PXCH_CONFIG_PROXY_ARR(g_pPxchConfig)[dw])) == SOCKET_ERROR) goto record_error_end;
 	}
-	if ((iReturn = Ws2_32_GenericConnectTo(&TempData, s, &Chain, pHostPort, namelen)) == SOCKET_ERROR) goto record_error_end;
+	if ((iReturn = Ws2_32_GenericConnectTo(&TempData, s, &Chain, pHostPortForProxiedConnection, namelen)) == SOCKET_ERROR) goto record_error_end;
 
 success_set_errcode_zero_end:
 	iWSALastError = NO_ERROR;
@@ -923,7 +1010,7 @@ addr_not_supported_end:
 	goto end;
 
 block_end:
-	iWSALastError = WSAEREFUSED;
+	iWSALastError = WSAECONNREFUSED;
 	dwLastError = ERROR_REQUEST_REFUSED;
 	bReturn = FALSE;
 	goto end;
@@ -940,16 +1027,8 @@ not_wsa_error_end:
 	goto end;
 
 end:
-	FUNCIPCLOGI(L"mswsock.dll (FP)ConnectEx(%d, %ls, %d) %ls", s, FormatHostPortToStr(name, namelen), namelen, g_szRuleTargetDesc[dwTarget]);
-	CDL_FOREACH_SAFE(Chain, ChainNode, TempChainNode1, TempChainNode2) {
-		CDL_DELETE(Chain, ChainNode);
-		HeapFree(GetProcessHeap(), 0, ChainNode);
-	}
-	if (bReturn && iWSALastError != WSAEWOULDBLOCK && !(iWSALastError == WSAEREFUSED && dwTarget == PXCH_RULE_TARGET_BLOCK)) {
-		FUNCIPCLOGW(L"mswsock.dll (FP)ConnectEx ret: %d, wsa last error: %ls", bReturn, FormatErrorToStr(iWSALastError));
-	} else {
-		FUNCIPCLOGD(L"mswsock.dll (FP)ConnectEx ret: %d, wsa last error: %ls", bReturn, FormatErrorToStr(iWSALastError));
-	}
+	PrintConnectResultAndFreeResources(L"Mswsock.dll (FP)ConnectEx", s, pOriginalIpPort, iOriginalAddrLen, pIpPortForDirectConnection, pHostPortForProxiedConnection, dwTarget, &Chain, (int)bReturn, bReturn, iWSALastError);
+
 	WSASetLastError(iWSALastError);
 	SetLastError(dwLastError);
 	return bReturn;
@@ -1002,9 +1081,8 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 	ADDRINFOW* pRequeryAddrInfo = NULL;
 	PXCH_HOSTNAME OriginalHostname;
 	PXCH_HOSTNAME ResolvedHostname;
-	PXCH_HOSTNAME_PORT HostnamePort;
 	PXCH_UINT32 dwIpNum;
-	PXCH_IP_ADDRESS Ips[MAX_ARRAY_IP_NUM];
+	PXCH_IP_ADDRESS Ips[PXCH_MAXARRAY_IP_NUM];
 	PXCH_UINT32 dwTarget;
 	BOOL bMatchedHostnameRule;
 
@@ -1029,7 +1107,6 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 	StringCchPrintfW(OriginalHostname.szValue, _countof(OriginalHostname.szValue), L"%S", name);
 	HostentToHostnameAndIps(&ResolvedHostname, &dwIpNum, Ips, orig_pHostent);
 	if (dwIpNum == 0) goto orig;
-	HostnamePort = OriginalHostname;
 
 	if (orig_fpWs2_32_GetAddrInfoW(OriginalHostname.szValue, L"80", &RequeryAddrInfoHints, &pRequeryAddrInfo) != WSAHOST_NOT_FOUND) goto orig;
 
@@ -1038,7 +1115,7 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 	if (g_pPxchConfig->dwWillForceResolveByHostsFile && ResolveByHostsFile(NULL, &OriginalHostname)) goto orig;
 
 	// Won't match port!
-	dwTarget = GetTargetByRule(&bMatchedHostnameRule, NULL, NULL, NULL, (PXCH_HOST_PORT*)&HostnamePort, PXCH_RULE_TARGET_DIRECT);
+	dwTarget = GetTargetByRule(&bMatchedHostnameRule, NULL, NULL, NULL, (PXCH_HOST_PORT*)&OriginalHostname, PXCH_RULE_TARGET_DIRECT);
 
 	if (bMatchedHostnameRule || g_pPxchConfig->dwWillUseFakeIpWhenHostnameNotMatched) {
 		PXCH_IPC_MSGBUF chMessageBuf;
@@ -1049,6 +1126,9 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 		struct hostent* pNewHostentResult;
 		int iIpFamilyAllowed;
 		PXCH_IP_ADDRESS* pFakeIps;
+
+		FUNCIPCLOGD(L"Ws2_32.dll gethostbyname(" WPRS L") : 5", name);
+
 
 		if ((dwLastError = HostnameAndIpsToMessage(chMessageBuf, &cbMessageSize, GetCurrentProcessId(), &OriginalHostname, g_pPxchConfig->dwWillMapResolvedIpToHost, dwIpNum, Ips, dwTarget)) != NO_ERROR) goto err;
 
@@ -1103,8 +1183,8 @@ PROXY_FUNC2(Ws2_32, gethostbyaddr)
 
 PROXY_FUNC2(Ws2_32, getaddrinfo)
 {
-	WCHAR pNodeNameW[MAX_HOSTNAME_BUFSIZE];
-	WCHAR pServiceNameW[MAX_HOSTNAME_BUFSIZE];
+	WCHAR pNodeNameW[PXCH_MAXHOSTNAME_BUFSIZE];
+	WCHAR pServiceNameW[PXCH_MAXHOSTNAME_BUFSIZE];
 	const ADDRINFOA* pHintsCast = pHints;
 	const ADDRINFOW* pHintsCastW = pHints;
 	PADDRINFOW pResultCastW;
@@ -1114,7 +1194,7 @@ PROXY_FUNC2(Ws2_32, getaddrinfo)
 	PXCH_ADDRINFOA* arrPxchAddrInfoA = NULL;
 	PADDRINFOA* ppResultCastA = ppResult;
 	PADDRINFOA* ppTempAddrInfoA;
-	int iResult;
+	int iReturn;
 	DWORD dwLastError;
 	int iWSALastError;
 
@@ -1131,8 +1211,8 @@ PROXY_FUNC2(Ws2_32, getaddrinfo)
 	if (pNodeName) StringCchPrintfW(pNodeNameW, _countof(pNodeNameW), L"%S", pNodeName);
 	if (pServiceName) StringCchPrintfW(pServiceNameW, _countof(pServiceNameW), L"%S", pServiceName);
 
-	//iResult = ProxyWs2_32_GetAddrInfoW(pNodeNameW, pServiceNameW, pHintsCastW, &pResultCastW);
-	iResult = ProxyWs2_32_GetAddrInfoW(pNodeName ? pNodeNameW : NULL, pServiceName ? pServiceNameW : NULL, pHintsCastW, &pResultCastW);
+	//iReturn = ProxyWs2_32_GetAddrInfoW(pNodeNameW, pServiceNameW, pHintsCastW, &pResultCastW);
+	iReturn = ProxyWs2_32_GetAddrInfoW(pNodeName ? pNodeNameW : NULL, pServiceName ? pServiceNameW : NULL, pHintsCastW, &pResultCastW);
 	iWSALastError = WSAGetLastError();
 	dwLastError = GetLastError();
 
@@ -1184,7 +1264,7 @@ PROXY_FUNC2(Ws2_32, getaddrinfo)
 
 	WSASetLastError(iWSALastError);
 	SetLastError(dwLastError);
-	return iResult;
+	return iReturn;
 }
 
 // Hook GetAddrInfoW
@@ -1194,7 +1274,7 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 	ADDRINFOW DefaultHints;
 	const ADDRINFOW* pHintsCast = pHints ? pHints : &DefaultHints;
 	PADDRINFOW* ppResultCast = ppResult;
-	int iResult;
+	int iReturn;
 	DWORD dwLastError;
 	int iWSALastError;
 
@@ -1220,7 +1300,7 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 
 	FUNCIPCLOGD(L"Ws2_32.dll GetAddrInfoW(%ls, %ls, AF%#010x, FL%#010x, ST%#010x, PT%#010x) called", pNodeName, pServiceName, pHintsCast->ai_family, pHintsCast->ai_flags, pHintsCast->ai_socktype, pHintsCast->ai_protocol);
 
-	iResult = orig_fpWs2_32_GetAddrInfoW(pNodeName, pServiceName, pHints, ppResult);
+	iReturn = orig_fpWs2_32_GetAddrInfoW(pNodeName, pServiceName, pHints, ppResult);
 	iWSALastError = WSAGetLastError();
 	dwLastError = GetLastError();
 
@@ -1285,7 +1365,7 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 		PXCH_UINT32 cbMessageSize;
 		PXCH_IPC_MSGBUF chRespMessageBuf;
 		PXCH_UINT32 cbRespMessageSize;
-		PXCH_IP_ADDRESS Ips[MAX_ARRAY_IP_NUM];
+		PXCH_IP_ADDRESS Ips[PXCH_MAXARRAY_IP_NUM];
 		PXCH_UINT32 dwIpNum;
 		PXCH_IP_PORT FakeIpPorts[2];
 		ADDRINFOW* pNewAddrInfoWResult;
@@ -1327,7 +1407,7 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 		HostnameAndIpPortsToAddrInfo_WillAllocate(&pNewAddrInfoWResult, &Hostname, iIpFamilyAllowed, pFakeIpPorts, !!(pHintsCast->ai_flags & AI_CANONNAME), (*ppResultCast)->ai_socktype, (*ppResultCast)->ai_protocol);
 		iWSALastError = NO_ERROR;
 		dwLastError = NO_ERROR;
-		iResult = 0;
+		iReturn = 0;
 
 		orig_fpWs2_32_FreeAddrInfoW(*ppResultCast);
 		*ppResultCast = pNewAddrInfoWResult;
@@ -1336,7 +1416,7 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 out:
 	WSASetLastError(iWSALastError);
 	SetLastError(dwLastError);
-	return iResult;
+	return iReturn;
 
 err:
 	orig_fpWs2_32_FreeAddrInfoW(*ppResultCast);

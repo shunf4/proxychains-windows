@@ -1,3 +1,20 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+/* proc_bookkeeping_win32.h
+ * Copyright (C) 2020 Feng Shun.
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License version 2 as 
+ *   published by the Free Software Foundation, either version 3 of the
+ *   License, or (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 #pragma once
 #include "defines_win32.h"
 #include "ipc_win32.h"
@@ -77,7 +94,7 @@ typedef struct {
 	PXCH_HOSTNAME Hostname;
 	PXCH_UINT32 dwTarget;
 	PXCH_UINT32 dwResovledIpNum;
-	PXCH_IP_ADDRESS ResolvedIps[MAX_ARRAY_IP_NUM];
+	PXCH_IP_ADDRESS ResolvedIps[PXCH_MAXARRAY_IP_NUM];
 
 	UT_hash_handle hh;
 } tab_fake_ip_hostname_t;

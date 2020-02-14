@@ -5,8 +5,6 @@ VisualStudioVersion = 16.0.29613.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "proxychains_common", "proxychains_common\proxychains_common.vcxproj", "{D7744E4C-B1F8-495B-BDD4-DCDB0738B2BE}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "StaticLib1", "StaticLib1\StaticLib1.vcxproj", "{7964A509-EE11-4F11-885B-DB24C81243A7}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "proxychains.exe", "proxychains.exe\proxychains.exe.vcxproj", "{3F3F5D43-FEE4-4656-A992-D4D0371E303D}"
 	ProjectSection(ProjectDependencies) = postProject
 		{D7744E4C-B1F8-495B-BDD4-DCDB0738B2BE} = {D7744E4C-B1F8-495B-BDD4-DCDB0738B2BE}
@@ -18,6 +16,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "proxychains_hook.dll", "pro
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test", "test\test.vcxproj", "{0D8AB1EC-7D1C-4475-AB7E-411F36137C94}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libMinHook", "minhook\build\VC15\libMinHook.vcxproj", "{F142A341-5EE0-442D-A15F-98AE9B48DBAE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,14 +35,6 @@ Global
 		{D7744E4C-B1F8-495B-BDD4-DCDB0738B2BE}.Release|x64.Build.0 = Release|x64
 		{D7744E4C-B1F8-495B-BDD4-DCDB0738B2BE}.Release|x86.ActiveCfg = Release|Win32
 		{D7744E4C-B1F8-495B-BDD4-DCDB0738B2BE}.Release|x86.Build.0 = Release|Win32
-		{7964A509-EE11-4F11-885B-DB24C81243A7}.Debug|x64.ActiveCfg = Debug|x64
-		{7964A509-EE11-4F11-885B-DB24C81243A7}.Debug|x64.Build.0 = Debug|x64
-		{7964A509-EE11-4F11-885B-DB24C81243A7}.Debug|x86.ActiveCfg = Debug|Win32
-		{7964A509-EE11-4F11-885B-DB24C81243A7}.Debug|x86.Build.0 = Debug|Win32
-		{7964A509-EE11-4F11-885B-DB24C81243A7}.Release|x64.ActiveCfg = Release|x64
-		{7964A509-EE11-4F11-885B-DB24C81243A7}.Release|x64.Build.0 = Release|x64
-		{7964A509-EE11-4F11-885B-DB24C81243A7}.Release|x86.ActiveCfg = Release|Win32
-		{7964A509-EE11-4F11-885B-DB24C81243A7}.Release|x86.Build.0 = Release|Win32
 		{3F3F5D43-FEE4-4656-A992-D4D0371E303D}.Debug|x64.ActiveCfg = Debug|x64
 		{3F3F5D43-FEE4-4656-A992-D4D0371E303D}.Debug|x64.Build.0 = Debug|x64
 		{3F3F5D43-FEE4-4656-A992-D4D0371E303D}.Debug|x86.ActiveCfg = Debug|Win32
@@ -67,6 +59,14 @@ Global
 		{0D8AB1EC-7D1C-4475-AB7E-411F36137C94}.Release|x64.Build.0 = Release|x64
 		{0D8AB1EC-7D1C-4475-AB7E-411F36137C94}.Release|x86.ActiveCfg = Release|Win32
 		{0D8AB1EC-7D1C-4475-AB7E-411F36137C94}.Release|x86.Build.0 = Release|Win32
+		{F142A341-5EE0-442D-A15F-98AE9B48DBAE}.Debug|x64.ActiveCfg = Debug|x64
+		{F142A341-5EE0-442D-A15F-98AE9B48DBAE}.Debug|x64.Build.0 = Debug|x64
+		{F142A341-5EE0-442D-A15F-98AE9B48DBAE}.Debug|x86.ActiveCfg = Debug|Win32
+		{F142A341-5EE0-442D-A15F-98AE9B48DBAE}.Debug|x86.Build.0 = Debug|Win32
+		{F142A341-5EE0-442D-A15F-98AE9B48DBAE}.Release|x64.ActiveCfg = Release|x64
+		{F142A341-5EE0-442D-A15F-98AE9B48DBAE}.Release|x64.Build.0 = Release|x64
+		{F142A341-5EE0-442D-A15F-98AE9B48DBAE}.Release|x86.ActiveCfg = Release|Win32
+		{F142A341-5EE0-442D-A15F-98AE9B48DBAE}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

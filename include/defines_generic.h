@@ -1,6 +1,23 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+/* defines_generic.h
+ * Copyright (C) 2020 Feng Shun.
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License version 2 as 
+ *   published by the Free Software Foundation, either version 3 of the
+ *   License, or (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 #pragma once
 
-#include "include_generic.h"
+#include "includes_generic.h"
 
 #ifdef __CYGWIN__
 #define _byteswap_uint64 _bswap64
@@ -57,27 +74,28 @@ typedef unsigned int PXCH_UINT_PTR;
 #endif
 
 // In characters -- start
-#define MAX_DLL_PATH_BUFSIZE 512
-#define MAX_CONFIG_FILE_PATH_BUFSIZE 512
-#define MAX_HOSTS_FILE_PATH_BUFSIZE 512
-#define MAX_DLL_FILE_NAME_BUFSIZE 64
-#define MAX_DLL_FUNC_NAME_BUFSIZE 64
-#define MAX_IPC_PIPE_NAME_BUFSIZE 128
-#define MAX_COMMAND_EXEC_PATH_BUFSIZE 512
-#define MAX_COMMAND_LINE_BUFSIZE 1024
-#define MAX_HOSTNAME_BUFSIZE 256
-#define MAX_USERNAME_BUFSIZE 256
-#define MAX_PASSWORD_BUFSIZE 256
-#define MAX_PROXY_NUM 5
-#define MAX_FILEMAPPING_BUFSIZE 256
-#define MAX_CONFIGURATION_LINE_BUFSIZE 512
-#define MAX_HOSTS_LINE_BUFSIZE 512
-#define MAX_ARRAY_IP_NUM 10
+#define PXCH_MAXDLL_PATH_BUFSIZE 512
+#define PXCH_MAXCONFIG_FILE_PATH_BUFSIZE 512
+#define PXCH_MAXHOSTS_FILE_PATH_BUFSIZE 512
+#define PXCH_MAXDLL_FILE_NAME_BUFSIZE 64
+#define PXCH_MAXDLL_FUNC_NAME_BUFSIZE 64
+#define PXCH_MAXIPC_PIPE_NAME_BUFSIZE 128
+#define PXCH_MAXCOMMAND_EXEC_PATH_BUFSIZE 512
+#define PXCH_MAXCOMMAND_LINE_BUFSIZE 1024
+#define PXCH_MAXHOSTNAME_BUFSIZE 256
+#define PXCH_MAXUSERNAME_BUFSIZE 256
+#define PXCH_MAXPASSWORD_BUFSIZE 256
+#define PXCH_MAXPROXY_NUM 5
+#define PXCH_MAXFILEMAPPING_BUFSIZE 256
+#define PXCH_MAXCONFIGURATION_LINE_BUFSIZE 512
+#define PXCH_MAXHOSTS_LINE_BUFSIZE 512
+#define PXCH_MAXDUMP_MEMORY_BUFSIZE 1024
+#define PXCH_MAXARRAY_IP_NUM 10
 
 #define PXCH_LOG_IPC_BUFSIZE 1024
 #define PXCH_LOG_ODS_BUFSIZE 256
 
-#define MAX_FWPRINTF_BUFSIZE 1024	// Also as log bufsize
+#define PXCH_MAXFWPRINTF_BUFSIZE 1024	// Also as log bufsize
 // In characters -- end
 
 #ifdef __CYGWIN__
@@ -175,9 +193,9 @@ typedef union {
 } PXCH_IP_PORT;
 typedef PXCH_IP_PORT PXCH_IP_ADDRESS;   // port must be zero
 
-typedef wchar_t PXCH_HOSTNAME_VALUE[MAX_HOSTNAME_BUFSIZE];
-typedef char PXCH_USERNAME[MAX_USERNAME_BUFSIZE];
-typedef char PXCH_PASSWORD[MAX_USERNAME_BUFSIZE];
+typedef wchar_t PXCH_HOSTNAME_VALUE[PXCH_MAXHOSTNAME_BUFSIZE];
+typedef char PXCH_USERNAME[PXCH_MAXUSERNAME_BUFSIZE];
+typedef char PXCH_PASSWORD[PXCH_MAXUSERNAME_BUFSIZE];
 
 
 typedef struct _PXCH_HOSTNAME {
@@ -214,8 +232,8 @@ typedef struct _PXCH_PROXY_DIRECT_DATA {
 	PXCH_UINT32 dwTag;
 	// PXCH_WS2_32_FPCONNECT Ws2_32_FpConnect;
 	// PXCH_WS2_32_FPHANDSHAKE Ws2_32_FpHandshake;
-	char Ws2_32_ConnectFunctionName[MAX_DLL_FUNC_NAME_BUFSIZE];
-	char Ws2_32_HandshakeFunctionName[MAX_DLL_FUNC_NAME_BUFSIZE];
+	char Ws2_32_ConnectFunctionName[PXCH_MAXDLL_FUNC_NAME_BUFSIZE];
+	char Ws2_32_HandshakeFunctionName[PXCH_MAXDLL_FUNC_NAME_BUFSIZE];
 	PXCH_HOST_PORT HostPort;
 	int iAddrLen;
 } PXCH_PROXY_DIRECT_DATA;
@@ -224,8 +242,8 @@ typedef struct _PXCH_PROXY_SOCKS5_DATA {
 	PXCH_UINT32 dwTag;
 	// PXCH_WS2_32_FPCONNECT Ws2_32_FpConnect;
 	// PXCH_WS2_32_FPHANDSHAKE Ws2_32_FpHandshake;
-	char Ws2_32_ConnectFunctionName[MAX_DLL_FUNC_NAME_BUFSIZE];
-	char Ws2_32_HandshakeFunctionName[MAX_DLL_FUNC_NAME_BUFSIZE];
+	char Ws2_32_ConnectFunctionName[PXCH_MAXDLL_FUNC_NAME_BUFSIZE];
+	char Ws2_32_HandshakeFunctionName[PXCH_MAXDLL_FUNC_NAME_BUFSIZE];
 	PXCH_HOST_PORT HostPort;
 	int iAddrLen;
 
@@ -241,8 +259,8 @@ typedef union _PXCH_PROXY_DATA {
 		PXCH_UINT32 dwTag;
 		// PXCH_WS2_32_FPCONNECT Ws2_32_FpConnect;
 		// PXCH_WS2_32_FPHANDSHAKE Ws2_32_FpHandshake;
-		char Ws2_32_ConnectFunctionName[MAX_DLL_FUNC_NAME_BUFSIZE];
-		char Ws2_32_HandshakeFunctionName[MAX_DLL_FUNC_NAME_BUFSIZE];
+		char Ws2_32_ConnectFunctionName[PXCH_MAXDLL_FUNC_NAME_BUFSIZE];
+		char Ws2_32_HandshakeFunctionName[PXCH_MAXDLL_FUNC_NAME_BUFSIZE];
 		PXCH_HOST_PORT HostPort;
 		int iAddrLen;
 	} CommonHeader;
@@ -268,29 +286,29 @@ typedef struct _PXCH_HOSTS_ENTRY {
 } PXCH_HOSTS_ENTRY;
 
 
-#define PXCHCONFIG_EXTRA_SIZE_G PXCHCONFIG_EXTRA_SIZE(g_pPxchConfig)
-#define PXCHCONFIG_EXTRA_SIZE_BY_N(proxyNum, ruleNum, hostsEntryNum) ((sizeof(PXCH_RULE) * ruleNum) + (sizeof(PXCH_PROXY_DATA) * proxyNum) + (sizeof(PXCH_HOSTS_ENTRY) * hostsEntryNum))
-#define PXCHCONFIG_EXTRA_SIZE(pPxchConfig) PXCHCONFIG_EXTRA_SIZE_BY_N((pPxchConfig)->dwRuleNum, (pPxchConfig)->dwProxyNum, (pPxchConfig)->dwHostsEntryNum)
+#define PXCH_CONFIG_EXTRA_SIZE_G PXCH_CONFIG_EXTRA_SIZE(g_pPxchConfig)
+#define PXCH_CONFIG_EXTRA_SIZE_BY_N(proxyNum, ruleNum, hostsEntryNum) ((sizeof(PXCH_RULE) * ruleNum) + (sizeof(PXCH_PROXY_DATA) * proxyNum) + (sizeof(PXCH_HOSTS_ENTRY) * hostsEntryNum))
+#define PXCH_CONFIG_EXTRA_SIZE(pPxchConfig) PXCH_CONFIG_EXTRA_SIZE_BY_N((pPxchConfig)->dwRuleNum, (pPxchConfig)->dwProxyNum, (pPxchConfig)->dwHostsEntryNum)
 
-#define PXCHCONFIG_PROXY_ARR(pPxchConfig) ((PXCH_PROXY_DATA*)((char*)(pPxchConfig) + pPxchConfig->cbProxyListOffset))
-#define PXCHCONFIG_RULE_ARR(pPxchConfig) ((PXCH_RULE*)((char*)(pPxchConfig) + pPxchConfig->cbRuleListOffset))
-#define PXCHCONFIG_HOSTS_ENTRY_ARR(pPxchConfig) ((PXCH_HOSTS_ENTRY*)((char*)(pPxchConfig) + pPxchConfig->cbHostsEntryListOffset))
+#define PXCH_CONFIG_PROXY_ARR(pPxchConfig) ((PXCH_PROXY_DATA*)((char*)(pPxchConfig) + pPxchConfig->cbProxyListOffset))
+#define PXCH_CONFIG_RULE_ARR(pPxchConfig) ((PXCH_RULE*)((char*)(pPxchConfig) + pPxchConfig->cbRuleListOffset))
+#define PXCH_CONFIG_HOSTS_ENTRY_ARR(pPxchConfig) ((PXCH_HOSTS_ENTRY*)((char*)(pPxchConfig) + pPxchConfig->cbHostsEntryListOffset))
 
-#define PXCHCONFIG_PROXY_ARR_G PXCHCONFIG_PROXY_ARR(g_pPxchConfig)
-#define PXCHCONFIG_RULE_ARR_G PXCHCONFIG_RULE_ARR(g_pPxchConfig)
-#define PXCHCONFIG_HOSTS_ENTRY_ARR_G PXCHCONFIG_HOSTS_ENTRY_ARR(g_pPxchConfig)
+#define PXCH_CONFIG_PROXY_ARR_G PXCH_CONFIG_PROXY_ARR(g_pPxchConfig)
+#define PXCH_CONFIG_RULE_ARR_G PXCH_CONFIG_RULE_ARR(g_pPxchConfig)
+#define PXCH_CONFIG_HOSTS_ENTRY_ARR_G PXCH_CONFIG_HOSTS_ENTRY_ARR(g_pPxchConfig)
 
 
 typedef struct _PROXYCHAINS_CONFIG {
 	PXCH_UINT32 dwMasterProcessId;
 	PXCH_INT32 dwLogLevel;
 	PXCH_INT32 dwLogLevelAlreadySet;
-	wchar_t szIpcPipeName[MAX_IPC_PIPE_NAME_BUFSIZE];
-	wchar_t szConfigPath[MAX_CONFIG_FILE_PATH_BUFSIZE];
-	wchar_t szHookDllPath[MAX_DLL_PATH_BUFSIZE];
-	wchar_t szMinHookDllPath[MAX_DLL_PATH_BUFSIZE];
-	wchar_t szHostsFilePath[MAX_HOSTS_FILE_PATH_BUFSIZE];
-	wchar_t szCommandLine[MAX_COMMAND_LINE_BUFSIZE];
+	wchar_t szIpcPipeName[PXCH_MAXIPC_PIPE_NAME_BUFSIZE];
+	wchar_t szConfigPath[PXCH_MAXCONFIG_FILE_PATH_BUFSIZE];
+	wchar_t szHookDllPath[PXCH_MAXDLL_PATH_BUFSIZE];
+	wchar_t szMinHookDllPath[PXCH_MAXDLL_PATH_BUFSIZE];
+	wchar_t szHostsFilePath[PXCH_MAXHOSTS_FILE_PATH_BUFSIZE];
+	wchar_t szCommandLine[PXCH_MAXCOMMAND_LINE_BUFSIZE];
 	
 	PXCH_UINT32 cbProxyListOffset;
 	PXCH_UINT32 dwProxyNum;
@@ -315,7 +333,7 @@ typedef struct _PROXYCHAINS_CONFIG {
 	PXCH_UINT32 dwWillDeleteFakeIpAfterChildProcessExits;
 	PXCH_UINT32 dwWillUseFakeIpWhenHostnameNotMatched;	// usually exclusive with dwWillMapResolvedIpToHost
 	PXCH_UINT32 dwWillMapResolvedIpToHost;
-	PXCH_UINT32 dwWillSearchForHostByResolvedIp;
+	PXCH_UINT32 dwWillLookupForHostByResolvedIp;
 	PXCH_UINT32 dwWillForceResolveByHostsFile;
 
 	PXCH_UINT32 dwWillFirstTunnelUseIpv4;
@@ -324,11 +342,26 @@ typedef struct _PROXYCHAINS_CONFIG {
 
 static const wchar_t g_szChildDataSavingFileMappingPrefix[] = L"Local\\proxychains_child_data_";
 
-#ifdef __CYGWIN__
-static const wchar_t g_szHookDllFileName[] = L"cygproxychains_hook.dll";
+#ifdef _DEBUG
+#define PXCH_HOOKDLL_DEBUG_SUFFIX L"d"
 #else
-static const wchar_t g_szHookDllFileName[] = L"proxychains_hook.dll";
+#define PXCH_HOOKDLL_DEBUG_SUFFIX L""
 #endif
+
+#if defined(_M_X64) || defined(__x86_64__)
+#define PXCH_HOOKDLL_ARCHITECT_SUFFIX L"_x64"
+#else
+#define PXCH_HOOKDLL_ARCHITECT_SUFFIX L"_x86"
+#endif
+
+#ifdef __CYGWIN__
+#define PXCH_HOOKDLL_CYGWIN_PREFIX L"cyg"
+#else
+#define PXCH_HOOKDLL_CYGWIN_PREFIX L""
+#endif
+
+static const wchar_t g_szHookDllFileName[] = PXCH_HOOKDLL_CYGWIN_PREFIX L"proxychains_hook" PXCH_HOOKDLL_ARCHITECT_SUFFIX PXCH_HOOKDLL_DEBUG_SUFFIX L".dll";
+
 
 #if defined(_M_X64) || defined(__x86_64__)
 static const wchar_t g_szMinHookDllFileName[] = L"MinHook.x64.dll";

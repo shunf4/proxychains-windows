@@ -28,10 +28,11 @@ int main()
     int iResult;
     iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);     // Initialize Winsock 2.2
     if (iResult != 0) {
-        fprintf(stderr, "WSAStartup() failed: %d\n", iResult);
+        fwprintf(stderr, L"WSAStartup() failed: %d\n", iResult);
         return 1;
     }
 
+    if (0)
     {
         //char ipstrbuf[100] = "192.168.1.1:65535";
         char ipstrbuf[100] = "[2005::1]:1";
@@ -49,11 +50,9 @@ int main()
 
         int addrlen = sizeof(s);
 
-        printf("%d\n", WSAStringToAddressA(ipstrbuf, AF_INET6, NULL, (LPSOCKADDR)&s, &addrlen));
-        printf("%d\n", WSAAddressToStringA((LPSOCKADDR)&s, addrlen, NULL, ipstrbuf2, &ipstrbuflen));
-        printf("%s\n", ipstrbuf2);
-
-        return 1;
+        wprintf(L"%d\n", WSAStringToAddressA(ipstrbuf, AF_INET6, NULL, (LPSOCKADDR)&s, &addrlen));
+        wprintf(L"%d\n", WSAAddressToStringA((LPSOCKADDR)&s, addrlen, NULL, ipstrbuf2, &ipstrbuflen));
+        wprintf(L"%S\n", ipstrbuf2);
     }
 
     DWORD dwLen;
@@ -106,42 +105,33 @@ int main()
         return 1;
     }
 
-    char ipstrbuf[100];
+    WCHAR ipstrbuf[100];
     DWORD ipstrbuflen = _countof(ipstrbuf);
     int iaddr = 0;
     struct sockaddr_storage_xp xxxx;
     int ilen = sizeof(xxxx);
     for (ADDRINFOW* a = addrsResult; a; a = a->ai_next, iaddr++) {
-        if (a->ai_family == AF_INET6) {
-            struct sockaddr_in6* p6 = ((struct sockaddr_in6*) a->ai_addr);
-            p6->sin6_port = 0;
-            printf("%hu %u %u\n", ((struct sockaddr_in6*) a->ai_addr)->sin6_port, ((struct sockaddr_in6*) a->ai_addr)->sin6_flowinfo, ((struct sockaddr_in6*) a->ai_addr)->sin6_scope_id);
-        }
-        WSAAddressToStringA(a->ai_addr, (DWORD)a->ai_addrlen, NULL, ipstrbuf, &ipstrbuflen);
+        WSAAddressToStringW(a->ai_addr, (DWORD)a->ai_addrlen, NULL, ipstrbuf, &ipstrbuflen);
         
-        printf("addrs[%d]\naddr: %s\naddrlen: %u\ncanonname: %ls\nfamily: %d\nflags: %d\nprotocol: %d\nsocktype: %d\n\n", iaddr, ipstrbuf, (unsigned)a->ai_addrlen, a->ai_canonname, a->ai_family, a->ai_flags, a->ai_protocol, a->ai_socktype);
-        printf("WSAStringToAddressA: %d\n", WSAStringToAddressA(ipstrbuf, AF_INET6, NULL, (LPSOCKADDR)&xxxx, &ilen));
+        wprintf(L"addrs[%d]\naddr: %ls\naddrlen: %u\ncanonname: %ls\nfamily: %d\nflags: %d\nprotocol: %d\nsocktype: %d\n\n", iaddr, ipstrbuf, (unsigned)a->ai_addrlen, a->ai_canonname, a->ai_family, a->ai_flags, a->ai_protocol, a->ai_socktype);
     }
 
-    FreeAddrInfoW((ADDRINFOW*)addrsResult);
+    if (0) {
+        int cbIn;
+        struct sockaddr in;
+        cbIn = sizeof(in);
+        dwLen = _countof(g_HostPrintBuf);
+        wprintf(L"%d\n", WSAStringToAddressW((WCHAR*)L"127", AF_INET, NULL, &in, &cbIn));
+        wprintf(L"%d\n", WSAAddressToStringW(&in, sizeof(in), NULL, g_HostPrintBuf, &dwLen));
+        wprintf(L"%ls\n", g_HostPrintBuf);
+    }
 
-    int cbIn;
-    struct sockaddr in;
-    cbIn = sizeof(in);
-    dwLen = _countof(g_HostPrintBuf);
-    wprintf(L"%d\n", WSAStringToAddressW((WCHAR*)L"127", AF_INET, NULL, &in, &cbIn));
-    wprintf(L"%d\n", WSAAddressToStringW(&in, sizeof(in), NULL, g_HostPrintBuf, &dwLen));
-    wprintf(L"%ls\n", g_HostPrintBuf);
-
-    return 0;
-    
-#if 0
     SOCKET ConnectSocket = INVALID_SOCKET;
-    struct addrinfo& firstAddr = addrsResult[0];
+    ADDRINFOW& firstAddr = addrsResult[0];
     ConnectSocket = socket(firstAddr.ai_family, firstAddr.ai_socktype, firstAddr.ai_protocol);
     if (ConnectSocket == INVALID_SOCKET) {
         fprintf(stderr, "Error at socket(): %ld\n", WSAGetLastError());
-        freeaddrinfo(addrsResult);
+        FreeAddrInfoW(addrsResult);
         WSACleanup();
         return 1;
     }
@@ -162,7 +152,7 @@ int main()
     iResult = select(-1, NULL, &fds, NULL, NULL);
     printf("Waiting done. %d, %u\n", iResult, WSAGetLastError());
 
-    freeaddrinfo(addrsResult);
+    FreeAddrInfoW(addrsResult);
 
     if (ConnectSocket == INVALID_SOCKET) {
         fprintf(stderr, "Unable to connect to server!\n");
@@ -217,5 +207,5 @@ int main()
     closesocket(ConnectSocket);
     WSACleanup();
     return 0;
-#endif
+
 }

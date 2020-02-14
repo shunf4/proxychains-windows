@@ -3,7 +3,9 @@
         {
             "name": "Cygwin",
             "includePath": [
-                "${workspaceFolder}//include/**",
+                "${workspaceFolder}/include/**",
+                "${workspaceFolder}/minhook/include/**",
+                "${workspaceFolder}/uthash/src/**",
                 "C:/cygwin64/usr/include"
             ],
             "defines": [

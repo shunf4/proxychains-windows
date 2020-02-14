@@ -1,9 +1,27 @@
-﻿#include "common_win32.h"
+﻿// SPDX-License-Identifier: GPL-2.0-or-later
+/* common.c
+ * Copyright (C) 2020 Feng Shun.
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License version 2 as 
+ *   published by the Free Software Foundation, either version 3 of the
+ *   License, or (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+#include "common_win32.h"
+#include "tls_generic.h"
 
+WCHAR szErrorMessage[PXCH_MAXERROR_MESSAGE_BUFSIZE];
+static WCHAR szFwprintfWbuf[PXCH_MAXFWPRINTF_BUFSIZE];
+static CHAR szFwprintfBuf[PXCH_MAXFWPRINTF_BUFSIZE];
 
-WCHAR szErrorMessage[MAX_ERROR_MESSAGE_BUFSIZE];
-static WCHAR szFwprintfWbuf[MAX_FWPRINTF_BUFSIZE];
-static CHAR szFwprintfBuf[MAX_FWPRINTF_BUFSIZE];
 const wchar_t* g_szRuleTargetDesc[3] = {
 	L"DIRECT",
 	L"PROXY",
@@ -80,21 +98,11 @@ after_fmt:
 		if (buf[dwCb - 2] == L'\r') {
 			buf[dwCb - 2] = L'\0';
 		}
-		StringCchPrintfW(szErrorMessage, MAX_ERROR_MESSAGE_BUFSIZE, L"%ls(" WPRDW L")", buf, dwError);
+		StringCchPrintfW(szErrorMessage, PXCH_MAXERROR_MESSAGE_BUFSIZE, L"%ls(" WPRDW L")", buf, dwError);
 		LocalFree(hLocalBuffer);
 	}
 	else {
-		StringCchPrintfW(szErrorMessage, MAX_ERROR_MESSAGE_BUFSIZE, L"(" WPRDW L")", dwError);
+		StringCchPrintfW(szErrorMessage, PXCH_MAXERROR_MESSAGE_BUFSIZE, L"(" WPRDW L")", dwError);
 	}
 	return szErrorMessage;
-}
-
-void DumpMemory(const void* p, int iLength)
-{
-	int i;
-	if (iLength == 0) iLength = 64;
-	for (i = 0; i < iLength; i++) {
-		StdWprintf(STD_OUTPUT_HANDLE, L"%02x ", (unsigned int)*((const char*)p + i));
-	}
-	StdWprintf(STD_OUTPUT_HANDLE, L"\n");
 }

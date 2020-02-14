@@ -1,4 +1,21 @@
-﻿#include "includes_win32.h"
+﻿// SPDX-License-Identifier: GPL-2.0-or-later
+/* ipc_proc_bookkeeping.c
+ * Copyright (C) 2020 Feng Shun.
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License version 2 as 
+ *   published by the Free Software Foundation, either version 3 of the
+ *   License, or (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+#include "includes_win32.h"
 #include "log_win32.h"
 #include "proc_bookkeeping_win32.h"
 #include "hookdll_win32.h"
@@ -10,23 +27,27 @@ void PrintTablePerProcess()
 {
 	tab_per_process_t* Entry;
 	tab_per_process_t* TempEntry;
-	WCHAR TempBuf[MAX_FWPRINTF_BUFSIZE];
-	WCHAR *pTempBuf = TempBuf;
+	WCHAR TempBuf[PXCH_MAXFWPRINTF_BUFSIZE];
+	WCHAR *pTempBuf;
 
 	if (PXCH_LOG_LEVEL < PXCH_LOG_LEVEL_DEBUG) return;
 
-	StringCchPrintfExW(pTempBuf, _countof(TempBuf) - (pTempBuf - TempBuf), &pTempBuf, NULL, 0, L"PerProcessTable:");
+	LOGD(L"PerProcessTable:");
+	TempBuf[0] = L'\0';
 
 	HASH_ITER(hh, g_tabPerProcess, Entry, TempEntry) {
 		IpNode* IpNodeEntry;
 
-		StringCchPrintfExW(pTempBuf, _countof(TempBuf) - (pTempBuf - TempBuf), &pTempBuf, NULL, 0, L"%ls[WINPID" WPRDW L" PerProcessData] ", L"\n", Entry->Data.dwPid);
+		TempBuf[0] = L'\0';
+		pTempBuf = TempBuf;
+
+		StringCchPrintfExW(pTempBuf, _countof(TempBuf) - (pTempBuf - TempBuf), &pTempBuf, NULL, 0, L"%ls[WINPID" WPRDW L" PerProcessData]\n", L"\n", Entry->Data.dwPid);
 
 		LL_FOREACH(Entry->Ips, IpNodeEntry) {
 			tab_fake_ip_hostname_t* IpHostnameEntry;
 			tab_fake_ip_hostname_t IpHostnameEntryAsKey;
 
-			StringCchPrintfExW(pTempBuf, _countof(TempBuf) - (pTempBuf - TempBuf), &pTempBuf, NULL, 0, L"%ls%ls", IpNodeEntry == Entry->Ips ? L"" : L", ", FormatHostPortToStr(&IpNodeEntry->Ip, sizeof(PXCH_IP_ADDRESS)));
+			StringCchPrintfExW(pTempBuf, _countof(TempBuf) - (pTempBuf - TempBuf), &pTempBuf, NULL, 0, L"  %ls", FormatHostPortToStr(&IpNodeEntry->Ip, sizeof(PXCH_IP_ADDRESS)));
 
 			IpHostnameEntryAsKey.Ip = IpNodeEntry->Ip;
 			IpHostnameEntryAsKey.dwOptionalPid = 0;
@@ -54,10 +75,10 @@ void PrintTablePerProcess()
 				}
 				StringCchPrintfExW(pTempBuf, _countof(TempBuf) - (pTempBuf - TempBuf), &pTempBuf, NULL, 0, L")");
 			}
+				StringCchPrintfExW(pTempBuf, _countof(TempBuf) - (pTempBuf - TempBuf), &pTempBuf, NULL, 0, L"\n");
 		}
+		LOGD(L"%ls", TempBuf);
 	}
-
-	LOGD(L"%ls", TempBuf);
 }
 
 DWORD ChildProcessExitedCallbackWorker(PVOID lpParameter, BOOLEAN TimerOrWaitFired)
@@ -103,7 +124,7 @@ DWORD ChildProcessExitedCallbackWorker(PVOID lpParameter, BOOLEAN TimerOrWaitFir
 		PrintTablePerProcess();
 
 		if (g_tabPerProcess == NULL) {
-			LOGI(L"All windows descendant process exited.");
+			LOGI(L"All Windows descendant process exited.");
 			HeapUnlock(GetProcessHeap());	// go out of critical section
 			IF_WIN32_EXIT(0);
 		}
@@ -338,14 +359,14 @@ DWORD GetMsgHostnameAndResolvedIpsFromMsgIp(PXCH_IPC_MSGBUF chMessageBuf, PXCH_U
 
 	AsKey.Ip = *PXCH_IPC_IP_ARR(pMsgIp);
 
-	if (g_pPxchConfig->dwWillSearchForHostByResolvedIp) {
+	if (g_pPxchConfig->dwWillLookupForHostByResolvedIp) {
 		AsKey.dwOptionalPid = pMsgIp->dwPid;
 
 		Entry = NULL;
 		HASH_FIND(hh, g_tabFakeIpHostname, &AsKey.Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), Entry);
 
 		if (Entry) {
-			LOGI(L"ResolvedIp %ls -> Hostname %ls, %ls", FormatHostPortToStr(PXCH_IPC_IP_ARR(pMsgIp), sizeof(PXCH_IP_ADDRESS)), Entry->Hostname.szValue, g_szRuleTargetDesc[Entry->dwTarget]);
+			LOGD(L"ResolvedIp %ls -> Hostname %ls, %ls", FormatHostPortToStr(PXCH_IPC_IP_ARR(pMsgIp), sizeof(PXCH_IP_ADDRESS)), Entry->Hostname.szValue, g_szRuleTargetDesc[Entry->dwTarget]);
 			dwErrorCode = HostnameAndIpsToMessage(chMessageBuf, pcbMessageSize, pMsgIp->dwPid, &Entry->Hostname, FALSE /*ignored*/, Entry->dwResovledIpNum, Entry->ResolvedIps, Entry->dwTarget);
 			if (dwErrorCode != NO_ERROR) goto error;
 
@@ -358,7 +379,7 @@ DWORD GetMsgHostnameAndResolvedIpsFromMsgIp(PXCH_IPC_MSGBUF chMessageBuf, PXCH_U
 	HASH_FIND(hh, g_tabFakeIpHostname, &AsKey.Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), Entry);
 
 	if (Entry) {
-		LOGI(L"FakeIp %ls -> Hostname %ls, %ls", FormatHostPortToStr(PXCH_IPC_IP_ARR(pMsgIp), sizeof(PXCH_IP_ADDRESS)), Entry->Hostname.szValue, g_szRuleTargetDesc[Entry->dwTarget]);
+		LOGD(L"FakeIp %ls -> Hostname %ls, %ls", FormatHostPortToStr(PXCH_IPC_IP_ARR(pMsgIp), sizeof(PXCH_IP_ADDRESS)), Entry->Hostname.szValue, g_szRuleTargetDesc[Entry->dwTarget]);
 		dwErrorCode = HostnameAndIpsToMessage(chMessageBuf, pcbMessageSize, pMsgIp->dwPid, &Entry->Hostname, FALSE /*ignored*/, Entry->dwResovledIpNum, Entry->ResolvedIps, Entry->dwTarget);
 		if (dwErrorCode != NO_ERROR) goto error;
 
@@ -368,6 +389,7 @@ DWORD GetMsgHostnameAndResolvedIpsFromMsgIp(PXCH_IPC_MSGBUF chMessageBuf, PXCH_U
 	// return ERROR_NOT_FOUND;
 
 	LOGI(L"NotRegisteredIp %ls, return it As-is", FormatHostPortToStr(PXCH_IPC_IP_ARR(pMsgIp), sizeof(PXCH_IP_ADDRESS)));
+	PrintTablePerProcess();
 	dwErrorCode = HostnameAndIpsToMessage(chMessageBuf, pcbMessageSize, pMsgIp->dwPid, &EmptyHostname, FALSE /*ignored*/, 1, &AsKey.Ip, FALSE);
 	if (dwErrorCode != NO_ERROR) goto error;
 

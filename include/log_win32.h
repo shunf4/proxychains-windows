@@ -1,3 +1,20 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+/* log_win32.h
+ * Copyright (C) 2020 Feng Shun.
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License version 2 as 
+ *   published by the Free Software Foundation, either version 3 of the
+ *   License, or (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 #pragma once
 #ifdef __CYGWIN__
 #include <sys/cygwin.h>
@@ -37,6 +54,10 @@ static void __attribute__((unused)) suppress_unused_variables(void)
 	(void)log_pid_early;
 	(void)log_tid_early;
 	(void)log_cygpid_early;
+}
+
+static void __attribute__((unused)) suppress_unused_variable(void)
+{
 }
 #endif
 
@@ -86,9 +107,9 @@ static void __attribute__((unused)) suppress_unused_variables(void)
 		if ((g_pPxchConfig && g_pPxchConfig->dwLogLevel < levelno) || (!g_pPxchConfig && !IsDebug() && levelno >= PXCH_LOG_LEVEL_INFO)) break; \
 		GetLocalTime(&log_time); \
 		log_szLogLine[0] = L'\0'; \
-		StringCchPrintfW(log_szLogLine, MAX_FWPRINTF_BUFSIZE, real_fmt, PXCH_LOG_IPC_PID_VALUE, log_time.wYear, log_time.wMonth, log_time.wDay, log_time.wHour, log_time.wMinute, log_time.wSecond, ##__VA_ARGS__); \
-		if (log_szLogLine[MAX_FWPRINTF_BUFSIZE - 2]) log_szLogLine[MAX_FWPRINTF_BUFSIZE - 2] = L'\n'; \
-		log_szLogLine[MAX_FWPRINTF_BUFSIZE - 1] = L'\0'; \
+		StringCchPrintfW(log_szLogLine, PXCH_MAXFWPRINTF_BUFSIZE, real_fmt, PXCH_LOG_IPC_PID_VALUE, log_time.wYear, log_time.wMonth, log_time.wDay, log_time.wHour, log_time.wMinute, log_time.wSecond, ##__VA_ARGS__); \
+		if (log_szLogLine[PXCH_MAXFWPRINTF_BUFSIZE - 2]) log_szLogLine[PXCH_MAXFWPRINTF_BUFSIZE - 2] = L'\n'; \
+		log_szLogLine[PXCH_MAXFWPRINTF_BUFSIZE - 1] = L'\0'; \
 		WstrToMessage(log_msg, &log_cbMsgSize, log_szLogLine); \
 		IpcCommunicateWithServer(log_msg, log_cbMsgSize, log_respMsg, &log_cbRespMsgSize); \
 	} while(0)

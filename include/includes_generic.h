@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-/* hookdll_interior_generic.h
+/* includes_generic.h
  * Copyright (C) 2020 Feng Shun.
  *
  *   This program is free software: you can redistribute it and/or modify
@@ -16,9 +16,15 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #pragma once
+// *_generic.h : headers that are safe to be included in both types of sources: sources that uses w32api headers and sources that uses cygwin headers.
+#ifndef __CYGWIN__
+#pragma warning(error : 4013)
+#else
+#pragma GCC diagnostic error "-Wimplicit-function-declaration"
+#endif
 
-#include "defines_win32.h"
-#include "ipc_win32.h"
+#define _WIN32_WINNT 0x0502		// Windows XP SP2
 
-extern PXCH_INJECT_REMOTE_DATA* g_pRemoteData;
-PXCH_UINT32 IpcCommunicateWithServer(const PXCH_IPC_MSGBUF sendMessage, PXCH_UINT32 cbSendMessageSize, PXCH_IPC_MSGBUF responseMessage, PXCH_UINT32* pcbResponseMessageSize);
+#include <stddef.h>
+#include <limits.h>
+

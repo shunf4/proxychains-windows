@@ -1,4 +1,21 @@
-﻿#define PXCH_DO_NOT_INCLUDE_STD_HEADERS_NOW
+﻿// SPDX-License-Identifier: GPL-2.0-or-later
+/* dllutil_wsock.c
+ * Copyright (C) 2020 Feng Shun.
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License version 2 as 
+ *   published by the Free Software Foundation, either version 3 of the
+ *   License, or (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+#define PXCH_DO_NOT_INCLUDE_STD_HEADERS_NOW
 #define PXCH_DO_NOT_INCLUDE_STRSAFE_NOW
 #define PXCH_INCLUDE_WINSOCK_UTIL
 #include "includes_win32.h"
@@ -25,7 +42,7 @@ void HostentToHostnameAndIps(PXCH_HOSTNAME* pHostname, PXCH_UINT32* pdwIpNum, PX
 	if (pHostname == NULL) goto err_empty;
 	StringCchPrintfW(pHostname->szValue, _countof(pHostname->szValue), WPRS, pHostent->h_name);
 
-	ZeroMemory(Ips, sizeof(PXCH_IP_ADDRESS) * MAX_ARRAY_IP_NUM);
+	ZeroMemory(Ips, sizeof(PXCH_IP_ADDRESS) * PXCH_MAXARRAY_IP_NUM);
 
 	if (pHostent->h_length != sizeof(PXCH_UINT32)) goto err_not_supported;
 
@@ -66,7 +83,7 @@ void HostnameAndIpsToHostent(struct hostent** ppHostent, void* pTlsBase, const P
 			ppIp[j] = &PXCH_TLS_PTR_W32HOSTENT_IP_BUF_BY_BASE(pTlsBase)[j];
 			CopyMemory(&PXCH_TLS_PTR_W32HOSTENT_IP_BUF_BY_BASE(pTlsBase)[j], &((struct sockaddr_in*)&Ips[i])->sin_addr, sizeof(PXCH_UINT32));
 			j++;
-			if (j >= MAX_ARRAY_IP_NUM) break;
+			if (j >= PXCH_MAXARRAY_IP_NUM) break;
 		}
 	}
 
@@ -81,15 +98,15 @@ void AddrInfoToIps(PXCH_UINT32* pdwIpNum, PXCH_IP_ADDRESS* Ips, const void* pAdd
 	const ADDRINFOW* pAddrInfoW = pAddrInfo;
 	PXCH_UINT32 i;
 
-	ZeroMemory(Ips, sizeof(PXCH_IP_ADDRESS) * MAX_ARRAY_IP_NUM);
+	ZeroMemory(Ips, sizeof(PXCH_IP_ADDRESS) * PXCH_MAXARRAY_IP_NUM);
 
 	if (bIsW) {
-		for (i = 0; pAddrInfoW && i < MAX_ARRAY_IP_NUM; pAddrInfoW = pAddrInfoW->ai_next, i++) {
+		for (i = 0; pAddrInfoW && i < PXCH_MAXARRAY_IP_NUM; pAddrInfoW = pAddrInfoW->ai_next, i++) {
 			CopyMemory(&Ips[i], pAddrInfoW->ai_addr, pAddrInfoW->ai_addrlen);
 			Ips[i].CommonHeader.wPort = 0;
 		}
 	} else {
-		for (i = 0; pAddrInfoA && i < MAX_ARRAY_IP_NUM; pAddrInfoA = pAddrInfoA->ai_next, i++) {
+		for (i = 0; pAddrInfoA && i < PXCH_MAXARRAY_IP_NUM; pAddrInfoA = pAddrInfoA->ai_next, i++) {
 			CopyMemory(&Ips[i], pAddrInfoA->ai_addr, pAddrInfoA->ai_addrlen);
 			Ips[i].CommonHeader.wPort = 0;
 		}
@@ -125,6 +142,7 @@ void HostnameAndIpPortsToAddrInfo_WillAllocate(ADDRINFOW** ppAddrInfoW, const PX
 
 			pAddrInfoW->ai_addr = (struct sockaddr*) & pPxchAddrInfoW->IpPort;
 			pAddrInfoW->ai_addrlen = HostIsType(IPV4, *(const PXCH_HOST*)&IpPorts[i]) ? sizeof(struct sockaddr_in) : HostIsType(IPV6, *(const PXCH_HOST*)&IpPorts[i]) ? sizeof(struct sockaddr_in6) : 0;
+
 			pAddrInfoW->ai_canonname = bCanonName ? pPxchAddrInfoW->Hostname.szValue : NULL;
 			pAddrInfoW->ai_family = IpPorts[i].Sockaddr.wTag;
 			pAddrInfoW->ai_flags = 0;

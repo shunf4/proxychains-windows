@@ -1,3 +1,20 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+/* stdlib_config_reader.c
+ * Copyright (C) 2020 Feng Shun.
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License version 2 as 
+ *   published by the Free Software Foundation, either version 3 of the
+ *   License, or (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 #define _CRT_SECURE_NO_WARNINGS
 #include "defines_win32.h"
 #include "log_win32.h"
@@ -13,11 +30,11 @@ static unsigned long long ullHostsLineNum;
 
 PXCH_UINT32 OpenConfigurationFile(PROXYCHAINS_CONFIG* pPxchConfig)
 {
-	char szTempConfigPath[MAX_CONFIG_FILE_PATH_BUFSIZE * 2];
+	char szTempConfigPath[PXCH_MAXCONFIG_FILE_PATH_BUFSIZE * 2];
 #ifndef __CYGWIN__
-	char szTempConfigPathUserProfile[MAX_CONFIG_FILE_PATH_BUFSIZE * 2];
-	char szTempConfigPathRoaming[MAX_CONFIG_FILE_PATH_BUFSIZE * 2];
-	char szTempConfigPathProgramData[MAX_CONFIG_FILE_PATH_BUFSIZE * 2];
+	char szTempConfigPathUserProfile[PXCH_MAXCONFIG_FILE_PATH_BUFSIZE * 2];
+	char szTempConfigPathRoaming[PXCH_MAXCONFIG_FILE_PATH_BUFSIZE * 2];
+	char szTempConfigPathProgramData[PXCH_MAXCONFIG_FILE_PATH_BUFSIZE * 2];
 #endif
     char* szEnvConfigPath;
 #ifdef __CYGWIN__
@@ -135,7 +152,7 @@ PXCH_UINT32 ConfigurationFileReadLine(unsigned long long* pullConfigurationLineN
 
     ullConfigurationLineNum++;
     *pullConfigurationLineNum = ullConfigurationLineNum;
-    pBuf = fgetws(chBuf, cbBufSize, fPxchConfig);
+    pBuf = fgetws(chBuf, (int)cbBufSize, fPxchConfig);
 
     if (pBuf == NULL) {
         if (feof(fPxchConfig)) {
@@ -173,7 +190,7 @@ PXCH_UINT32 HostsFileReadLine(unsigned long long* pullHostsLineNum, wchar_t* chB
 
     ullHostsLineNum++;
     *pullHostsLineNum = ullHostsLineNum;
-    pBuf = fgetws(chBuf, cbBufSize, fHosts);
+    pBuf = fgetws(chBuf, (int)cbBufSize, fHosts);
 
     if (pBuf == NULL) {
         if (feof(fHosts)) {
