@@ -15,6 +15,9 @@ Proxychains.exe 是 [proxychains4](https://github.com/haad/proxychains) 或者
 数据结构，以及使用了 [minhook](https://github.com/TsudaKageyu/minhook) 进行 API
 的挂钩。
 
+Proxychains.exe 在 Windows 10 x64 1909 (18363.418)、Windows XP SP3 x86 和
+Cygwin 64-bit 3.1.2 经过测试。
+
 警告：此程序只对动态链接的程序有用。同时，Proxychains.exe 和需要运行的目标程序
 必须是同一架构和平台（用 proxychains_x86.exe 运行 x86 程序，用
 proxychains_x64.exe 运行 x64 程序；用 Cygwin 下构建的版本来运行 Cygwin 程序）。
