@@ -186,6 +186,7 @@
     <ClInclude Include="..\include\uthash.h" />
     <ClInclude Include="..\include\utlist.h" />
     <ClInclude Include="..\include\ut_helpers.h" />
+    <ClInclude Include="..\include\version.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
