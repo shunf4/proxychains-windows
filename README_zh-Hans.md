@@ -39,6 +39,9 @@ proxychains_x64.exe 运行 x64 程序；用 Cygwin 下构建的版本来运行 C
 
 # 构建
 
+首先你需要克隆本代码仓库，并且在其中运行
+`git submodule update --init --recursive` 来拉取所有子模块的代码。
+
 ## 构建 Win32 版本
 
 使用较新版本的 Visual Studio 打开 proxychains.exe.sln （Visual Studio 2019 测试

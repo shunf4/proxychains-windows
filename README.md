@@ -51,6 +51,9 @@ THE RESULTING CONSEQUENCES.
 
 # Build
 
+First you need to clone this repository and run
+`git submodule update --init --recursive` in it to retrieve all submodules.
+
 ## Win32 build
 
 Open proxychains.exe.sln with a recent version Visual Studio (tested with

@@ -180,7 +180,7 @@ DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi)
 
 	pRemoteData = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(PXCH_INJECT_REMOTE_DATA) + dwExtraSize);
 
-	IPCLOGI(L"CreateProcessW: Entering InjectTargetProcess. %llu", (unsigned long long)(sizeof(*pRemoteData) + dwExtraSize));
+	IPCLOGD(L"CreateProcessW: Entering InjectTargetProcess. %llu", (unsigned long long)(sizeof(*pRemoteData) + dwExtraSize));
 
 	hProcess = pPi->hProcess;
 	IPCLOGV(L"CreateProcessW: Before CopyMemory. " WPRDW, 0);

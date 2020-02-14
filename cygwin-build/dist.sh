@@ -31,4 +31,3 @@ zip -j ../../proxychains_"$PXCH_VERSION"_win32_x86d.zip ../COPYING ../README*.md
 zip -j ../../proxychains_"$PXCH_VERSION"_win32_x86.zip ../COPYING ../README*.md ../proxychains.conf ../Release/proxychains_x86.exe ../Release/proxychains_hook_x86d.dll
 make release
 zip -j ../../proxychains_"$PXCH_VERSION"_cygwin_x64.zip ../COPYING ../README*.md ../proxychains.conf proxychains_x64.exe cygproxychains_hook_x64.dll
-
