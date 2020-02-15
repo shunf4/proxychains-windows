@@ -1,5 +1,7 @@
 # Proxychains.exe  - Proxychains for Windows 自述文件
 
+[![构建状态](https://github.com/shunf4/proxychains.exe/workflows/C/C++%20CI/badge.svg)](https://github.com/shunf4/proxychains.exe/actions?query=workflow%3A%22C%2FC%2B%2B+CI%22)
+
 [README](README.md) | [简体中文文档](README_zh-Hans.md)
 
 Proxychains.exe 是一个适用于 Win32(Windows) 和 Cygwin 平台的命令行强制代理工具（Proxifier）。它能够截获大多数 Win32 或 Cygwin 程序的 TCP 连接，强制它们通过一个或多个 SOCKS5 代理隧道。

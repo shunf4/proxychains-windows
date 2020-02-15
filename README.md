@@ -1,5 +1,7 @@
 # Proxychains.exe - Proxychains for Windows README
 
+[![Build Status](https://github.com/shunf4/proxychains.exe/workflows/C/C++%20CI/badge.svg)](https://github.com/shunf4/proxychains.exe/actions?query=workflow%3A%22C%2FC%2B%2B+CI%22)
+
 [README](README.md) | [简体中文文档](README_zh-Hans.md)
 
 Proxychains.exe is a proxifier for Win32(Windows) or Cygwin programs. It hijacks
