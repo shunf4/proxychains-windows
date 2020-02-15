@@ -1063,10 +1063,111 @@ out:
 
 // Hook WSAConnect
 
+Ws2_32_WSAConnect_SIGN_WITH_PTEMPDATA(Ws2_32_OriginalWSAConnect)
+{
+	int iReturn;
+	int iWSALastError;
+	DWORD dwLastError;
+	PXCH_WS2_32_TEMP_DATA* pWs2_32_TempData = pTempData;
+
+	pWs2_32_TempData->iConnectReturn = iReturn = orig_fpWs2_32_WSAConnect(s, name, namelen, lpCallerData, lpCalleeData, lpSQOS, lpGQOS);
+	pWs2_32_TempData->iConnectWSALastError = iWSALastError = WSAGetLastError();
+	pWs2_32_TempData->iConnectLastError = dwLastError = GetLastError();
+
+	WSASetLastError(iWSALastError);
+	SetLastError(dwLastError);
+	return iReturn;
+}
+
 PROXY_FUNC2(Ws2_32, WSAConnect)
 {
-	FUNCIPCLOGI(L"Ws2_32.dll WSAConnect() called");
-	return orig_fpWs2_32_WSAConnect(s, name, namelen, lpCallerData, lpCalleeData, lpSQOS, lpGQOS);
+	int iReturn = 0;
+	DWORD dwLastError;
+	int iWSALastError;
+
+	const PXCH_HOST_PORT* pHostPortForProxiedConnection = name;
+	const PXCH_IP_PORT* pIpPortForDirectConnection = name;
+	const PXCH_IP_PORT* pOriginalIpPort = name;
+	int iOriginalAddrLen = namelen;
+	PXCH_UINT32 dwTarget;
+
+	PXCH_CHAIN Chain = NULL;
+	PXCH_WS2_32_TEMP_DATA TempData;
+
+	PXCH_HOSTNAME_PORT ReverseLookedupHostnamePort = { 0 };
+	PXCH_IP_PORT ReverseLookedupResolvedIpPort = { 0 };
+
+	DWORD dw;
+
+	RestoreChildData();
+
+	FUNCIPCLOGD(L"Ws2_32.dll WSAConnect(%d, %ls, %d) called", s, FormatHostPortToStr(name, namelen), namelen);
+
+	TempData.iOriginalAddrFamily = ((struct sockaddr*)pOriginalIpPort)->sa_family;
+
+	if (lpCallerData != NULL || lpCalleeData != NULL) {
+		FUNCIPCLOGD(L"Ws2_32.dll WSAConnect(): lpCallerData or lpCalleeData not NULL, forcing DIRECT");
+		dwTarget = PXCH_RULE_TARGET_DIRECT;
+	} else {
+
+		switch (ReverseLookupForHost(&ReverseLookedupHostnamePort, &ReverseLookedupResolvedIpPort, &pIpPortForDirectConnection, &pHostPortForProxiedConnection, &dwTarget, pOriginalIpPort, iOriginalAddrLen)) {
+		case NO_ERROR:
+			break;
+		case ERROR_NOT_SUPPORTED:
+			goto addr_not_supported_end;
+		default:
+			goto not_wsa_error_end;
+		}
+
+	}
+
+	if (dwTarget == PXCH_RULE_TARGET_DIRECT) {
+		iReturn = Ws2_32_OriginalWSAConnect(&TempData, s, pIpPortForDirectConnection, namelen, lpCallerData, lpCalleeData, lpSQOS, lpGQOS);
+		goto success_revert_connect_errcode_end;
+	}
+
+	if (dwTarget == PXCH_RULE_TARGET_BLOCK) {
+		goto block_end;
+	}
+
+	for (dw = 0; dw < g_pPxchConfig->dwProxyNum; dw++) {
+		if ((iReturn = Ws2_32_GenericTunnelTo(&TempData, s, &Chain, &PXCH_CONFIG_PROXY_ARR(g_pPxchConfig)[dw])) == SOCKET_ERROR) goto record_error_end;
+	}
+	if ((iReturn = Ws2_32_GenericConnectTo(&TempData, s, &Chain, pHostPortForProxiedConnection, namelen)) == SOCKET_ERROR) goto record_error_end;
+
+success_revert_connect_errcode_end:
+	iWSALastError = TempData.iConnectWSALastError;
+	dwLastError = TempData.iConnectLastError;
+	iReturn = TempData.iConnectReturn;
+	goto end;
+
+addr_not_supported_end:
+	iWSALastError = WSAEAFNOSUPPORT;
+	dwLastError = ERROR_NOT_SUPPORTED;
+	iReturn = SOCKET_ERROR;
+	goto end;
+
+block_end:
+	iWSALastError = WSAECONNREFUSED;
+	dwLastError = ERROR_REQUEST_REFUSED;
+	iReturn = SOCKET_ERROR;
+	goto end;
+
+record_error_end:
+	iWSALastError = WSAGetLastError();
+	dwLastError = GetLastError();
+	goto end;
+
+not_wsa_error_end:
+	iWSALastError = WSABASEERR;
+	goto end;
+
+end:
+	PrintConnectResultAndFreeResources(L"Ws2_32.dll connect", s, pOriginalIpPort, iOriginalAddrLen, pIpPortForDirectConnection, pHostPortForProxiedConnection, dwTarget, &Chain, iReturn, iReturn == 0, iWSALastError);
+	
+	WSASetLastError(iWSALastError);
+	SetLastError(dwLastError);
+	return iReturn;
 }
 
 // Hook gethostbyname
