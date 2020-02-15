@@ -8,7 +8,7 @@ Proxychains.exe 通过给动态链接的程序注入一个 DLL，对 Ws2_32.dll 
 
 Proxychains.exe 是 [proxychains4](https://github.com/haad/proxychains) 或者 [proxychains-ng](https://github.com/rofl0r/proxychains-ng) 到 Win32 和 Cygwin 的移植产物。它也使用了 [uthash](https://github.com/troydhanson/uthash) 构建一些数据结构，以及使用了 [minhook](https://github.com/TsudaKageyu/minhook) 进行 API 的挂钩。
 
-Proxychains.exe 在 Windows 10 x64 1909 (18363.418)、Windows XP x86 SP3 和 Cygwin 64-bit 3.1.2 经过测试。
+Proxychains.exe 在 Windows 10 x64 1909 (18363.418)、Windows XP x86 SP3 和 Cygwin 64-bit 3.1.2 经过测试。注意目标操作系统需要安装 [Visual C++ Redistributable for Visual Studio 2015](https://www.microsoft.com/zh-cn/download/details.aspx?id=48145)。
 
 警告：此程序只对动态链接的程序有用。同时，Proxychains.exe 和需要运行的目标程序必须是同一架构和平台（用 proxychains_x86.exe 运行 x86 程序，用 proxychains_x64.exe 运行 x64 程序；用 Cygwin 下构建的版本来运行 Cygwin 程序）。
 
@@ -63,16 +63,12 @@ Proxychains.exe 按照以下顺序寻找配置：
 
 - 主程序 Hook `CreateProcessW` Win32 API 函数调用。
 - 主程序创建按照用户给定的命令行启动子进程。
-- 创建进程后，挂钩后的 `CreateProcessW` 函数将 Hook DLL 注入到子进程。当子进程
-  被注入后，它也会 Hook 如下的 Win32 API 函数调用：
+- 创建进程后，挂钩后的 `CreateProcessW` 函数将 Hook DLL 注入到子进程。当子进程被注入后，它也会 Hook 如下的 Win32 API 函数调用：
   - `CreateProcessW`，这样每一个后代进程都会被注入；
   - `connect` 和 `ConnectEx`，这样就劫持了 TCP 连接；
-  - `GetAddrInfoW` 系列函数，这样可以使用 Fake IP 来追踪访问的域名，用于远程
-    DNS 解析；
+  - `GetAddrInfoW` 系列函数，这样可以使用 Fake IP 来追踪访问的域名，用于远程 DNS 解析；
   - 等等。
-- 主程序并不退出，而是作为一个命名管道服务端存在。子进程与主程序通过命名管道
-  交换包括日志、域名等内容在内的数据。主程序实施大多数关于 Fake IP 和子进程是
-  否还存在的簿记工作。
+- 主程序并不退出，而是作为一个命名管道服务端存在。子进程与主程序通过命名管道交换包括日志、域名等内容在内的数据。主程序实施大多数关于 Fake IP 和子进程是否还存在的簿记工作。
 - 当所有后代进程退出后，主程序退出。
 - 主程序收到一个 SIGINT（Ctrl-C）后，终止所有后代进程。
 

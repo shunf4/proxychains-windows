@@ -18,7 +18,9 @@ structures and [minhook](https://github.com/TsudaKageyu/minhook) for API
 hooking.
 
 Proxychains.exe is tested on Windows 10 x64 1909 (18363.418), Windows XP x86 SP3
-and Cygwin 64-bit 3.1.2.
+and Cygwin 64-bit 3.1.2. Target OS should have 
+[Visual C++ Redistributable for Visual Studio 2015](https://www.microsoft.com/en-us/download/details.aspx?id=48145)
+installed.
 
 WARNING: this program works only on dynamically linked programs. Also both
 proxychains.exe and the program to call must be the same platform and
