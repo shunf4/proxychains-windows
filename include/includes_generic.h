@@ -10,10 +10,11 @@
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
+ *   GNU General Public License version 2 for more details.
  *
  *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *   version 2 along with this program. If not, see
+ *   <http://www.gnu.org/licenses/>.
  */
 #pragma once
 // *_generic.h : headers that are safe to be included in both types of sources: sources that uses w32api headers and sources that uses cygwin headers.
@@ -21,6 +22,10 @@
 #pragma warning(error : 4013)
 #else
 #pragma GCC diagnostic error "-Wimplicit-function-declaration"
+#endif
+
+#ifdef __CYGWIN__
+#define _POSIX_C_SOURCE 200809L
 #endif
 
 #define _WIN32_WINNT 0x0502		// Windows XP SP2

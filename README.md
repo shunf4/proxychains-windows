@@ -1,4 +1,4 @@
-# Proxychains.exe README
+# Proxychains.exe - Proxychains for Windows README
 
 [README](README.md) | [简体中文文档](README_zh-Hans.md)
 
@@ -17,7 +17,7 @@ It also uses [uthash](https://github.com/troydhanson/uthash) for some data
 structures and [minhook](https://github.com/TsudaKageyu/minhook) for API 
 hooking.
 
-Proxychains.exe is tested on Windows 10 x64 1909 (18363.418), Windows XP SP3 x86
+Proxychains.exe is tested on Windows 10 x64 1909 (18363.418), Windows XP x86 SP3
 and Cygwin 64-bit 3.1.2.
 
 WARNING: this program works only on dynamically linked programs. Also both
@@ -86,13 +86,13 @@ Proxychains.exe looks for configuration in the following order:
 - /etc/proxychains.conf (Cygwin) or
   (Global programdata dir)\Proxychains\proxychains.conf (Win32)
   
-For options, see `proxychains.conf`
+For options, see `proxychains.conf`.
 
 # Usage Example
 
 `proxychains ssh some-server`
 
-`proxychains SomePath\firefox.exe`
+`proxychains "Some Path\firefox.exe"`
 
 Run `proxychains -h` for more command line argument options.
 
@@ -131,7 +131,22 @@ License, or (at your option) any later version.
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+GNU General Public License version 2 for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program. If not, see <http://www.gnu.org/licenses/>.
+version 2 along with this program. If not, see
+<http://www.gnu.org/licenses/>.
+
+## Uthash
+
+https://github.com/troydhanson/uthash
+
+This program contains uthash as a git submodule, which is published
+under The 1-clause BSD License.
+
+## Minhook
+
+https://github.com/TsudaKageyu/minhook
+
+This program contains minhook as a git submodule, which is published
+under The 2-clause BSD License.

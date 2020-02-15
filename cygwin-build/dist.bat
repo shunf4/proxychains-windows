@@ -9,10 +9,11 @@
 @rem   This program is distributed in the hope that it will be useful,
 @rem   but WITHOUT ANY WARRANTY; without even the implied warranty of
 @rem   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-@rem   GNU General Public License for more details.
+@rem   GNU General Public License version 2 for more details.
 @rem
 @rem   You should have received a copy of the GNU General Public License
-@rem   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+@rem   version 2 along with this program. If not, see
+@rem   <http://www.gnu.org/licenses/>.
 
 "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\devenv.exe" ..\proxychains.exe.sln /build "Debug^|x64"
 "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\devenv.exe" ..\proxychains.exe.sln /build "Debug^|x86"

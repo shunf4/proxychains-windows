@@ -10,10 +10,11 @@
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
+ *   GNU General Public License version 2 for more details.
  *
  *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *   version 2 along with this program. If not, see
+ *   <http://www.gnu.org/licenses/>.
  */
 #define PXCH_DO_NOT_INCLUDE_STRSAFE_NOW
 #define PXCH_DO_NOT_INCLUDE_STD_HEADERS_NOW
@@ -40,7 +41,12 @@
 #define PXCH_CONFIG_PARSE_HEX PXCH_CONFIG_PARSE_DIGIT L"abcdefABCDEF"
 #define PXCH_CONFIG_PARSE_IP_PORT PXCH_CONFIG_PARSE_HEX L"[.:]"
 
-#define WSTR_EQUAL(str, after_validate, literal) ((wcsncmp(str, literal, _countof(literal) - 1) == 0) ? (after_validate == str + _countof(literal) - 1) : FALSE)
+#ifndef __CYGWIN__
+#define wcsncasecmp _wcsnicmp
+#endif
+
+#define WSTR_EQUAL(str, strend, literal) ((wcsncmp(str, literal, _countof(literal) - 1) == 0) ? (strend == str + _countof(literal) - 1) : FALSE)
+#define WSTR_EQUAL_I(str, strend, literal) ((wcsncasecmp(str, literal, _countof(literal) - 1) == 0) ? (strend == str + _countof(literal) - 1) : FALSE)
 
 static const WCHAR* pszParseErrorMessage;
 
@@ -353,11 +359,11 @@ static int OptionParseRuleTarget(PXCH_RULE* pRule, WCHAR* sTargetStart)
 		return -1;
 	}
 
-	if (WSTR_EQUAL(sTargetStart, sTargetEnd, L"PROXY")) {
+	if (WSTR_EQUAL_I(sTargetStart, sTargetEnd, L"PROXY")) {
 		pRule->dwTarget = PXCH_RULE_TARGET_PROXY;
-	} else if (WSTR_EQUAL(sTargetStart, sTargetEnd, L"DIRECT")) {
+	} else if (WSTR_EQUAL_I(sTargetStart, sTargetEnd, L"DIRECT")) {
 		pRule->dwTarget = PXCH_RULE_TARGET_DIRECT;
-	} else if (WSTR_EQUAL(sTargetStart, sTargetEnd, L"BLOCK")) {
+	} else if (WSTR_EQUAL_I(sTargetStart, sTargetEnd, L"BLOCK")) {
 		pRule->dwTarget = PXCH_RULE_TARGET_BLOCK;
 	} else {
 		pszParseErrorMessage = L"Invalid rule target";
@@ -452,6 +458,13 @@ void PrintConfiguration(PROXYCHAINS_CONFIG* pPxchConfig)
 	LOGD(L"WillForceResolveByHostsFile: " WPRDW, pPxchConfig->dwWillForceResolveByHostsFile);
 	LOGD(L"WillFirstTunnelUseIpv4: " WPRDW, pPxchConfig->dwWillFirstTunnelUseIpv4);
 	LOGD(L"WillFirstTunnelUseIpv6: " WPRDW, pPxchConfig->dwWillFirstTunnelUseIpv6);
+	switch (pPxchConfig->dwDefaultTarget) {
+		case PXCH_RULE_TARGET_BLOCK: pszTargetDesc = L"BLOCK"; break;
+		case PXCH_RULE_TARGET_DIRECT: pszTargetDesc = L"DIRECT"; break;
+		case PXCH_RULE_TARGET_PROXY: pszTargetDesc = L"PROXY"; break;
+		default: pszTargetDesc = L"???"; break;
+	}
+	LOGD(L"DefaultTarget: %ls", pszTargetDesc);
 	LOGD(L"");
 	LOGD(L"[RuleList] " WPRDW L", Offset " WPRDW, pPxchConfig->dwRuleNum, pPxchConfig->cbRuleListOffset);
 	arrRule = PXCH_CONFIG_RULE_ARR(pPxchConfig);
@@ -573,7 +586,9 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 	pPxchConfig->dwFakeIpv6PrefixLength = 16;
 	WSAStringToAddressW(L"250d::", AF_INET6, NULL, (LPSOCKADDR)&pPxchConfig->FakeIpv6Range, &iDummy);
 
-	pPxchConfig->dwWillDeleteFakeIpAfterChildProcessExits = TRUE;
+	pPxchConfig->dwDefaultTarget = PXCH_RULE_TARGET_PROXY;
+
+	pPxchConfig->dwWillDeleteFakeIpAfterChildProcessExits = FALSE;
 	pPxchConfig->dwWillUseFakeIpWhenHostnameNotMatched = TRUE;
 	pPxchConfig->dwWillMapResolvedIpToHost = FALSE;
 	pPxchConfig->dwWillLookupForHostByResolvedIp = FALSE;
@@ -613,12 +628,12 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 			pszParseErrorMessage = L"chain_len is not supported!";
 			goto err_invalid_config_with_msg;
 		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"quiet_mode")) {
-			if (!pTempPxchConfig->dwLogLevelAlreadySet) {
+			if (!pTempPxchConfig->dwLogLevelSetByArg) {
 				LOGD(L"Queit mode enabled in configuration file");
 				pTempPxchConfig->dwLogLevel = PXCH_LOG_LEVEL_ERROR;
 			}
 		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"log_level")) {
-			if (!pTempPxchConfig->dwLogLevelAlreadySet) {
+			if (!pTempPxchConfig->dwLogLevelSetByArg) {
 				if (OptionGetNumberValueAfterOptionName(&lValue, sOptionNameEnd, NULL, 0, 1000) == -1) goto err_invalid_config_with_msg;
 				pPxchConfig->dwLogLevel = (DWORD)lValue;
 			}
@@ -707,6 +722,20 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 			const WCHAR* pPathEnd;
 			if (OptionGetStringValueAfterOptionName(&pPathStart, &pPathEnd, sOptionNameEnd, NULL) == -1) goto err_invalid_config_with_msg;
 			if (FAILED(StringCchCopyNW(pPxchConfig->szHostsFilePath, _countof(pPxchConfig->szHostsFilePath), pPathStart, pPathEnd - pPathStart))) goto err_insuf_buf;
+		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"default_target")) {
+			const WCHAR* pTargetStart;
+			const WCHAR* pTargetEnd;
+			if (OptionGetStringValueAfterOptionName(&pTargetStart, &pTargetEnd, sOptionNameEnd, NULL) == -1) goto err_invalid_config_with_msg;
+			if (WSTR_EQUAL_I(pTargetStart, pTargetEnd, L"PROXY")) {
+				pPxchConfig->dwDefaultTarget = PXCH_RULE_TARGET_PROXY;
+			} else if (WSTR_EQUAL_I(pTargetStart, pTargetEnd, L"DIRECT")) {
+				pPxchConfig->dwDefaultTarget = PXCH_RULE_TARGET_DIRECT;
+			} else if (WSTR_EQUAL_I(pTargetStart, pTargetEnd, L"BLOCK")) {
+				pPxchConfig->dwDefaultTarget = PXCH_RULE_TARGET_BLOCK;
+			} else {
+				pszParseErrorMessage = L"Invalid default target";
+				goto err_invalid_config_with_msg;
+			}
 		} else {
 			LOGE(L"Config line %llu: Unknown option: %.*ls", ullLineNum, sOptionNameEnd - sOption, sOption);
 			goto err_invalid_config;
@@ -1071,7 +1100,7 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 	pConfig->szCommandLine[0] = L'\0';
 	pCommandLine = pConfig->szCommandLine;
 	pConfig->dwLogLevel = PXCH_LOG_LEVEL;
-	pConfig->dwLogLevelAlreadySet = FALSE;
+	pConfig->dwLogLevelSetByArg = FALSE;
 
 	for (i = 1; i < argc; i++) {
 		pWchar = argv[i];
@@ -1103,7 +1132,7 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 					goto err_log_level;
 				}
 				bOptionLogLevel = FALSE;
-				pConfig->dwLogLevelAlreadySet = TRUE;
+				pConfig->dwLogLevelSetByArg = TRUE;
 				continue;
 			}
 
@@ -1122,12 +1151,12 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 			else if (wcsncmp(pWchar, L"-q", 2) == 0) {
 				LOGD(L"Queit mode enabled in arguments");
 				pConfig->dwLogLevel = PXCH_LOG_LEVEL_ERROR;
-				pConfig->dwLogLevelAlreadySet = TRUE;
+				pConfig->dwLogLevelSetByArg = TRUE;
 				continue;
 			}
 			else if (wcsncmp(pWchar, L"-Q", 2) == 0 || wcsncmp(pWchar, L"-d", 2) == 0) {
 				LOGD(L"Queit mode disabled in arguments");
-				pConfig->dwLogLevelAlreadySet = TRUE;
+				pConfig->dwLogLevelSetByArg = TRUE;
 				continue;
 			}
 			else if (wcsncmp(pWchar, L"-h", 2) == 0 || wcsncmp(pWchar, L"--help", 4) == 0) {
@@ -1136,7 +1165,7 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 			else if (wcsncmp(pWchar, L"--help", 2) == 0) {
 				LOGD(L"Queit mode enabled in arguments");
 				pConfig->dwLogLevel = PXCH_LOG_LEVEL_ERROR;
-				pConfig->dwLogLevelAlreadySet = TRUE;
+				pConfig->dwLogLevelSetByArg = TRUE;
 				continue;
 			}
 			else {

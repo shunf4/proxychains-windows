@@ -10,14 +10,15 @@
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
+ *   GNU General Public License version 2 for more details.
  *
  *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *   version 2 along with this program. If not, see
+ *   <http://www.gnu.org/licenses/>.
  */
 #ifndef PXCH_VERSION_MAJOR
 #define PXCH_VERSION_MAJOR 0
 #endif
 #ifndef PXCH_VERSION_MINOR
-#define PXCH_VERSION_MINOR 1
+#define PXCH_VERSION_MINOR 2
 #endif

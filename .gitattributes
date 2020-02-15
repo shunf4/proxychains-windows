@@ -63,3 +63,4 @@
 #*.RTF   diff=astextplain
 
 *.sh eol=lf
+Makefile eol=lf

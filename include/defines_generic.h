@@ -10,10 +10,11 @@
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
+ *   GNU General Public License version 2 for more details.
  *
  *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *   version 2 along with this program. If not, see
+ *   <http://www.gnu.org/licenses/>.
  */
 #pragma once
 
@@ -302,7 +303,7 @@ typedef struct _PXCH_HOSTS_ENTRY {
 typedef struct _PROXYCHAINS_CONFIG {
 	PXCH_UINT32 dwMasterProcessId;
 	PXCH_INT32 dwLogLevel;
-	PXCH_INT32 dwLogLevelAlreadySet;
+	PXCH_INT32 dwLogLevelSetByArg;
 	wchar_t szIpcPipeName[PXCH_MAXIPC_PIPE_NAME_BUFSIZE];
 	wchar_t szConfigPath[PXCH_MAXCONFIG_FILE_PATH_BUFSIZE];
 	wchar_t szHookDllPath[PXCH_MAXDLL_PATH_BUFSIZE];
@@ -324,6 +325,8 @@ typedef struct _PROXYCHAINS_CONFIG {
 
 	PXCH_IP_ADDRESS FakeIpv6Range;
 	PXCH_UINT32 dwFakeIpv6PrefixLength;
+
+	PXCH_UINT32 dwDefaultTarget;
 
 	PXCH_UINT32 dwProxyConnectionTimeoutMillisecond;	// Only take effect in non-blocking sockets (We simply use connect() to do connect)
 	PXCH_UINT32 dwProxyHandshakeTimeoutMillisecond;	// Only take effect in non-blocking sockets (We simply use send() and recv())

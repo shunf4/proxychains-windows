@@ -10,10 +10,11 @@
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
+ *   GNU General Public License version 2 for more details.
  *
  *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *   version 2 along with this program. If not, see
+ *   <http://www.gnu.org/licenses/>.
  */
 #define PXCH_DO_NOT_INCLUDE_STD_HEADERS_NOW
 #define PXCH_DO_NOT_INCLUDE_STRSAFE_NOW
@@ -275,7 +276,7 @@ PXCH_UINT32 ReverseLookupForHost(PXCH_HOSTNAME_PORT* pReverseLookedupHostnamePor
 		pReverseLookedupHostnamePort->wPort = pOriginalIpPort->CommonHeader.wPort;
 		*ppHostPortForProxiedConnection = (const PXCH_HOST_PORT*)pReverseLookedupHostnamePort;
 	} else {
-		*pdwTarget = GetTargetByRule(NULL, NULL, NULL, NULL, (const PXCH_HOST_PORT*)pOriginalIpPort, PXCH_RULE_TARGET_DIRECT);
+		*pdwTarget = GetTargetByRule(NULL, NULL, NULL, NULL, (const PXCH_HOST_PORT*)pOriginalIpPort, g_pPxchConfig->dwDefaultTarget);
 	}
 
 	return NO_ERROR;
@@ -1115,7 +1116,7 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 	if (g_pPxchConfig->dwWillForceResolveByHostsFile && ResolveByHostsFile(NULL, &OriginalHostname)) goto orig;
 
 	// Won't match port!
-	dwTarget = GetTargetByRule(&bMatchedHostnameRule, NULL, NULL, NULL, (PXCH_HOST_PORT*)&OriginalHostname, PXCH_RULE_TARGET_DIRECT);
+	dwTarget = GetTargetByRule(&bMatchedHostnameRule, NULL, NULL, NULL, (PXCH_HOST_PORT*)&OriginalHostname, g_pPxchConfig->dwDefaultTarget);
 
 	if (bMatchedHostnameRule || g_pPxchConfig->dwWillUseFakeIpWhenHostnameNotMatched) {
 		PXCH_IPC_MSGBUF chMessageBuf;
@@ -1174,7 +1175,7 @@ err:
 
 PROXY_FUNC2(Ws2_32, gethostbyaddr)
 {
-	FUNCIPCLOGI(L"Ws2_32.dll gethostbyaddr() called");
+	FUNCIPCLOGD(L"Ws2_32.dll gethostbyaddr() called");
 
 	return orig_fpWs2_32_gethostbyaddr(addr, len, type);
 }
@@ -1358,7 +1359,7 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 
 	if (g_pPxchConfig->dwWillForceResolveByHostsFile && ResolveByHostsFile(NULL, &Hostname)) goto out;
 
-	dwTarget = GetTargetByRule(&bMatchedHostnameRule, NULL, NULL, NULL, &HostPort, PXCH_RULE_TARGET_DIRECT);
+	dwTarget = GetTargetByRule(&bMatchedHostnameRule, NULL, NULL, NULL, &HostPort, g_pPxchConfig->dwDefaultTarget);
 
 	if (bMatchedHostnameRule || g_pPxchConfig->dwWillUseFakeIpWhenHostnameNotMatched) {
 		PXCH_IPC_MSGBUF chMessageBuf;
@@ -1429,7 +1430,7 @@ err:
 
 PROXY_FUNC2(Ws2_32, GetAddrInfoExA)
 {
-	FUNCIPCLOGI(L"Ws2_32.dll GetAddrInfoExA() called");
+	FUNCIPCLOGD(L"Ws2_32.dll GetAddrInfoExA() called");
 
 	return orig_fpWs2_32_GetAddrInfoExA(pName, pServiceName, dwNameSpace, lpNspId, hints, ppResult, timeout, lpOverlapped, lpCompletionRoutine, lpHandle);
 }
@@ -1438,7 +1439,7 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoExA)
 
 PROXY_FUNC2(Ws2_32, GetAddrInfoExW)
 {
-	FUNCIPCLOGI(L"Ws2_32.dll GetAddrInfoExW() called");
+	FUNCIPCLOGD(L"Ws2_32.dll GetAddrInfoExW() called");
 
 	return orig_fpWs2_32_GetAddrInfoExW(pName, pServiceName, dwNameSpace, lpNspId, hints, ppResult, timeout, lpOverlapped, lpCompletionRoutine, lpHandle);
 }
@@ -1506,7 +1507,7 @@ PROXY_FUNC2(Ws2_32, FreeAddrInfoW)
 
 PROXY_FUNC2(Ws2_32, FreeAddrInfoEx)
 {
-	FUNCIPCLOGI(L"Ws2_32.dll FreeAddrInfoEx() called");
+	FUNCIPCLOGD(L"Ws2_32.dll FreeAddrInfoEx() called");
 
 	orig_fpWs2_32_FreeAddrInfoEx(pAddrInfoEx);
 }
@@ -1516,7 +1517,7 @@ PROXY_FUNC2(Ws2_32, FreeAddrInfoEx)
 
 PROXY_FUNC2(Ws2_32, FreeAddrInfoExW)
 {
-	FUNCIPCLOGI(L"Ws2_32.dll FreeAddrInfoExW() called");
+	FUNCIPCLOGD(L"Ws2_32.dll FreeAddrInfoExW() called");
 
 	orig_fpWs2_32_FreeAddrInfoExW(pAddrInfoEx);
 }
