@@ -9,6 +9,10 @@ jobs:
     
     steps:
     - uses: actions/checkout@v2
+    - name: Checkout submodules
+      uses: textbook/git-checkout-submodule-action@master
+      with:
+        remote: true
     - name: build
       run: |
         "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\IDE\devenv.com" %GITHUB_WORKSPACE%\proxychains.exe.sln /build "Release^|x64"
