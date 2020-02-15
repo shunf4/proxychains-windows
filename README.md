@@ -124,6 +124,7 @@ Run `proxychains -h` for more command line argument options.
 
 - Remote DNS resolving based on UDP associate
 - Hook `sendto()`, coping with applications which do TCP fast open
+- Fix Cygwin proxychains pip failure (0xc0000005 Access Denied)
 
 # License
 
