@@ -58,14 +58,14 @@ THE RESULTING CONSEQUENCES.
 First you need to clone this repository and run
 `git submodule update --init --recursive` in it to retrieve all submodules.
 
-## Win32 build
+## Win32 Build
 
 Open proxychains.exe.sln with a recent version Visual Studio (tested with
 Visual Studio 2019) with platform toolset v141_xp. Build Solution and see
 DLL file and executable file generated under default directory. (like
 x64\Debug).
 
-## Cygwin build
+## Cygwin Build
 
 Install Cygwin and various build tool packages (gcc, w32api-headers,
 w32api-runtime etc). Run Cygwin bash, switch to `cygwin-build` directory and
@@ -100,7 +100,7 @@ For options, see `proxychains.conf`.
 
 Run `proxychains -h` for more command line argument options.
 
-# How it works
+# How It Works
 
 - Main program hooks `CreateProcessW` Win32 API call.
 - Main program creates child process which is intended to be called.
@@ -116,15 +116,17 @@ Run `proxychains -h` for more command line argument options.
   communicates with the main program to exchange data including logs, hostnames,
   etc. Main program does most of the bookkeeping of Fake IP and presence of
   descendant processes.
-- When all descendant process exits, main program exits.
-- Main program terminates all descendant process when it receives a SIGINT
+- When all descendant processes exit, main program exits.
+- Main program terminates all descendant processes when it receives a SIGINT
   (Ctrl-C).
 
-# To Do
+# To-do
 
 - Remote DNS resolving based on UDP associate
 - Hook `sendto()`, coping with applications which do TCP fast open
 - Fix Cygwin proxychains pip failure (0xc0000005 Access Denied)
+- Adapt proxychains_hook.dll to Sandboxie (???)
+- Make -lVERBOSE available in proxychainsd.exe (The debug versions)
 
 # License
 
