@@ -127,8 +127,12 @@ Run `proxychains -h` for more command line argument options.
 - Fix Cygwin proxychains pip failure (0xc0000005 Access Denied)
 - Adapt proxychains_hook.dll to Sandboxie (???)
 - Make -lVERBOSE available in proxychainsd.exe (The debug versions)
+- Suppress connect() warning log when connection has target BLOCK
+- Add ".bat" etc. extension when SearchPath()
+- ~~Fix 32-bit proxychains SearchPath(ssh) failure~~ (Windows Filesystem Redirection)
+- Dynamic selection of 32-bit DLL and 64-bit DLL
 
-# License
+# Licensing
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as 
