@@ -131,6 +131,8 @@ Run `proxychains -h` for more command line argument options.
 - Add ".bat" etc. extension when SearchPath()
 - ~~Fix 32-bit proxychains SearchPath(ssh) failure~~ (Windows Filesystem Redirection)
 - Dynamic selection of 32-bit DLL and 64-bit DLL
+- Try to fix `proxychains git clone https://...` under Cygwin
+- Try to fix `proxychains npm install`
 
 # Licensing
 
