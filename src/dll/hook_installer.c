@@ -44,22 +44,26 @@ void Win32HookWs2_32(void)
 	LoadLibraryW(L"ws2_32.dll");
 
 	if ((hWs2_32 = GetModuleHandleW(L"ws2_32.dll"))) {
-		orig_fpWs2_32_WSAStartup = pWs2_32_WSAStartup = GetProcAddress(hWs2_32, "WSAStartup");
-		pWs2_32_WSAConnect = pWs2_32_WSAConnect = GetProcAddress(hWs2_32, "WSAConnect");
-		pWs2_32_connect = pWs2_32_connect = GetProcAddress(hWs2_32, "connect");
+		orig_fpWs2_32_WSAStartup = (void*)GetProcAddress(hWs2_32, "WSAStartup");
+		orig_fpWs2_32_WSAConnect = (void*)GetProcAddress(hWs2_32, "WSAConnect");
+		orig_fpWs2_32_connect = (void*)GetProcAddress(hWs2_32, "connect");
 
-		orig_fpWs2_32_gethostbyname = GetProcAddress(hWs2_32, "gethostbyname");
-		orig_fpWs2_32_gethostbyaddr = GetProcAddress(hWs2_32, "gethostbyaddr");
-		orig_fpWs2_32_getaddrinfo = GetProcAddress(hWs2_32, "getaddrinfo");
-		orig_fpWs2_32_GetAddrInfoW = GetProcAddress(hWs2_32, "GetAddrInfoW");
-		orig_fpWs2_32_GetAddrInfoExA = GetProcAddress(hWs2_32, "GetAddrInfoExA");
-		orig_fpWs2_32_GetAddrInfoExW = GetProcAddress(hWs2_32, "GetAddrInfoExW");
-		orig_fpWs2_32_freeaddrinfo = GetProcAddress(hWs2_32, "freeaddrinfo");
-		orig_fpWs2_32_FreeAddrInfoW = GetProcAddress(hWs2_32, "FreeAddrInfoW");
-		orig_fpWs2_32_FreeAddrInfoEx = GetProcAddress(hWs2_32, "FreeAddrInfoEx");
-		orig_fpWs2_32_FreeAddrInfoExW = GetProcAddress(hWs2_32, "FreeAddrInfoExW");
-		orig_fpWs2_32_getnameinfo = GetProcAddress(hWs2_32, "getnameinfo");
-		orig_fpWs2_32_GetNameInfoW = GetProcAddress(hWs2_32, "GetNameInfoW");
+		pWs2_32_WSAStartup = orig_fpWs2_32_WSAStartup;
+		pWs2_32_WSAConnect = orig_fpWs2_32_WSAConnect;
+		pWs2_32_connect = orig_fpWs2_32_connect;
+
+		orig_fpWs2_32_gethostbyname   = (void*)GetProcAddress(hWs2_32, "gethostbyname");
+		orig_fpWs2_32_gethostbyaddr   = (void*)GetProcAddress(hWs2_32, "gethostbyaddr");
+		orig_fpWs2_32_getaddrinfo     = (void*)GetProcAddress(hWs2_32, "getaddrinfo");
+		orig_fpWs2_32_GetAddrInfoW    = (void*)GetProcAddress(hWs2_32, "GetAddrInfoW");
+		orig_fpWs2_32_GetAddrInfoExA  = (void*)GetProcAddress(hWs2_32, "GetAddrInfoExA");
+		orig_fpWs2_32_GetAddrInfoExW  = (void*)GetProcAddress(hWs2_32, "GetAddrInfoExW");
+		orig_fpWs2_32_freeaddrinfo    = (void*)GetProcAddress(hWs2_32, "freeaddrinfo");
+		orig_fpWs2_32_FreeAddrInfoW   = (void*)GetProcAddress(hWs2_32, "FreeAddrInfoW");
+		orig_fpWs2_32_FreeAddrInfoEx  = (void*)GetProcAddress(hWs2_32, "FreeAddrInfoEx");
+		orig_fpWs2_32_FreeAddrInfoExW = (void*)GetProcAddress(hWs2_32, "FreeAddrInfoExW");
+		orig_fpWs2_32_getnameinfo     = (void*)GetProcAddress(hWs2_32, "getnameinfo");
+		orig_fpWs2_32_GetNameInfoW    = (void*)GetProcAddress(hWs2_32, "GetNameInfoW");
 
 		if (g_pPxchConfig->dwWillUseFakeIpAsRemoteDns) {
 			pWs2_32_gethostbyname   = orig_fpWs2_32_gethostbyname  ;
