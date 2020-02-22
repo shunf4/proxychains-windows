@@ -17,6 +17,11 @@
  *   <http://www.gnu.org/licenses/>.
  */
 #pragma once
+#include "tls_generic.h"
+
+extern wchar_t log_ods_buf_early[PXCH_LOG_ODS_BUFSIZE];
+
+#define log_ods_buf (g_dwTlsIndex ? PXCH_TLS_PTR_LOG_ODS_BUF(g_dwTlsIndex) : log_ods_buf_early)
 
 #define PXCH_LOG_LEVEL_VERBOSE 600
 #define PXCH_LOG_LEVEL_DEBUG 500
@@ -26,11 +31,19 @@
 #define PXCH_LOG_LEVEL_ERROR 200
 #define PXCH_LOG_LEVEL_CRITICAL 100
 
-#ifndef PXCH_LOG_LEVEL
+#ifndef PXCH_LOG_LEVEL_ENABLED
 #ifdef _DEBUG
-#define PXCH_LOG_LEVEL PXCH_LOG_LEVEL_DEBUG
+#define PXCH_LOG_LEVEL_ENABLED PXCH_LOG_LEVEL_VERBOSE
 #else
-#define PXCH_LOG_LEVEL PXCH_LOG_LEVEL_INFO
+#define PXCH_LOG_LEVEL_ENABLED PXCH_LOG_LEVEL_INFO
+#endif
+#endif
+
+#ifndef PXCH_LOG_LEVEL_DEFAULT
+#ifdef _DEBUG
+#define PXCH_LOG_LEVEL_DEFAULT PXCH_LOG_LEVEL_DEBUG
+#else
+#define PXCH_LOG_LEVEL_DEFAULT PXCH_LOG_LEVEL_INFO
 #endif
 #endif
 
@@ -41,6 +54,12 @@
 #define PXCH_LOG_IPC_PID_PREFIX  PXCH_LOG_IPC_PID_PREFIX_CYG
 #else
 #define PXCH_LOG_IPC_PID_PREFIX  PXCH_LOG_IPC_PID_PREFIX_WIN
+#endif
+
+#if PXCH_LOG_LEVEL_ENABLED >= PXCH_LOG_LEVEL_DEBUG
+#define ODBGSTRLOG(fmt, ...) do { StringCchPrintfW(log_ods_buf, PXCH_LOG_ODS_BUFSIZE, fmt, ##__VA_ARGS__); OutputDebugStringW(log_ods_buf); } while(0)
+#else
+#define ODBGSTRLOG(...)
 #endif
 
 #define PXCH_LOG_FMT_PREFIX(leveltag) L"[" L###leveltag L"] %hu/%02hu/%02hu %02hu:%02hu:%02hu "
@@ -63,37 +82,37 @@ extern void pxchlog_ipc_func(const wchar_t* prefix_fmt, const wchar_t* ipc_prefi
 		pxchlog_ipc_func(PXCH_LOG_FMT_PREFIX(leveltag), PXCH_LOG_IPC_FMT_PREFIX(leveltag), fmt L"\n", ##__VA_ARGS__); \
 	} while(0)
 
-#if PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_CRITICAL
+#if PXCH_LOG_LEVEL_ENABLED >= PXCH_LOG_LEVEL_CRITICAL
 #define FUNCIPCLOGC(fmt, ...) PXCH_LOG_IPC_FUNC_E(PXCH_LOG_LEVEL_CRITICAL, C, fmt, ##__VA_ARGS__)
 #else
 #define FUNCIPCLOGC(...)
 #endif
 
-#if PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_ERROR
+#if PXCH_LOG_LEVEL_ENABLED >= PXCH_LOG_LEVEL_ERROR
 #define FUNCIPCLOGE(fmt, ...) PXCH_LOG_IPC_FUNC_E(PXCH_LOG_LEVEL_ERROR, E, fmt, ##__VA_ARGS__)
 #else
 #define FUNCIPCLOGE(...)
 #endif
 
-#if PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_WARNING
+#if PXCH_LOG_LEVEL_ENABLED >= PXCH_LOG_LEVEL_WARNING
 #define FUNCIPCLOGW(fmt, ...) PXCH_LOG_IPC_FUNC(PXCH_LOG_LEVEL_WARNING, W, fmt, ##__VA_ARGS__)
 #else
 #define FUNCIPCLOGW(fmt, ...)
 #endif
 
-#if PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_INFO
+#if PXCH_LOG_LEVEL_ENABLED >= PXCH_LOG_LEVEL_INFO
 #define FUNCIPCLOGI(fmt, ...) PXCH_LOG_IPC_FUNC(PXCH_LOG_LEVEL_INFO, I, fmt, ##__VA_ARGS__)
 #else
 #define FUNCIPCLOGI(fmt, ...)
 #endif
 
-#if PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_DEBUG
+#if PXCH_LOG_LEVEL_ENABLED >= PXCH_LOG_LEVEL_DEBUG
 #define FUNCIPCLOGD(fmt, ...) PXCH_LOG_IPC_FUNC(PXCH_LOG_LEVEL_DEBUG, D, fmt, ##__VA_ARGS__)
 #else
 #define FUNCIPCLOGD(fmt, ...)
 #endif
 
-#if PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_VERBOSE
+#if PXCH_LOG_LEVEL_ENABLED >= PXCH_LOG_LEVEL_VERBOSE
 #define FUNCIPCLOGV(fmt, ...) PXCH_LOG_IPC_FUNC(PXCH_LOG_LEVEL_VERBOSE, V, fmt, ##__VA_ARGS__)
 #else
 #define FUNCIPCLOGV(...)

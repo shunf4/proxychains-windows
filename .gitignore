@@ -347,4 +347,6 @@ cygwin-build/**/*.exe
 cygwin-build/**/*.a
 cygwin-build/**/*.lib
 cygwin-build/**/MAKING_*
+cygwin-build/**/distx*
 windows_install.bat
+win32_output/

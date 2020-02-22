@@ -57,37 +57,34 @@ typedef BOOL (WINAPI* FpFreeLibrary)(HMODULE);
 typedef DWORD(WINAPI* FpGetLastError)(VOID);
 typedef VOID (WINAPI* FpOutputDebugStringA)(LPCSTR);
 
-
+#pragma pack(push, 1)
 typedef struct _PXCH_INJECT_REMOTE_DATA {
 	PXCH_UINT32 dwSize;
 	PXCH_UINT32 dwEverExecuted;
 
-	DWORD dwParentPid;
-	DWORD dwDebugDepth;
+	PXCH_UINT32 dwParentPid;
+	PXCH_UINT32 dwDebugDepth;
 
-	FpGetModuleHandleW fpGetModuleHandleW;
-	FpLoadLibraryW fpLoadLibraryW;
-	FpGetProcAddress fpGetProcAddress;
-	FpFreeLibrary fpFreeLibrary;
-	FpGetLastError fpGetLastError;
-	FpOutputDebugStringA fpOutputDebugStringA;
+	PXCH_UINT64 fpGetModuleHandleW;
+	PXCH_UINT64 fpLoadLibraryW;
+	PXCH_UINT64 fpGetProcAddress;
+	PXCH_UINT64 fpFreeLibrary;
+	PXCH_UINT64 fpGetLastError;
+	PXCH_UINT64 fpOutputDebugStringA;
 
-	struct _PXCH_INJECT_REMOTE_DATA* pSavedRemoteData;
-	PROXYCHAINS_CONFIG* pSavedPxchConfig;
-
-	CHAR szInitFuncName[PXCH_MAXDLL_FUNC_NAME_BUFSIZE];
-	CHAR szCIWCVarName[PXCH_MAXDLL_FUNC_NAME_BUFSIZE];
+	CHAR szInitFuncName[PXCH_MAX_DLL_FUNC_NAME_BUFSIZE];
+	CHAR szCIWCVarName[PXCH_MAX_DLL_FUNC_NAME_BUFSIZE];
 
 	char chDebugOutput[40];
 
-	WCHAR szCygwin1ModuleName[PXCH_MAXDLL_FILE_NAME_BUFSIZE];
-	WCHAR szHookDllModuleName[PXCH_MAXDLL_FILE_NAME_BUFSIZE];
+	WCHAR szCygwin1ModuleName[PXCH_MAX_DLL_FILE_NAME_BUFSIZE];
+	WCHAR szHookDllModuleName[PXCH_MAX_DLL_FILE_NAME_BUFSIZE];
 
-	DWORD dwErrorCode;
+	PXCH_UINT32 dwErrorCode;
 	PROXYCHAINS_CONFIG pxchConfig;
 
 } PXCH_INJECT_REMOTE_DATA;
-
+#pragma pack(pop)
 
 extern PXCH_DLL_API BOOL g_bCurrentlyInWinapiCall;
 extern PXCH_DLL_API DWORD g_dwCurrentProcessIdForVerify;

@@ -75,28 +75,30 @@ typedef unsigned int PXCH_UINT_PTR;
 #endif
 
 // In characters -- start
-#define PXCH_MAXDLL_PATH_BUFSIZE 512
-#define PXCH_MAXCONFIG_FILE_PATH_BUFSIZE 512
-#define PXCH_MAXHOSTS_FILE_PATH_BUFSIZE 512
-#define PXCH_MAXDLL_FILE_NAME_BUFSIZE 64
-#define PXCH_MAXDLL_FUNC_NAME_BUFSIZE 64
-#define PXCH_MAXIPC_PIPE_NAME_BUFSIZE 128
-#define PXCH_MAXCOMMAND_EXEC_PATH_BUFSIZE 512
-#define PXCH_MAXCOMMAND_LINE_BUFSIZE 1024
-#define PXCH_MAXHOSTNAME_BUFSIZE 256
-#define PXCH_MAXUSERNAME_BUFSIZE 256
-#define PXCH_MAXPASSWORD_BUFSIZE 256
-#define PXCH_MAXPROXY_NUM 5
-#define PXCH_MAXFILEMAPPING_BUFSIZE 256
-#define PXCH_MAXCONFIGURATION_LINE_BUFSIZE 512
-#define PXCH_MAXHOSTS_LINE_BUFSIZE 512
-#define PXCH_MAXDUMP_MEMORY_BUFSIZE 1024
-#define PXCH_MAXARRAY_IP_NUM 10
+#define PXCH_MAX_DLL_PATH_BUFSIZE 512
+#define PXCH_MAX_CONFIG_FILE_PATH_BUFSIZE 512
+#define PXCH_MAX_BIN_FILE_PATH_BUFSIZE 512
+#define PXCH_MAX_HOSTS_FILE_PATH_BUFSIZE 512
+#define PXCH_MAX_DLL_FILE_NAME_BUFSIZE 64
+#define PXCH_MAX_DLL_FUNC_NAME_BUFSIZE 64
+#define PXCH_MAX_IPC_PIPE_NAME_BUFSIZE 128
+#define PXCH_MAX_COMMAND_EXEC_PATH_BUFSIZE 512
+#define PXCH_MAX_COMMAND_LINE_BUFSIZE 1024
+#define PXCH_MAX_HOSTNAME_BUFSIZE 256
+#define PXCH_MAX_USERNAME_BUFSIZE 256
+#define PXCH_MAX_PASSWORD_BUFSIZE 256
+#define PXCH_MAX_PROXY_NUM 5
+#define PXCH_MAX_FILEMAPPING_BUFSIZE 256
+#define PXCH_MAX_CONFIGURATION_LINE_BUFSIZE 512
+#define PXCH_MAX_HOSTS_LINE_BUFSIZE 512
+#define PXCH_MAX_DUMP_MEMORY_BUFSIZE 1024
+#define PXCH_MAX_ARRAY_IP_NUM 10
+#define PXCH_MAX_PATHEXT_BUFSIZE 256
 
 #define PXCH_LOG_IPC_BUFSIZE 1024
 #define PXCH_LOG_ODS_BUFSIZE 256
 
-#define PXCH_MAXFWPRINTF_BUFSIZE 1024	// Also as log bufsize
+#define PXCH_MAX_FWPRINTF_BUFSIZE 1024	// Also as log bufsize
 // In characters -- end
 
 #ifdef __CYGWIN__
@@ -194,9 +196,9 @@ typedef union {
 } PXCH_IP_PORT;
 typedef PXCH_IP_PORT PXCH_IP_ADDRESS;   // port must be zero
 
-typedef wchar_t PXCH_HOSTNAME_VALUE[PXCH_MAXHOSTNAME_BUFSIZE];
-typedef char PXCH_USERNAME[PXCH_MAXUSERNAME_BUFSIZE];
-typedef char PXCH_PASSWORD[PXCH_MAXUSERNAME_BUFSIZE];
+typedef wchar_t PXCH_HOSTNAME_VALUE[PXCH_MAX_HOSTNAME_BUFSIZE];
+typedef char PXCH_USERNAME[PXCH_MAX_USERNAME_BUFSIZE];
+typedef char PXCH_PASSWORD[PXCH_MAX_USERNAME_BUFSIZE];
 
 
 typedef struct _PXCH_HOSTNAME {
@@ -233,8 +235,8 @@ typedef struct _PXCH_PROXY_DIRECT_DATA {
 	PXCH_UINT32 dwTag;
 	// PXCH_WS2_32_FPCONNECT Ws2_32_FpConnect;
 	// PXCH_WS2_32_FPHANDSHAKE Ws2_32_FpHandshake;
-	char Ws2_32_ConnectFunctionName[PXCH_MAXDLL_FUNC_NAME_BUFSIZE];
-	char Ws2_32_HandshakeFunctionName[PXCH_MAXDLL_FUNC_NAME_BUFSIZE];
+	char Ws2_32_ConnectFunctionName[PXCH_MAX_DLL_FUNC_NAME_BUFSIZE];
+	char Ws2_32_HandshakeFunctionName[PXCH_MAX_DLL_FUNC_NAME_BUFSIZE];
 	PXCH_HOST_PORT HostPort;
 	int iAddrLen;
 } PXCH_PROXY_DIRECT_DATA;
@@ -243,8 +245,8 @@ typedef struct _PXCH_PROXY_SOCKS5_DATA {
 	PXCH_UINT32 dwTag;
 	// PXCH_WS2_32_FPCONNECT Ws2_32_FpConnect;
 	// PXCH_WS2_32_FPHANDSHAKE Ws2_32_FpHandshake;
-	char Ws2_32_ConnectFunctionName[PXCH_MAXDLL_FUNC_NAME_BUFSIZE];
-	char Ws2_32_HandshakeFunctionName[PXCH_MAXDLL_FUNC_NAME_BUFSIZE];
+	char Ws2_32_ConnectFunctionName[PXCH_MAX_DLL_FUNC_NAME_BUFSIZE];
+	char Ws2_32_HandshakeFunctionName[PXCH_MAX_DLL_FUNC_NAME_BUFSIZE];
 	PXCH_HOST_PORT HostPort;
 	int iAddrLen;
 
@@ -260,8 +262,8 @@ typedef union _PXCH_PROXY_DATA {
 		PXCH_UINT32 dwTag;
 		// PXCH_WS2_32_FPCONNECT Ws2_32_FpConnect;
 		// PXCH_WS2_32_FPHANDSHAKE Ws2_32_FpHandshake;
-		char Ws2_32_ConnectFunctionName[PXCH_MAXDLL_FUNC_NAME_BUFSIZE];
-		char Ws2_32_HandshakeFunctionName[PXCH_MAXDLL_FUNC_NAME_BUFSIZE];
+		char Ws2_32_ConnectFunctionName[PXCH_MAX_DLL_FUNC_NAME_BUFSIZE];
+		char Ws2_32_HandshakeFunctionName[PXCH_MAX_DLL_FUNC_NAME_BUFSIZE];
 		PXCH_HOST_PORT HostPort;
 		int iAddrLen;
 	} CommonHeader;
@@ -288,28 +290,32 @@ typedef struct _PXCH_HOSTS_ENTRY {
 
 
 #define PXCH_CONFIG_EXTRA_SIZE_G PXCH_CONFIG_EXTRA_SIZE(g_pPxchConfig)
-#define PXCH_CONFIG_EXTRA_SIZE_BY_N(proxyNum, ruleNum, hostsEntryNum) ((sizeof(PXCH_RULE) * ruleNum) + (sizeof(PXCH_PROXY_DATA) * proxyNum) + (sizeof(PXCH_HOSTS_ENTRY) * hostsEntryNum))
-#define PXCH_CONFIG_EXTRA_SIZE(pPxchConfig) PXCH_CONFIG_EXTRA_SIZE_BY_N((pPxchConfig)->dwRuleNum, (pPxchConfig)->dwProxyNum, (pPxchConfig)->dwHostsEntryNum)
+#define PXCH_CONFIG_EXTRA_SIZE_BY_N(proxyNum, ruleNum, hostsEntryNum, remoteFuncX64SizeInBytes, remoteFuncX86SizeInBytes) ((sizeof(PXCH_RULE) * ruleNum) + (sizeof(PXCH_PROXY_DATA) * proxyNum) + (sizeof(PXCH_HOSTS_ENTRY) * hostsEntryNum) + remoteFuncX64SizeInBytes + remoteFuncX86SizeInBytes)
+#define PXCH_CONFIG_EXTRA_SIZE(pPxchConfig) PXCH_CONFIG_EXTRA_SIZE_BY_N((pPxchConfig)->dwRuleNum, (pPxchConfig)->dwProxyNum, (pPxchConfig)->dwHostsEntryNum, (pPxchConfig)->cbRemoteFuncX64Size, (pPxchConfig)->cbRemoteFuncX86Size)
 
 #define PXCH_CONFIG_PROXY_ARR(pPxchConfig) ((PXCH_PROXY_DATA*)((char*)(pPxchConfig) + pPxchConfig->cbProxyListOffset))
 #define PXCH_CONFIG_RULE_ARR(pPxchConfig) ((PXCH_RULE*)((char*)(pPxchConfig) + pPxchConfig->cbRuleListOffset))
 #define PXCH_CONFIG_HOSTS_ENTRY_ARR(pPxchConfig) ((PXCH_HOSTS_ENTRY*)((char*)(pPxchConfig) + pPxchConfig->cbHostsEntryListOffset))
+#define PXCH_CONFIG_REMOTE_FUNC_X64(pPxchConfig) ((char*)((char*)(pPxchConfig) + pPxchConfig->cbRemoteFuncX64Offset))
+#define PXCH_CONFIG_REMOTE_FUNC_X86(pPxchConfig) ((char*)((char*)(pPxchConfig) + pPxchConfig->cbRemoteFuncX86Offset))
 
 #define PXCH_CONFIG_PROXY_ARR_G PXCH_CONFIG_PROXY_ARR(g_pPxchConfig)
 #define PXCH_CONFIG_RULE_ARR_G PXCH_CONFIG_RULE_ARR(g_pPxchConfig)
 #define PXCH_CONFIG_HOSTS_ENTRY_ARR_G PXCH_CONFIG_HOSTS_ENTRY_ARR(g_pPxchConfig)
 
-
+#pragma pack(push, 1)
 typedef struct _PROXYCHAINS_CONFIG {
 	PXCH_UINT32 dwMasterProcessId;
 	PXCH_INT32 dwLogLevel;
 	PXCH_INT32 dwLogLevelSetByArg;
-	wchar_t szIpcPipeName[PXCH_MAXIPC_PIPE_NAME_BUFSIZE];
-	wchar_t szConfigPath[PXCH_MAXCONFIG_FILE_PATH_BUFSIZE];
-	wchar_t szHookDllPath[PXCH_MAXDLL_PATH_BUFSIZE];
-	wchar_t szMinHookDllPath[PXCH_MAXDLL_PATH_BUFSIZE];
-	wchar_t szHostsFilePath[PXCH_MAXHOSTS_FILE_PATH_BUFSIZE];
-	wchar_t szCommandLine[PXCH_MAXCOMMAND_LINE_BUFSIZE];
+	wchar_t szIpcPipeName[PXCH_MAX_IPC_PIPE_NAME_BUFSIZE];
+	wchar_t szConfigPath[PXCH_MAX_CONFIG_FILE_PATH_BUFSIZE];
+	wchar_t szHookDllPathX86[PXCH_MAX_DLL_PATH_BUFSIZE];
+	wchar_t szHookDllPathX64[PXCH_MAX_DLL_PATH_BUFSIZE];
+	wchar_t szMinHookDllPathX86[PXCH_MAX_DLL_PATH_BUFSIZE];
+	wchar_t szMinHookDllPathX64[PXCH_MAX_DLL_PATH_BUFSIZE];
+	wchar_t szHostsFilePath[PXCH_MAX_HOSTS_FILE_PATH_BUFSIZE];
+	wchar_t szCommandLine[PXCH_MAX_COMMAND_LINE_BUFSIZE];
 	
 	PXCH_UINT32 cbProxyListOffset;
 	PXCH_UINT32 dwProxyNum;
@@ -319,6 +325,12 @@ typedef struct _PROXYCHAINS_CONFIG {
 
 	PXCH_UINT32 cbHostsEntryListOffset;
 	PXCH_UINT32 dwHostsEntryNum;
+
+	PXCH_UINT32 cbRemoteFuncX64Offset;
+	PXCH_UINT32 cbRemoteFuncX64Size;
+
+	PXCH_UINT32 cbRemoteFuncX86Offset;
+	PXCH_UINT32 cbRemoteFuncX86Size;
 
 	PXCH_IP_ADDRESS FakeIpv4Range;
 	PXCH_UINT32 dwFakeIpv4PrefixLength;
@@ -342,19 +354,31 @@ typedef struct _PROXYCHAINS_CONFIG {
 	PXCH_UINT32 dwWillFirstTunnelUseIpv4;
 	PXCH_UINT32 dwWillFirstTunnelUseIpv6;
 } PROXYCHAINS_CONFIG;
+#pragma pack(pop)
 
 static const wchar_t g_szChildDataSavingFileMappingPrefix[] = L"Local\\proxychains_child_data_";
 
 #ifdef _DEBUG
 #define PXCH_HOOKDLL_DEBUG_SUFFIX L"d"
+#define PXCH_HOOKDLL_DEBUG_SUFFIX_NARROW "d"
 #else
 #define PXCH_HOOKDLL_DEBUG_SUFFIX L""
+#define PXCH_HOOKDLL_DEBUG_SUFFIX_NARROW ""
 #endif
+
+#define PXCH_DUMP_REMOTE_FUNCTION_X64_PATH "proxychains_remote_function_x64" PXCH_HOOKDLL_DEBUG_SUFFIX_NARROW ".bin"
+#define PXCH_DUMP_REMOTE_FUNCTION_X86_PATH "proxychains_remote_function_x86" PXCH_HOOKDLL_DEBUG_SUFFIX_NARROW ".bin"
 
 #if defined(_M_X64) || defined(__x86_64__)
 #define PXCH_HOOKDLL_ARCHITECT_SUFFIX L"_x64"
+#define szMinHookDllPath szMinHookDllPathX64
+#define szHookDllPath szHookDllPathX64
+#define PXCH_DUMP_REMOTE_FUNCTION_PATH PXCH_DUMP_REMOTE_FUNCTION_X64_PATH
 #else
 #define PXCH_HOOKDLL_ARCHITECT_SUFFIX L"_x86"
+#define szMinHookDllPath szMinHookDllPathX86
+#define szHookDllPath szHookDllPathX86
+#define PXCH_DUMP_REMOTE_FUNCTION_PATH PXCH_DUMP_REMOTE_FUNCTION_X86_PATH
 #endif
 
 #ifdef __CYGWIN__
@@ -364,7 +388,11 @@ static const wchar_t g_szChildDataSavingFileMappingPrefix[] = L"Local\\proxychai
 #endif
 
 static const wchar_t g_szHookDllFileName[] = PXCH_HOOKDLL_CYGWIN_PREFIX L"proxychains_hook" PXCH_HOOKDLL_ARCHITECT_SUFFIX PXCH_HOOKDLL_DEBUG_SUFFIX L".dll";
+static const wchar_t g_szHookDllFileNameX64[] = PXCH_HOOKDLL_CYGWIN_PREFIX L"proxychains_hook_x64" PXCH_HOOKDLL_DEBUG_SUFFIX L".dll";
+static const wchar_t g_szHookDllFileNameX86[] = PXCH_HOOKDLL_CYGWIN_PREFIX L"proxychains_hook_x86" PXCH_HOOKDLL_DEBUG_SUFFIX L".dll";
 
+static const wchar_t g_szMinHookDllFileNameX64[] = L"MinHook.x64.dll";
+static const wchar_t g_szMinHookDllFileNameX86[] = L"MinHook.x86.dll";
 
 #if defined(_M_X64) || defined(__x86_64__)
 static const wchar_t g_szMinHookDllFileName[] = L"MinHook.x64.dll";

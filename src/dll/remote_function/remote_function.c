@@ -41,7 +41,7 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 	DBGCHR('C');
 
 	if (pRemoteData->pxchConfig.szMinHookDllPath[0] != L'\0') {
-		hMinHookDllModule = pRemoteData->fpLoadLibraryW(pRemoteData->pxchConfig.szMinHookDllPath);
+		hMinHookDllModule = ((FpLoadLibraryW)(pRemoteData->fpLoadLibraryW))(pRemoteData->pxchConfig.szMinHookDllPath);
 		if (!hMinHookDllModule) {
 			// pRemoteData->dwErrorCode = pRemoteData->fpGetLastError();
 			// return pRemoteData->dwErrorCode;
@@ -50,33 +50,34 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 	
 	DBGCHR('D');
 
-	hHookDllModule = pRemoteData->fpGetModuleHandleW(pRemoteData->szHookDllModuleName);
-	if (hHookDllModule) {
-		pRemoteData->dwErrorCode = ERROR_ALREADY_REGISTERED;
-		return ERROR_ALREADY_REGISTERED;
-	}
+	// ???
+	// hHookDllModule = ((FpGetModuleHandleW)(pRemoteData->fpGetModuleHandleW))(pRemoteData->szHookDllModuleName);
+	// if (hHookDllModule) {
+	// 	pRemoteData->dwErrorCode = ERROR_ALREADY_REGISTERED;
+	// 	return ERROR_ALREADY_REGISTERED;
+	// }
 
 	DBGCHR('E');
 
 	pRemoteData->dwErrorCode = ERROR_DLL_INIT_FAILED;
 
-	hHookDllModule = pRemoteData->fpLoadLibraryW(pRemoteData->pxchConfig.szHookDllPath);
+	hHookDllModule = ((FpLoadLibraryW)(pRemoteData->fpLoadLibraryW))(pRemoteData->pxchConfig.szHookDllPath);
 	if (!hHookDllModule) {
-		pRemoteData->dwErrorCode = pRemoteData->fpGetLastError();
+		pRemoteData->dwErrorCode = ((FpGetLastError)(pRemoteData->fpGetLastError))();
 		return pRemoteData->dwErrorCode;
 	}
 
 	DBGCHR('F');
 
 	pRemoteData->dwErrorCode = ERROR_PROC_NOT_FOUND;
-	pbCurrentlyInWinapiCall = pRemoteData->fpGetProcAddress(hHookDllModule, pRemoteData->szCIWCVarName);
+	pbCurrentlyInWinapiCall = ((FpGetProcAddress)(pRemoteData->fpGetProcAddress))(hHookDllModule, pRemoteData->szCIWCVarName);
 	if (!pbCurrentlyInWinapiCall) goto err_getprocaddress;
 	*(BOOL*)pbCurrentlyInWinapiCall = TRUE;
 
 	DBGCHR('G');
 
 	pRemoteData->dwErrorCode = ERROR_PROC_NOT_FOUND;
-	fpInitFunc = pRemoteData->fpGetProcAddress(hHookDllModule, pRemoteData->szInitFuncName);
+	fpInitFunc = ((FpGetProcAddress)(pRemoteData->fpGetProcAddress))(hHookDllModule, pRemoteData->szInitFuncName);
 	if (!fpInitFunc) goto err_getprocaddress;
 
 	DBGCHR('H');
@@ -101,11 +102,11 @@ err_init_func_failed:
 	goto err_after_load_dll;
 
 err_getprocaddress:
-	pRemoteData->dwErrorCode = pRemoteData->fpGetLastError();
+	pRemoteData->dwErrorCode = ((FpGetLastError)(pRemoteData->fpGetLastError))();
 	goto err_after_load_dll;
 
 err_after_load_dll:
-	pRemoteData->fpFreeLibrary(hHookDllModule);
+	((FpFreeLibrary)(pRemoteData->fpFreeLibrary))(hHookDllModule);
 	return pRemoteData->dwErrorCode;
 }
 

@@ -28,10 +28,10 @@ void PrintTablePerProcess()
 {
 	tab_per_process_t* Entry;
 	tab_per_process_t* TempEntry;
-	WCHAR TempBuf[PXCH_MAXFWPRINTF_BUFSIZE];
+	WCHAR TempBuf[PXCH_MAX_FWPRINTF_BUFSIZE];
 	WCHAR *pTempBuf;
 
-	if (PXCH_LOG_LEVEL < PXCH_LOG_LEVEL_DEBUG) return;
+	if (g_pPxchConfig->dwLogLevel < PXCH_LOG_LEVEL_DEBUG) return;
 
 	LOGD(L"PerProcessTable:");
 	TempBuf[0] = L'\0';
@@ -391,7 +391,7 @@ DWORD GetMsgHostnameAndResolvedIpsFromMsgIp(PXCH_IPC_MSGBUF chMessageBuf, PXCH_U
 
 	LOGI(L"NotRegisteredIp %ls, return it As-is", FormatHostPortToStr(PXCH_IPC_IP_ARR(pMsgIp), sizeof(PXCH_IP_ADDRESS)));
 	PrintTablePerProcess();
-	dwErrorCode = HostnameAndIpsToMessage(chMessageBuf, pcbMessageSize, pMsgIp->dwPid, &EmptyHostname, FALSE /*ignored*/, 1, &AsKey.Ip, FALSE);
+	dwErrorCode = HostnameAndIpsToMessage(chMessageBuf, pcbMessageSize, pMsgIp->dwPid, &EmptyHostname, FALSE /*ignored*/, 1, &AsKey.Ip, PXCH_RULE_TARGET_DIRECT);
 	if (dwErrorCode != NO_ERROR) goto error;
 
 	return NO_ERROR;
@@ -445,7 +445,7 @@ DWORD HandleMessage(int i, PXCH_IPC_INSTANCE* pipc)
 		if (HostIsType(HOSTNAME, Entry.Hostname) && Entry.Hostname.szValue[0]) {
 			LOGV(L"Client is registering hostname, retrieving fake ips");
 			if (RegisterHostnameAndGetFakeIp(&FakeIps[0], &FakeIps[1], &Entry, dwPid, bWillMapResolvedIpToHost) != NO_ERROR) LOGE(L"RegisterHostnameAndGetFakeIp() failed");
-			HostnameAndIpsToMessage(pipc->chWriteBuf, &pipc->cbToWrite, 0 /*ignored*/, &Entry.Hostname /*ignored*/, FALSE /*ignored*/, 2, FakeIps, FALSE /*ignored*/);
+			HostnameAndIpsToMessage(pipc->chWriteBuf, &pipc->cbToWrite, 0 /*ignored*/, &Entry.Hostname /*ignored*/, FALSE /*ignored*/, 2, FakeIps, PXCH_RULE_TARGET_DIRECT /*ignored*/);
 		} else {
 			LOGV(L"Client is querying with fake ip");
 			if (GetMsgHostnameAndResolvedIpsFromMsgIp(pipc->chWriteBuf, &pipc->cbToWrite, (const PXCH_IPC_MSGHDR_HOSTNAMEANDIPS*)pMsg) != NO_ERROR) LOGE(L"GetHostnameFromIp() failed");

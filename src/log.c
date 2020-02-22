@@ -19,7 +19,7 @@
 #include "log_win32.h"
 
 SYSTEMTIME log_time_early;
-wchar_t log_szLogLine_early[PXCH_MAXFWPRINTF_BUFSIZE] = { 0 };
+wchar_t log_szLogLine_early[PXCH_MAX_FWPRINTF_BUFSIZE] = { 0 };
 SYSTEMTIME log_time_early;
 PXCH_IPC_MSGBUF log_msg_early;
 PXCH_IPC_MSGBUF log_respMsg_early;

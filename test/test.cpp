@@ -25,6 +25,8 @@ int main()
 
     WSADATA wsaData;
 
+    wprintf(L"%p\n", OutputDebugStringA);
+
     int iResult;
     iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);     // Initialize Winsock 2.2
     if (iResult != 0) {
@@ -206,6 +208,8 @@ int main()
 
     closesocket(ConnectSocket);
     WSACleanup();
+
+    Sleep(INFINITE);
     return 0;
 
 }

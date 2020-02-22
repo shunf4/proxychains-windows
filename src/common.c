@@ -19,9 +19,9 @@
 #include "common_win32.h"
 #include "tls_generic.h"
 
-WCHAR szErrorMessage[PXCH_MAXERROR_MESSAGE_BUFSIZE];
-static WCHAR szFwprintfWbuf[PXCH_MAXFWPRINTF_BUFSIZE];
-static CHAR szFwprintfBuf[PXCH_MAXFWPRINTF_BUFSIZE];
+WCHAR szErrorMessage[PXCH_MAX_ERROR_MESSAGE_BUFSIZE];
+static WCHAR szFwprintfWbuf[PXCH_MAX_FWPRINTF_BUFSIZE];
+static CHAR szFwprintfBuf[PXCH_MAX_FWPRINTF_BUFSIZE];
 
 const wchar_t* g_szRuleTargetDesc[3] = {
 	L"DIRECT",
@@ -99,11 +99,11 @@ after_fmt:
 		if (buf[dwCb - 2] == L'\r') {
 			buf[dwCb - 2] = L'\0';
 		}
-		StringCchPrintfW(szErrorMessage, PXCH_MAXERROR_MESSAGE_BUFSIZE, L"%ls(" WPRDW L")", buf, dwError);
+		StringCchPrintfW(szErrorMessage, PXCH_MAX_ERROR_MESSAGE_BUFSIZE, L"%ls(" WPRDW L")", buf, dwError);
 		LocalFree(hLocalBuffer);
 	}
 	else {
-		StringCchPrintfW(szErrorMessage, PXCH_MAXERROR_MESSAGE_BUFSIZE, L"(" WPRDW L")", dwError);
+		StringCchPrintfW(szErrorMessage, PXCH_MAX_ERROR_MESSAGE_BUFSIZE, L"(" WPRDW L")", dwError);
 	}
 	return szErrorMessage;
 }

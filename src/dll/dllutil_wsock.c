@@ -43,7 +43,7 @@ void HostentToHostnameAndIps(PXCH_HOSTNAME* pHostname, PXCH_UINT32* pdwIpNum, PX
 	if (pHostname == NULL) goto err_empty;
 	StringCchPrintfW(pHostname->szValue, _countof(pHostname->szValue), WPRS, pHostent->h_name);
 
-	ZeroMemory(Ips, sizeof(PXCH_IP_ADDRESS) * PXCH_MAXARRAY_IP_NUM);
+	ZeroMemory(Ips, sizeof(PXCH_IP_ADDRESS) * PXCH_MAX_ARRAY_IP_NUM);
 
 	if (pHostent->h_length != sizeof(PXCH_UINT32)) goto err_not_supported;
 
@@ -84,7 +84,7 @@ void HostnameAndIpsToHostent(struct hostent** ppHostent, void* pTlsBase, const P
 			ppIp[j] = &PXCH_TLS_PTR_W32HOSTENT_IP_BUF_BY_BASE(pTlsBase)[j];
 			CopyMemory(&PXCH_TLS_PTR_W32HOSTENT_IP_BUF_BY_BASE(pTlsBase)[j], &((struct sockaddr_in*)&Ips[i])->sin_addr, sizeof(PXCH_UINT32));
 			j++;
-			if (j >= PXCH_MAXARRAY_IP_NUM) break;
+			if (j >= PXCH_MAX_ARRAY_IP_NUM) break;
 		}
 	}
 
@@ -99,15 +99,15 @@ void AddrInfoToIps(PXCH_UINT32* pdwIpNum, PXCH_IP_ADDRESS* Ips, const void* pAdd
 	const ADDRINFOW* pAddrInfoW = pAddrInfo;
 	PXCH_UINT32 i;
 
-	ZeroMemory(Ips, sizeof(PXCH_IP_ADDRESS) * PXCH_MAXARRAY_IP_NUM);
+	ZeroMemory(Ips, sizeof(PXCH_IP_ADDRESS) * PXCH_MAX_ARRAY_IP_NUM);
 
 	if (bIsW) {
-		for (i = 0; pAddrInfoW && i < PXCH_MAXARRAY_IP_NUM; pAddrInfoW = pAddrInfoW->ai_next, i++) {
+		for (i = 0; pAddrInfoW && i < PXCH_MAX_ARRAY_IP_NUM; pAddrInfoW = pAddrInfoW->ai_next, i++) {
 			CopyMemory(&Ips[i], pAddrInfoW->ai_addr, pAddrInfoW->ai_addrlen);
 			Ips[i].CommonHeader.wPort = 0;
 		}
 	} else {
-		for (i = 0; pAddrInfoA && i < PXCH_MAXARRAY_IP_NUM; pAddrInfoA = pAddrInfoA->ai_next, i++) {
+		for (i = 0; pAddrInfoA && i < PXCH_MAX_ARRAY_IP_NUM; pAddrInfoA = pAddrInfoA->ai_next, i++) {
 			CopyMemory(&Ips[i], pAddrInfoA->ai_addr, pAddrInfoA->ai_addrlen);
 			Ips[i].CommonHeader.wPort = 0;
 		}

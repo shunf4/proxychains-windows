@@ -320,7 +320,7 @@ void PrintUsage(const WCHAR* szArgv0, BOOL bError)
 #else
 		L"32-bit"
 #endif
-		L" %u.%u - proxifier for Win32 and Cygwin.\n"
+		L" %u.%u.%u - proxifier for Win32 and Cygwin.\n"
 		L"\n"
 		L"Usage: "
 #ifdef __CYGWIN__
@@ -351,10 +351,10 @@ void PrintUsage(const WCHAR* szArgv0, BOOL bError)
 		L"                 Note that some levels are always unavailable in a Release build.\n";
 
 	if (bError) {
-		fwprintf(stderr, szUsage, PXCH_VERSION_MAJOR, PXCH_VERSION_MINOR, szArgv0);
+		fwprintf(stderr, szUsage, PXCH_VERSION_MAJOR, PXCH_VERSION_MINOR, PXCH_VERSION_PATCH, szArgv0);
 		fflush(stderr);
 	} else {
-		fwprintf(stdout, szUsage, PXCH_VERSION_MAJOR, PXCH_VERSION_MINOR, szArgv0);
+		fwprintf(stdout, szUsage, PXCH_VERSION_MAJOR, PXCH_VERSION_MINOR, PXCH_VERSION_PATCH, szArgv0);
 		fflush(stdout);
 	}
 }
@@ -458,7 +458,7 @@ int wmain(int argc, WCHAR* argv[])
 	if ((dwError = InitProcessBookkeeping()) != NOERROR) goto err;
 	if ((dwError = ParseArgs(&TempProxychainsConfig, argc, argv, &iCommandStart)) != NOERROR) goto err_args;
 	if ((dwError = LoadConfiguration(&g_pPxchConfig, &TempProxychainsConfig)) != NOERROR) goto err;
-	if (PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_INFO) PrintConfiguration(g_pPxchConfig);
+	if (g_pPxchConfig->dwLogLevel >= PXCH_LOG_LEVEL_INFO) PrintConfiguration(g_pPxchConfig);
 
 	InitHookForMain(g_pPxchConfig);
 
@@ -571,7 +571,7 @@ int main(int argc, char* const argv[], char* const envp[])
 	if ((dwError = InitProcessBookkeeping()) != NOERROR) goto err;
 	if ((dwError = ParseArgs(&TempProxychainsConfig, argc, wargv, &iCommandStart)) != NOERROR) goto err_args;
 	if ((dwError = LoadConfiguration(&g_pPxchConfig, &TempProxychainsConfig)) != NOERROR) goto err;
-	if (PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_INFO) PrintConfiguration(g_pPxchConfig);
+	if (g_pPxchConfig->dwLogLevel >= PXCH_LOG_LEVEL_INFO) PrintConfiguration(g_pPxchConfig);
 	InitHookForMain(g_pPxchConfig);
 
 	if (CreateThread(0, 0, &ServerLoop, g_pPxchConfig, 0, &dwTid) == NULL) goto err_get;

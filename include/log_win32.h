@@ -36,7 +36,6 @@ extern PXCH_UINT32 log_cbMsgSize_early;
 extern PXCH_UINT32 log_cbRespMsgSize_early;
 extern PXCH_UINT32 log_pid_early;
 extern PXCH_UINT32 log_tid_early;
-extern wchar_t log_ods_buf_early[PXCH_LOG_ODS_BUFSIZE];
 
 #ifdef __CYGWIN__
 extern PXCH_UINT32 log_cygpid_early;
@@ -72,7 +71,6 @@ static void __attribute__((unused)) suppress_unused_variable(void)
 #define log_pid (*(g_dwTlsIndex ? PXCH_TLS_PTR_LOG_PID(g_dwTlsIndex) : &log_pid_early))
 #define log_cygpid (*(g_dwTlsIndex ? PXCH_TLS_PTR_LOG_CYGPID(g_dwTlsIndex) : &log_cygpid_early))
 #define log_tid (*(g_dwTlsIndex ? PXCH_TLS_PTR_LOG_TID(g_dwTlsIndex) : &log_tid_early))
-#define log_ods_buf (g_dwTlsIndex ? PXCH_TLS_PTR_LOG_ODS_BUF(g_dwTlsIndex) : log_ods_buf_early)
 
 #define PXCH_LOG_IPC_PID_QUERY_CYG() log_pid = GetCurrentProcessId(); log_cygpid = g_bCurrentlyInWinapiCall ? -1 : cygwin_winpid_to_pid(log_pid)
 #define PXCH_LOG_IPC_PID_VALUE_CYG log_cygpid, log_pid
@@ -108,9 +106,9 @@ static void __attribute__((unused)) suppress_unused_variable(void)
 		if ((g_pPxchConfig && g_pPxchConfig->dwLogLevel < levelno) || (!g_pPxchConfig && !IsDebug() && levelno >= PXCH_LOG_LEVEL_INFO)) break; \
 		GetLocalTime(&log_time); \
 		log_szLogLine[0] = L'\0'; \
-		StringCchPrintfW(log_szLogLine, PXCH_MAXFWPRINTF_BUFSIZE, real_fmt, PXCH_LOG_IPC_PID_VALUE, log_time.wYear, log_time.wMonth, log_time.wDay, log_time.wHour, log_time.wMinute, log_time.wSecond, ##__VA_ARGS__); \
-		if (log_szLogLine[PXCH_MAXFWPRINTF_BUFSIZE - 2]) log_szLogLine[PXCH_MAXFWPRINTF_BUFSIZE - 2] = L'\n'; \
-		log_szLogLine[PXCH_MAXFWPRINTF_BUFSIZE - 1] = L'\0'; \
+		StringCchPrintfW(log_szLogLine, PXCH_MAX_FWPRINTF_BUFSIZE, real_fmt, PXCH_LOG_IPC_PID_VALUE, log_time.wYear, log_time.wMonth, log_time.wDay, log_time.wHour, log_time.wMinute, log_time.wSecond, ##__VA_ARGS__); \
+		if (log_szLogLine[PXCH_MAX_FWPRINTF_BUFSIZE - 2]) log_szLogLine[PXCH_MAX_FWPRINTF_BUFSIZE - 2] = L'\n'; \
+		log_szLogLine[PXCH_MAX_FWPRINTF_BUFSIZE - 1] = L'\0'; \
 		WstrToMessage(log_msg, &log_cbMsgSize, log_szLogLine); \
 		IpcCommunicateWithServer(log_msg, log_cbMsgSize, log_respMsg, &log_cbRespMsgSize); \
 	} while(0)
@@ -141,13 +139,7 @@ static void __attribute__((unused)) suppress_unused_variable(void)
 
 #define PXCH_LOG_E(levelno, leveltag, fmt, ...) PXCH_LOG_REAL_E(levelno, PXCH_LOG_CONCAT_FMT(leveltag, fmt), ##__VA_ARGS__)
 
-#if PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_DEBUG
-#define ODBGSTRLOG(fmt, ...) do { StringCchPrintfW(log_ods_buf, PXCH_LOG_ODS_BUFSIZE, fmt, ##__VA_ARGS__); OutputDebugStringW(log_ods_buf); } while(0)
-#else
-#define ODBGSTRLOG(...)
-#endif
-
-#if PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_CRITICAL
+#if PXCH_LOG_LEVEL_ENABLED >= PXCH_LOG_LEVEL_CRITICAL
 #define LOGC(fmt, ...) PXCH_LOG_E(PXCH_LOG_LEVEL_CRITICAL, C, fmt, ##__VA_ARGS__)
 #define IPCLOGC(fmt, ...) PXCH_LOG_IPC_E(PXCH_LOG_LEVEL_CRITICAL, C, fmt, ##__VA_ARGS__)
 #else
@@ -155,7 +147,7 @@ static void __attribute__((unused)) suppress_unused_variable(void)
 #define IPCLOGC(...)
 #endif
 
-#if PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_ERROR
+#if PXCH_LOG_LEVEL_ENABLED >= PXCH_LOG_LEVEL_ERROR
 #define LOGE(fmt, ...) PXCH_LOG_E(PXCH_LOG_LEVEL_ERROR, E, fmt, ##__VA_ARGS__)
 #define IPCLOGE(fmt, ...) PXCH_LOG_IPC_E(PXCH_LOG_LEVEL_ERROR, E, fmt, ##__VA_ARGS__)
 #else
@@ -163,7 +155,7 @@ static void __attribute__((unused)) suppress_unused_variable(void)
 #define IPCLOGE(...)
 #endif
 
-#if PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_WARNING
+#if PXCH_LOG_LEVEL_ENABLED >= PXCH_LOG_LEVEL_WARNING
 #define LOGW(fmt, ...) PXCH_LOG(PXCH_LOG_LEVEL_WARNING, W, fmt, ##__VA_ARGS__)
 #define IPCLOGW(fmt, ...) PXCH_LOG_IPC(PXCH_LOG_LEVEL_WARNING, W, fmt, ##__VA_ARGS__)
 #else
@@ -171,7 +163,7 @@ static void __attribute__((unused)) suppress_unused_variable(void)
 #define IPCLOGW(...)
 #endif
 
-#if PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_INFO
+#if PXCH_LOG_LEVEL_ENABLED >= PXCH_LOG_LEVEL_INFO
 #define LOGI(fmt, ...) PXCH_LOG(PXCH_LOG_LEVEL_INFO, I, fmt, ##__VA_ARGS__)
 #define IPCLOGI(fmt, ...) PXCH_LOG_IPC(PXCH_LOG_LEVEL_INFO, I, fmt, ##__VA_ARGS__)
 #else
@@ -179,7 +171,7 @@ static void __attribute__((unused)) suppress_unused_variable(void)
 #define IPCLOGI(...)
 #endif
 
-#if PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_DEBUG
+#if PXCH_LOG_LEVEL_ENABLED >= PXCH_LOG_LEVEL_DEBUG
 #define LOGD(fmt, ...) PXCH_LOG(PXCH_LOG_LEVEL_DEBUG, D, fmt, ##__VA_ARGS__)
 #define IPCLOGD(fmt, ...) PXCH_LOG_IPC(PXCH_LOG_LEVEL_DEBUG, D, fmt, ##__VA_ARGS__)
 #else
@@ -187,7 +179,7 @@ static void __attribute__((unused)) suppress_unused_variable(void)
 #define IPCLOGD(...)
 #endif
 
-#if PXCH_LOG_LEVEL >= PXCH_LOG_LEVEL_VERBOSE
+#if PXCH_LOG_LEVEL_ENABLED >= PXCH_LOG_LEVEL_VERBOSE
 #define LOGV(fmt, ...) PXCH_LOG(PXCH_LOG_LEVEL_VERBOSE, V, fmt, ##__VA_ARGS__)
 #define IPCLOGV(fmt, ...) PXCH_LOG_IPC(PXCH_LOG_LEVEL_VERBOSE, V, fmt, ##__VA_ARGS__)
 #else

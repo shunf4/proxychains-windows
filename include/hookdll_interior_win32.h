@@ -40,7 +40,7 @@ typedef struct _PXCH_ADDRINFOW {
 
 typedef struct _PXCH_ADDRINFOA {
 	ADDRINFOA AddrInfoA;
-	char HostnameBuf[PXCH_MAXHOSTNAME_BUFSIZE];
+	char HostnameBuf[PXCH_MAX_HOSTNAME_BUFSIZE];
 	PXCH_IP_PORT IpPort;
 } PXCH_ADDRINFOA;
 

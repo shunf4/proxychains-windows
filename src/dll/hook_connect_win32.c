@@ -225,7 +225,7 @@ PXCH_UINT32 ReverseLookupForHost(PXCH_HOSTNAME_PORT* pReverseLookedupHostnamePor
 	PXCH_IPC_MSGBUF chRespMessageBuf;
 	PXCH_UINT32 cbRespMessageSize;
 	PXCH_IP_ADDRESS ReqIp;
-	PXCH_IP_ADDRESS RespIps[PXCH_MAXARRAY_IP_NUM];
+	PXCH_IP_ADDRESS RespIps[PXCH_MAX_ARRAY_IP_NUM];
 	PXCH_UINT32 dwRespIpNum;
 	PXCH_HOSTNAME EmptyHostname = { 0 };
 	DWORD dwLastError;
@@ -275,6 +275,11 @@ PXCH_UINT32 ReverseLookupForHost(PXCH_HOSTNAME_PORT* pReverseLookedupHostnamePor
 
 		pReverseLookedupHostnamePort->wPort = pOriginalIpPort->CommonHeader.wPort;
 		*ppHostPortForProxiedConnection = (const PXCH_HOST_PORT*)pReverseLookedupHostnamePort;
+
+		// Case for entry not found
+		if (pReverseLookedupHostnamePort->szValue[0] == L'\0') {
+			*pdwTarget = GetTargetByRule(NULL, NULL, NULL, NULL, (const PXCH_HOST_PORT*)*ppIpPortForDirectConnection, g_pPxchConfig->dwDefaultTarget);
+		}
 	} else {
 		*pdwTarget = GetTargetByRule(NULL, NULL, NULL, NULL, (const PXCH_HOST_PORT*)pOriginalIpPort, g_pPxchConfig->dwDefaultTarget);
 	}
@@ -303,6 +308,8 @@ void PrintConnectResultAndFreeResources(const WCHAR* szPrintPrefix, PXCH_UINT_PT
 	if (dwTarget == PXCH_RULE_TARGET_DIRECT && (const void*)pIpPortForDirectConnection != pOriginalAddr) {
 		StringCchPrintfExW(pPrintBuf, _countof(chPrintBuf) - (pPrintBuf - chPrintBuf), &pPrintBuf, NULL, 0, L" -> %ls", FormatHostPortToStr(pIpPortForDirectConnection, iOriginalAddrLen));
 	} else if (dwTarget == PXCH_RULE_TARGET_PROXY && HostIsType(HOSTNAME, *pHostPortForProxiedConnection)) {
+		StringCchPrintfExW(pPrintBuf, _countof(chPrintBuf) - (pPrintBuf - chPrintBuf), &pPrintBuf, NULL, 0, L" -> %ls", FormatHostPortToStr(pHostPortForProxiedConnection, sizeof(PXCH_HOST_PORT)));
+	} else if (dwTarget == PXCH_RULE_TARGET_BLOCK && (const void*)pIpPortForDirectConnection != pOriginalAddr && HostIsType(HOSTNAME, *pHostPortForProxiedConnection)) {
 		StringCchPrintfExW(pPrintBuf, _countof(chPrintBuf) - (pPrintBuf - chPrintBuf), &pPrintBuf, NULL, 0, L" -> %ls", FormatHostPortToStr(pHostPortForProxiedConnection, sizeof(PXCH_HOST_PORT)));
 	}
 
@@ -555,11 +562,13 @@ PXCH_DLL_API int Ws2_32_DirectConnect(void* pTempData, PXCH_UINT_PTR s, const PX
 {
 	int iReturn;
 
+	ODBGSTRLOG(L"Ws2_32_DirectConnect 0 %p", pHostPort);
 	if (HostIsType(INVALID, *pHostPort)) {
 		FUNCIPCLOGW(L"Error connecting directly: address is invalid (%#06hx).", *(const PXCH_UINT16*)pHostPort);
 		WSASetLastError(WSAEAFNOSUPPORT);
 		return SOCKET_ERROR;
 	}
+	ODBGSTRLOG(L"Ws2_32_DirectConnect 1");
 
 	if (HostIsType(HOSTNAME, *pHostPort)) {
 		PXCH_HOSTNAME_PORT* pHostnamePort = (PXCH_HOSTNAME_PORT*)pHostPort;
@@ -574,6 +583,7 @@ PXCH_DLL_API int Ws2_32_DirectConnect(void* pTempData, PXCH_UINT_PTR s, const PX
 		AddrInfoHints.ai_flags = 0;
 		AddrInfoHints.ai_protocol = IPPROTO_TCP;
 		AddrInfoHints.ai_socktype = SOCK_STREAM;
+
 		if ((iReturn = orig_fpWs2_32_GetAddrInfoW(pHostnamePort->szValue, L"80", &AddrInfoHints, &pAddrInfo)) != 0 || pAddrInfo == NULL) {
 			WSASetLastError(iReturn);
 			return SOCKET_ERROR;
@@ -608,8 +618,8 @@ PXCH_DLL_API int Ws2_32_Socks5Connect(void* pTempData, PXCH_UINT_PTR s, const PX
 	const PXCH_HOSTNAME_PORT* pAddrHostname;
 	char* pszHostnameEnd;
 	int iReturn;
-	char SendBuf[PXCH_MAXHOSTNAME_BUFSIZE + 10];
-	char RecvBuf[PXCH_MAXHOSTNAME_BUFSIZE + 10];
+	char SendBuf[PXCH_MAX_HOSTNAME_BUFSIZE + 10];
+	char RecvBuf[PXCH_MAX_HOSTNAME_BUFSIZE + 10];
 	char ServerBoundAddrType;
 	int iWSALastError;
 	DWORD dwLastError;
@@ -644,7 +654,7 @@ PXCH_DLL_API int Ws2_32_Socks5Connect(void* pTempData, PXCH_UINT_PTR s, const PX
 
 		// Connect
 		CopyMemory(SendBuf, "\05\01\00\x03", 4);
-		StringCchPrintfExA(SendBuf + 5, PXCH_MAXHOSTNAME_BUFSIZE, &pszHostnameEnd, NULL, 0, "%ls", pAddrHostname->szValue);
+		StringCchPrintfExA(SendBuf + 5, PXCH_MAX_HOSTNAME_BUFSIZE, &pszHostnameEnd, NULL, 0, "%ls", pAddrHostname->szValue);
 		*(unsigned char*)(SendBuf + 4) = (unsigned char)(pszHostnameEnd - (SendBuf + 5));
 		CopyMemory(pszHostnameEnd, &pHostPort->HostnamePort.wPort, 2);
 		if ((iReturn = Ws2_32_LoopSend(pTempData, s, SendBuf, (int)(pszHostnameEnd + 2 - SendBuf))) == SOCKET_ERROR) goto err_general;
@@ -714,7 +724,7 @@ PXCH_DLL_API int Ws2_32_Socks5Handshake(void* pTempData, PXCH_UINT_PTR s, const 
 		size_t cbPasswordLength;
 		unsigned char chUsernameLength;
 		unsigned char chPasswordLength;
-		char UserPassSendBuf[PXCH_MAXUSERNAME_BUFSIZE + PXCH_MAXPASSWORD_BUFSIZE + 16];
+		char UserPassSendBuf[PXCH_MAX_USERNAME_BUFSIZE + PXCH_MAX_PASSWORD_BUFSIZE + 16];
 		char *pUserPassSendBuf;
 
 		StringCchLengthA(pProxy->Socks5.szUsername, _countof(pProxy->Socks5.szUsername), &cbUsernameLength);
@@ -777,6 +787,7 @@ int Ws2_32_GenericConnectTo(void* pTempData, PXCH_UINT_PTR s, PPXCH_CHAIN pChain
 	PXCH_PROXY_DATA* pProxy;
 
 	FUNCIPCLOGD(L"Ws2_32_GenericConnectTo(%ls)", FormatHostPortToStr(pHostPort, iAddrLen));
+
 	if (*pChain == NULL) {
 		SetProxyType(DIRECT, g_proxyDirect);
 		// g_proxyDirect.Ws2_32_FpConnect = &Ws2_32_DirectConnect;
@@ -793,7 +804,6 @@ int Ws2_32_GenericConnectTo(void* pTempData, PXCH_UINT_PTR s, PPXCH_CHAIN pChain
 
 		CDL_APPEND(*pChain, pNewNodeDirect);
 	}
-
 
 	pChainLastNode = (*pChain)->prev;	// Last
 	pProxy = pChainLastNode->pProxy;
@@ -1184,7 +1194,7 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 	PXCH_HOSTNAME OriginalHostname;
 	PXCH_HOSTNAME ResolvedHostname;
 	PXCH_UINT32 dwIpNum;
-	PXCH_IP_ADDRESS Ips[PXCH_MAXARRAY_IP_NUM];
+	PXCH_IP_ADDRESS Ips[PXCH_MAX_ARRAY_IP_NUM];
 	PXCH_UINT32 dwTarget;
 	BOOL bMatchedHostnameRule;
 
@@ -1285,8 +1295,8 @@ PROXY_FUNC2(Ws2_32, gethostbyaddr)
 
 PROXY_FUNC2(Ws2_32, getaddrinfo)
 {
-	WCHAR pNodeNameW[PXCH_MAXHOSTNAME_BUFSIZE];
-	WCHAR pServiceNameW[PXCH_MAXHOSTNAME_BUFSIZE];
+	WCHAR pNodeNameW[PXCH_MAX_HOSTNAME_BUFSIZE];
+	WCHAR pServiceNameW[PXCH_MAX_HOSTNAME_BUFSIZE];
 	const ADDRINFOA* pHintsCast = pHints;
 	const ADDRINFOW* pHintsCastW = pHints;
 	PADDRINFOW pResultCastW;
@@ -1467,7 +1477,7 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 		PXCH_UINT32 cbMessageSize;
 		PXCH_IPC_MSGBUF chRespMessageBuf;
 		PXCH_UINT32 cbRespMessageSize;
-		PXCH_IP_ADDRESS Ips[PXCH_MAXARRAY_IP_NUM];
+		PXCH_IP_ADDRESS Ips[PXCH_MAX_ARRAY_IP_NUM];
 		PXCH_UINT32 dwIpNum;
 		PXCH_IP_PORT FakeIpPorts[2];
 		ADDRINFOW* pNewAddrInfoWResult;

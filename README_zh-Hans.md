@@ -32,7 +32,7 @@ Proxychains.exe 在 Windows 10 x64 1909 (18363.418)、Windows XP x86 SP3 和 Cyg
 
 ## 构建 Win32 版本
 
-使用较新版本的 Visual Studio 打开 proxychains.exe.sln （Visual Studio 2019 测试有效）。Visual Studio 应该安装 v141_xp 平台工具集。构建整个解决方案，在默认位置（如 x64\Debug）找到输出的 EXE 和 DLL 文件。
+使用较新版本的 Visual Studio 打开 proxychains.exe.sln （Visual Studio 2019 测试有效）。Visual Studio 应该安装 v141_xp 平台工具集。构建整个解决方案，在 `win32_output/` 找到输出的 EXE 和 DLL 文件。
 
 ## 构建 Cygwin 版本
 
@@ -40,7 +40,7 @@ Proxychains.exe 在 Windows 10 x64 1909 (18363.418)、Windows XP x86 SP3 和 Cyg
 
 # 安装
 
-把生成的 `proxychains*.exe` 和 `[cyg]proxychains_hook*.dll` 复制到 `PATH` 环境变量包含的某个目录下。另外你还需要在正确的位置创建配置文件。参见“配置”。
+把生成的 `proxychains*.exe`、 `[cyg]proxychains_hook*.dll` 和 `proxychains_remote_function_*.bin` 复制到 `PATH` 环境变量包含的某个目录下。另外你还需要在正确的位置创建配置文件。参见“配置”。
 
 # 配置
 
@@ -74,7 +74,9 @@ Proxychains.exe 按照以下顺序寻找配置：
 - 当所有后代进程退出后，主程序退出。
 - 主程序收到一个 SIGINT（Ctrl-C）后，终止所有后代进程。
 
-# To Do
+Win32 和 Cygwin 程序都以同样的方式用 Win32 API 来实现注入和 Hook，只有很小的差别（例如，Cygwin 程序是用 `posix_spawn` 而不是 `CreateProcessW` 来运行的）。但是，Cygwin 同样在 Win32 API 的框架下使用了大量的 Hack 来达到 UNIX 风格的用户操作效果，这很有可能与 proxychains.exe 相冲突（特别是调用 `fork()` 和 `exec()` 函数时）。请参阅“To-do 以及已知的问题”。也许一个基于 `LD_LIBRARY_PATH` 的方案更适合 Cygwin。
+
+# To-do 以及已知的问题
 
 详见英文文档。
 

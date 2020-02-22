@@ -51,6 +51,7 @@
         "minhook.h": "c",
         "common_generic.h": "c",
         "sstream": "c",
-        "version.h": "c"
+        "version.h": "c",
+        "tls_generic.h": "c"
     }
 }

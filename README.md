@@ -62,8 +62,7 @@ First you need to clone this repository and run
 
 Open proxychains.exe.sln with a recent version Visual Studio (tested with
 Visual Studio 2019) with platform toolset v141_xp. Build Solution and see
-DLL file and executable file generated under default directory. (like
-x64\Debug).
+DLL file and executable file generated under `win32_output/`.
 
 ## Cygwin Build
 
@@ -73,9 +72,10 @@ run `make`.
 
 # Install
 
-Copy `proxychains*.exe` and `[cyg]proxychains_hook*.dll` generated to some
-directory included in your `PATH` environment variable. Also create the needed
-configuration file in correct place. See "Configuration".
+Copy `proxychains*.exe`, `[cyg]proxychains_hook*.dll`,
+`proxychains_remote_function_*.bin` to some directory included in your `PATH`
+environment variable. Also create the needed configuration file in correct
+place. See "Configuration".
 
 # Configuration
 
@@ -108,7 +108,7 @@ Run `proxychains -h` for more command line argument options.
   child process. When child process gets injected, it hooks the Win32 API call
   below:
   - `CreateProcessW`, so that every descendant process gets hooked;
-  - `connect` and `ConnectEx`, so that TCP connections get hijacked;
+  - `connect`, `WSAConnect` and `ConnectEx`, so that TCP connections get hijacked;
   - `GetAddrInfoW` series, so that Fake IP is used to trace hostnames you
     visited, allowing remote DNS resolving;
   - etc.
@@ -120,19 +120,30 @@ Run `proxychains -h` for more command line argument options.
 - Main program terminates all descendant processes when it receives a SIGINT
   (Ctrl-C).
 
-# To-do
+Both Win32 and Cygwin programs are injected and hooked using Win32 API in a
+same way, with only a few differences (for example, cygwin programs are run
+by `posix_spawn` instead of `CreateProcessW`).
+However, Cygwin also used lots of hacks inside Win32 API framework
+to achieve a UNIX style of manipulation, which is very possible to conflict
+with proxychains.exe (especially `fork()` and `exec()` called by some
+programs). See "To-do and Known Issues". Perhaps solution based on
+`LD_LIBRARY_PATH` is better for Cygwin.
 
-- Remote DNS resolving based on UDP associate
-- Hook `sendto()`, coping with applications which do TCP fast open
-- Fix Cygwin proxychains pip failure (0xc0000005 Access Denied)
-- Adapt proxychains_hook.dll to Sandboxie (???)
-- Make -lVERBOSE available in proxychainsd.exe (The debug versions)
-- Suppress connect() warning log when connection has target BLOCK
-- Add ".bat" etc. extension when SearchPath()
-- ~~Fix 32-bit proxychains SearchPath(ssh) failure~~ (Windows Filesystem Redirection)
-- Dynamic selection of 32-bit DLL and 64-bit DLL
-- Try to fix `proxychains git clone https://...` under Cygwin
-- Try to fix `proxychains npm install`
+# To-do and Known Issues
+
+- [ ] Remote DNS resolving based on UDP associate
+- [ ] Hook `sendto()`, coping with applications which do TCP fast open
+- [ ] Fix Cygwin proxychains pip failure (0xc0000005 Access Denied)
+- [ ] ~~Adapt proxychains_hook.dll to Sandboxie (???)~~
+- [X] ~~Make -lVERBOSE available in proxychainsd.exe (The debug versions)~~ Fixed in 0.4
+- [X] ~~Suppress connect() warning log when connection has target BLOCK~~ Fixed in 0.4
+- [X] ~~Add ".bat" etc. extension (PATHEXT) when SearchPath()~~ Fixed in 0.4
+- [ ] ~~Fix 32-bit proxychains SearchPath(ssh) failure~~ (Windows Filesystem Redirection)
+- [X] ~~Dynamic selection of 32-bit DLL and 64-bit DLL~~ Fixed in 0.4
+- [ ] Try to fix `proxychains git clone https://...` under Cygwin
+- [X] ~~Try to fix `proxychains npm install` in a huge project~~
+      (may be caused by excess usage of stack in GetAddrInfoW, turn off `proxy_dns` in
+      0.4 fixes this)
 
 # Licensing
 

@@ -125,7 +125,7 @@ DWORD IpcClientRegisterChildProcess()
 	DWORD dwErrorCode;
 
 	HANDLE hMapFile;
-	WCHAR szFileMappingName[PXCH_MAXFILEMAPPING_BUFSIZE];
+	WCHAR szFileMappingName[PXCH_MAX_FILEMAPPING_BUFSIZE];
 	REPORTED_CHILD_DATA* pChildData;
 	DWORD dwCurrentProcessId;
 
@@ -198,7 +198,7 @@ PXCH_UINT32 RestoreChildData()
 	HANDLE hMapFile;
 	HANDLE hMapFileWhenCreated;
 	LPCVOID pMappedBufWhenCreated;
-	WCHAR szFileMappingName[PXCH_MAXFILEMAPPING_BUFSIZE];
+	WCHAR szFileMappingName[PXCH_MAX_FILEMAPPING_BUFSIZE];
 	REPORTED_CHILD_DATA* pChildData;
 	DWORD dwRealCurrentProcessId;
 

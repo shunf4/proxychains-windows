@@ -95,7 +95,7 @@ typedef struct {
 	PXCH_HOSTNAME Hostname;
 	PXCH_UINT32 dwTarget;
 	PXCH_UINT32 dwResovledIpNum;
-	PXCH_IP_ADDRESS ResolvedIps[PXCH_MAXARRAY_IP_NUM];
+	PXCH_IP_ADDRESS ResolvedIps[PXCH_MAX_ARRAY_IP_NUM];
 
 	UT_hash_handle hh;
 } tab_fake_ip_hostname_t;

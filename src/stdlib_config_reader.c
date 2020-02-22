@@ -31,11 +31,11 @@ static unsigned long long ullHostsLineNum;
 
 PXCH_UINT32 OpenConfigurationFile(PROXYCHAINS_CONFIG* pPxchConfig)
 {
-	char szTempConfigPath[PXCH_MAXCONFIG_FILE_PATH_BUFSIZE * 2];
+	char szTempConfigPath[PXCH_MAX_CONFIG_FILE_PATH_BUFSIZE * 2];
 #ifndef __CYGWIN__
-	char szTempConfigPathUserProfile[PXCH_MAXCONFIG_FILE_PATH_BUFSIZE * 2];
-	char szTempConfigPathRoaming[PXCH_MAXCONFIG_FILE_PATH_BUFSIZE * 2];
-	char szTempConfigPathProgramData[PXCH_MAXCONFIG_FILE_PATH_BUFSIZE * 2];
+	char szTempConfigPathUserProfile[PXCH_MAX_CONFIG_FILE_PATH_BUFSIZE * 2];
+	char szTempConfigPathRoaming[PXCH_MAX_CONFIG_FILE_PATH_BUFSIZE * 2];
+	char szTempConfigPathProgramData[PXCH_MAX_CONFIG_FILE_PATH_BUFSIZE * 2];
 #endif
     char* szEnvConfigPath;
 #ifdef __CYGWIN__

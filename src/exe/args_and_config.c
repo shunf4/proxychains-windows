@@ -18,6 +18,7 @@
  */
 #define PXCH_DO_NOT_INCLUDE_STRSAFE_NOW
 #define PXCH_DO_NOT_INCLUDE_STD_HEADERS_NOW
+#define _CRT_SECURE_NO_WARNINGS
 #include "includes_win32.h"
 #include <Shlwapi.h>
 #include <Winsock2.h>
@@ -435,7 +436,7 @@ void PrintConfiguration(PROXYCHAINS_CONFIG* pPxchConfig)
 	(void)pszTargetDesc;
 
 	LOGD(L"Configuration fixed part size: " WPRDW, (PXCH_UINT32)(sizeof(PROXYCHAINS_CONFIG)));
-	LOGD(L"Configuration total size: " WPRDW, (PXCH_UINT32)(sizeof(PROXYCHAINS_CONFIG) + PXCH_CONFIG_EXTRA_SIZE_BY_N(pPxchConfig->dwProxyNum, pPxchConfig->dwRuleNum, pPxchConfig->dwHostsEntryNum)));
+	LOGD(L"Configuration total size: " WPRDW, (PXCH_UINT32)(sizeof(PROXYCHAINS_CONFIG) + PXCH_CONFIG_EXTRA_SIZE(pPxchConfig)));
 	
 	LOGD(L"MasterProcessId: " WPRDW, pPxchConfig->dwMasterProcessId);
 	LOGD(L"LogLevel: " WPRDW, pPxchConfig->dwLogLevel);
@@ -528,8 +529,10 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 	ULARGE_INTEGER uli;
 	PROXYCHAINS_CONFIG* pPxchConfig;
 	int iDummy;
-	WCHAR szConfigurationLine[PXCH_MAXCONFIGURATION_LINE_BUFSIZE];
-	WCHAR szHostsLine[PXCH_MAXHOSTS_LINE_BUFSIZE];
+	CHAR szBinFileX64Path[PXCH_MAX_BIN_FILE_PATH_BUFSIZE];
+	CHAR szBinFileX86Path[PXCH_MAX_BIN_FILE_PATH_BUFSIZE];
+	WCHAR szConfigurationLine[PXCH_MAX_CONFIGURATION_LINE_BUFSIZE];
+	WCHAR szHostsLine[PXCH_MAX_HOSTS_LINE_BUFSIZE];
 	unsigned long long ullLineNum;
 	BOOL bIntoProxyList;
 	DWORD dwRuleNum = 0;
@@ -538,6 +541,8 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 	DWORD dwProxyCounter = 0;
 	DWORD dwRuleCounter = 0;
 	DWORD dwHostsEntryCounter = 0;
+	FILE* fRemoteFuncX64 = NULL;
+	FILE* fRemoteFuncX86 = NULL;
 
 	WSAStartup(MAKEWORD(2, 2), &wsaData);
 
@@ -551,19 +556,34 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 	uli.LowPart = ft.dwLowDateTime;
 	StringCchPrintfW(pPxchConfig->szIpcPipeName, _countof(pPxchConfig->szIpcPipeName), L"\\\\.\\pipe\\proxychains_" WPRDW L"_%" PREFIX_L(PRIu64) L"", GetCurrentProcessId(), uli.QuadPart);
 
-	dwRet = GetModuleFileNameW(NULL, pPxchConfig->szHookDllPath, PXCH_MAXDLL_PATH_BUFSIZE);
+	dwRet = GetModuleFileNameW(NULL, pPxchConfig->szHookDllPathX64, PXCH_MAX_DLL_PATH_BUFSIZE);
 	if (dwRet == 0) goto err_insuf_buf;
-	if (dwRet == PXCH_MAXDLL_PATH_BUFSIZE) goto err_insuf_buf;
+	if (dwRet == PXCH_MAX_DLL_PATH_BUFSIZE) goto err_insuf_buf;
 
-	if (!PathRemoveFileSpecW(pPxchConfig->szHookDllPath)) goto err_insuf_buf;
+	if (!PathRemoveFileSpecW(pPxchConfig->szHookDllPathX64)) goto err_insuf_buf;
 
-	if (FAILED(StringCchCatW(pPxchConfig->szHookDllPath, PXCH_MAXDLL_PATH_BUFSIZE, L"\\"))) goto err_insuf_buf;
-	if (FAILED(StringCchCopyW(pPxchConfig->szMinHookDllPath, PXCH_MAXDLL_PATH_BUFSIZE, pPxchConfig->szHookDllPath))) goto err_insuf_buf;
-	if (FAILED(StringCchCatW(pPxchConfig->szHookDllPath, PXCH_MAXDLL_PATH_BUFSIZE, g_szHookDllFileName))) goto err_insuf_buf;
-	if (FAILED(StringCchCatW(pPxchConfig->szMinHookDllPath, PXCH_MAXDLL_PATH_BUFSIZE, g_szMinHookDllFileName))) goto err_insuf_buf;
+	if (FAILED(StringCchCatW(pPxchConfig->szHookDllPathX64, PXCH_MAX_DLL_PATH_BUFSIZE, L"\\"))) goto err_insuf_buf;
 
-	if (!PathFileExistsW(pPxchConfig->szHookDllPath)) goto err_dll_not_exist;
-	if (!PathFileExistsW(pPxchConfig->szMinHookDllPath)) StringCchCopyW(pPxchConfig->szMinHookDllPath, PXCH_MAXDLL_PATH_BUFSIZE, g_szMinHookDllFileName);
+	if (FAILED(StringCchCopyW(pPxchConfig->szHookDllPathX86, PXCH_MAX_DLL_PATH_BUFSIZE, pPxchConfig->szHookDllPathX64))) goto err_insuf_buf;
+	if (FAILED(StringCchCopyW(pPxchConfig->szMinHookDllPathX64, PXCH_MAX_DLL_PATH_BUFSIZE, pPxchConfig->szHookDllPathX64))) goto err_insuf_buf;
+	if (FAILED(StringCchCopyW(pPxchConfig->szMinHookDllPathX86, PXCH_MAX_DLL_PATH_BUFSIZE, pPxchConfig->szHookDllPathX64))) goto err_insuf_buf;
+	if (FAILED(StringCchPrintfA(szBinFileX64Path, PXCH_MAX_BIN_FILE_PATH_BUFSIZE, "%ls", pPxchConfig->szHookDllPathX64))) goto err_insuf_buf;
+	if (FAILED(StringCchPrintfA(szBinFileX86Path, PXCH_MAX_BIN_FILE_PATH_BUFSIZE, "%ls", pPxchConfig->szHookDllPathX64))) goto err_insuf_buf;
+
+	if (FAILED(StringCchCatW(pPxchConfig->szHookDllPathX64, PXCH_MAX_DLL_PATH_BUFSIZE, g_szHookDllFileNameX64))) goto err_insuf_buf;
+	if (FAILED(StringCchCatW(pPxchConfig->szHookDllPathX86, PXCH_MAX_DLL_PATH_BUFSIZE, g_szHookDllFileNameX86))) goto err_insuf_buf;
+	if (FAILED(StringCchCatW(pPxchConfig->szMinHookDllPathX64, PXCH_MAX_DLL_PATH_BUFSIZE, g_szMinHookDllFileNameX64))) goto err_insuf_buf;
+	if (FAILED(StringCchCatW(pPxchConfig->szMinHookDllPathX86, PXCH_MAX_DLL_PATH_BUFSIZE, g_szMinHookDllFileNameX86))) goto err_insuf_buf;
+	if (FAILED(StringCchCatA(szBinFileX64Path, PXCH_MAX_BIN_FILE_PATH_BUFSIZE, PXCH_DUMP_REMOTE_FUNCTION_X64_PATH))) goto err_insuf_buf;
+	if (FAILED(StringCchCatA(szBinFileX86Path, PXCH_MAX_BIN_FILE_PATH_BUFSIZE, PXCH_DUMP_REMOTE_FUNCTION_X86_PATH))) goto err_insuf_buf;
+
+#if defined(_M_X64) || defined(__x86_64__)
+	if (!PathFileExistsW(pPxchConfig->szHookDllPathX64)) goto err_dll_not_exist;
+#else
+	if (!PathFileExistsW(pPxchConfig->szHookDllPathX86)) goto err_dll_not_exist;
+#endif
+	if (!PathFileExistsW(pPxchConfig->szMinHookDllPathX64)) StringCchCopyW(pPxchConfig->szMinHookDllPathX64, PXCH_MAX_DLL_PATH_BUFSIZE, g_szMinHookDllFileNameX64);
+	if (!PathFileExistsW(pPxchConfig->szMinHookDllPathX86)) StringCchCopyW(pPxchConfig->szMinHookDllPathX86, PXCH_MAX_DLL_PATH_BUFSIZE, g_szMinHookDllFileNameX86);
 
 #ifdef __CYGWIN__
     StringCchCopyW(pPxchConfig->szHostsFilePath, _countof(pPxchConfig->szHostsFilePath), L"/etc/hosts");
@@ -787,7 +807,36 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 
 	if (dwLastError != ERROR_END_OF_MEDIA) goto err_read_hosts;
 
-	pPxchConfig = *ppPxchConfig = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(PROXYCHAINS_CONFIG) + PXCH_CONFIG_EXTRA_SIZE_BY_N(dwProxyNum, dwRuleNum, dwHostsEntryNum));
+	// Open remote function .bin files
+	fRemoteFuncX64 = fopen(szBinFileX64Path, "rb");
+	if (fRemoteFuncX64 == NULL) {
+#if defined(_M_X64) || defined(__x86_64__)
+		goto err_remote_func;
+#else
+		(void)fRemoteFuncX64;
+		pPxchConfig->cbRemoteFuncX64Size = 0;
+#endif
+	} else {
+		fseek(fRemoteFuncX64, 0, SEEK_END);
+		pPxchConfig->cbRemoteFuncX64Size = (PXCH_UINT32)ftell(fRemoteFuncX64);
+	}
+
+	fRemoteFuncX86 = fopen(szBinFileX86Path, "rb");
+	if (fRemoteFuncX86 == NULL) {
+#if !(defined(_M_X64) || defined(__x86_64__))
+		goto err_remote_func;
+#else
+		(void)fRemoteFuncX86;
+		pPxchConfig->cbRemoteFuncX86Size = 0;
+#endif
+	} else {
+		fseek(fRemoteFuncX86, 0, SEEK_END);
+		pPxchConfig->cbRemoteFuncX86Size = (PXCH_UINT32)ftell(fRemoteFuncX86);
+	}
+
+	// Allocate space
+
+	pPxchConfig = *ppPxchConfig = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(PROXYCHAINS_CONFIG) + PXCH_CONFIG_EXTRA_SIZE_BY_N(dwProxyNum, dwRuleNum, dwHostsEntryNum, pPxchConfig->cbRemoteFuncX64Size, pPxchConfig->cbRemoteFuncX86Size));
 
 	CopyMemory(pPxchConfig, pTempPxchConfig, sizeof(PROXYCHAINS_CONFIG));
 
@@ -797,6 +846,22 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 	pPxchConfig->cbRuleListOffset = sizeof(PROXYCHAINS_CONFIG) + (sizeof(PXCH_PROXY_DATA) * pPxchConfig->dwProxyNum);
 	pPxchConfig->dwHostsEntryNum = dwHostsEntryNum;
 	pPxchConfig->cbHostsEntryListOffset = sizeof(PROXYCHAINS_CONFIG) + (sizeof(PXCH_PROXY_DATA) * pPxchConfig->dwProxyNum) + (sizeof(PXCH_RULE) * pPxchConfig->dwRuleNum);
+
+	pPxchConfig->cbRemoteFuncX64Offset = pPxchConfig->cbHostsEntryListOffset + (sizeof(PXCH_HOSTS_ENTRY) * pPxchConfig->dwHostsEntryNum);
+	pPxchConfig->cbRemoteFuncX86Offset = pPxchConfig->cbRemoteFuncX64Offset + pPxchConfig->cbRemoteFuncX64Size;
+
+	// Write remote function
+	if (fRemoteFuncX64) {
+		fseek(fRemoteFuncX64, 0, SEEK_SET);
+		if (fread(PXCH_CONFIG_REMOTE_FUNC_X64(pPxchConfig), pPxchConfig->cbRemoteFuncX64Size, 1, fRemoteFuncX64) != 1) goto err_remote_func;
+		fclose(fRemoteFuncX64);
+	}
+
+	if (fRemoteFuncX86) {
+		fseek(fRemoteFuncX86, 0, SEEK_SET);
+		if (fread(PXCH_CONFIG_REMOTE_FUNC_X86(pPxchConfig), pPxchConfig->cbRemoteFuncX86Size, 1, fRemoteFuncX86) != 1) goto err_remote_func;
+		fclose(fRemoteFuncX86);
+	}
 
 	ConfigurationRewind();
 
@@ -1059,6 +1124,11 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 
 err_general:
 	return dwLastError;
+err_remote_func:
+	LOGE(L"Read remote function .bin files failure");
+	if (fRemoteFuncX86) fclose(fRemoteFuncX86);
+	if (fRemoteFuncX64) fclose(fRemoteFuncX64);
+	return ERROR_BAD_CONFIGURATION;
 err_insuf_buf:
 	return ERROR_INSUFFICIENT_BUFFER;
 err_dll_not_exist:
@@ -1099,7 +1169,7 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 	pConfig->szConfigPath[0] = L'\0';
 	pConfig->szCommandLine[0] = L'\0';
 	pCommandLine = pConfig->szCommandLine;
-	pConfig->dwLogLevel = PXCH_LOG_LEVEL;
+	pConfig->dwLogLevel = PXCH_LOG_LEVEL_DEFAULT;
 	pConfig->dwLogLevelSetByArg = FALSE;
 
 	for (i = 1; i < argc; i++) {
@@ -1142,6 +1212,10 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 				bOptionFile = TRUE;
 				iOptionPrefixLen = 2;
 				bOptionHasValue = TRUE;
+			}
+			else if (wcsncmp(pWchar, L"--dump-remote", 13) == 0) {
+				if (!DumpRemoteFunction()) LOGE(L"DumpRemoteFunction() Failed!");
+				exit(0);
 			}
 			else if (wcsncmp(pWchar, L"-l", 2) == 0) {
 				bOptionLogLevel = TRUE;
@@ -1197,12 +1271,36 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 			*(pCommandLine++) = L' ';
 		}
 		else {
-			WCHAR szExecPath[PXCH_MAXCOMMAND_EXEC_PATH_BUFSIZE];
+			WCHAR szExecPath[PXCH_MAX_COMMAND_EXEC_PATH_BUFSIZE];
 			LPWSTR lpDummyFilePart;
-			if (SearchPathW(NULL, pWchar, L"", _countof(szExecPath), szExecPath, &lpDummyFilePart) == 0) {
-				if (SearchPathW(NULL, pWchar, L".exe", _countof(szExecPath), szExecPath, &lpDummyFilePart) == 0) {
-					goto err_get_exec_path;
+			WCHAR szPathExtPath[PXCH_MAX_PATHEXT_BUFSIZE];
+			WCHAR* pPathExtElemStart;
+			WCHAR* pPathExt;
+
+			if (GetEnvironmentVariableW(L"PATHEXT", szPathExtPath, _countof(szPathExtPath)) == _countof(szPathExtPath)) goto err_insuf_buf;
+
+			if (TRUE || SearchPathW(NULL, pWchar, NULL, _countof(szExecPath), szExecPath, &lpDummyFilePart) == 0) {
+				BOOL bSucceed = FALSE;
+				
+				pPathExt = szPathExtPath;
+				pPathExtElemStart = szPathExtPath;
+				while (1) {
+					for (; *pPathExt && *pPathExt != L';'; pPathExt++)
+						;
+
+					if (*pPathExt == L'\0') break;
+					*pPathExt = L'\0';
+					
+					if (SearchPathW(NULL, pWchar, pPathExtElemStart, _countof(szExecPath), szExecPath, &lpDummyFilePart)) {
+						bSucceed = TRUE;
+						break;
+					}
+
+					pPathExt++;
+					pPathExtElemStart = pPathExt;
 				}
+
+				if (!bSucceed) goto err_get_exec_path;
 			}
 			pWchar = szExecPath;
 		}
@@ -1290,7 +1388,7 @@ err_insuf_buf:
 
 err_get_exec_path:
 	dwErrorCode = GetLastError();
-	LOGE(L"Error when parsing args: SearchPath() Failed: %ls", FormatErrorToStr(dwErrorCode));
+	LOGE(L"Error when parsing args: SearchPath() Failed. Command not found.");
 	return dwErrorCode;
 
 err_cmdline:

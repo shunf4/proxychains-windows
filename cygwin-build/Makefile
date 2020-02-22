@@ -15,9 +15,6 @@
 #   version 2 along with this program. If not, see
 #   <http://www.gnu.org/licenses/>.
 
-VERSION_MAJOR = 0
-VERSION_MINOR = 1
-
 SRC_PREFIX = ../src/
 INCLUDE_DIR_CFLAGS = -I../include/ -I../uthash/src -I../minhook/include
 LIB_DIR_LDFLAGS = -L../minhook/
@@ -94,10 +91,12 @@ endif
 debug : CFLAGS += -g -DDEBUG -D_DEBUG
 debug : DLL_CFLAGS += -g -DDEBUG -D_DEBUG
 debug : MAKING_DEBUG $(ALL_EXECS_DEBUG)
+	./$(EXEC_PATH_DEBUG) --dump-remote
 
 release : CFLAGS += -DPXCH_LOG_LEVEL=400
 release : DLL_CFLAGS += -DPXCH_LOG_LEVEL=400
 release : MAKING_RELEASE $(ALL_EXECS_RELEASE)
+	./$(EXEC_PATH_RELEASE) --dump-remote
 
 MAKING_DEBUG :
 	$(MAKE) clean
@@ -115,10 +114,16 @@ $(DLL_OBJS) : %.o : $(SRC_PREFIX)%.c %.d
 
 $(DEPS) : 
 	
-$(DLL_PATH_DEBUG) : minhook dll/dllmain.o dll/hook_connect_win32.o dll/hook_connect_win32.o dll/hook_connect_cygwin.o dll/hook_createprocess_win32.o dll/hook_installer.o dll/ipc_client_and_child_data.o dll/dllutil_log_func.o dll/dllutil_wsock.o dll/remote_function/remote_function.o common.o common_wsock.o ipc_message.o log.o cygwin_strsafe/strsafe.o
+configure.exe : configure.o
+	$(CC) -o$@ configure.o -Wl,-Bdynamic -lntdllcrt -lkernel32 -lcygwin
+    
+../include/function_pointers_configured.h : configure.exe
+	./configure.exe > ../include/function_pointers_configured.h
+	
+$(DLL_PATH_DEBUG) : ../minhook/libMinHook.a ../include/function_pointers_configured.h dll/dllmain.o dll/hook_connect_win32.o dll/hook_connect_win32.o dll/hook_connect_cygwin.o dll/hook_createprocess_win32.o dll/hook_installer.o dll/ipc_client_and_child_data.o dll/dllutil_log_func.o dll/dllutil_wsock.o dll/remote_function/remote_function.o common.o common_wsock.o ipc_message.o log.o cygwin_strsafe/strsafe.o
 	$(CC) -shared -o$@ -Wl,--out-implib=$(DLL_IMPLIB_PATH_DEBUG) $(LIB_DIR_LDFLAGS) $(filter %.c %.o %.a %.lib,$^) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lws2_32 -lshlwapi
 	
-$(DLL_PATH_RELEASE) : minhook dll/dllmain.o dll/hook_connect_win32.o dll/hook_connect_win32.o dll/hook_connect_cygwin.o dll/hook_createprocess_win32.o dll/hook_installer.o dll/ipc_client_and_child_data.o dll/dllutil_log_func.o dll/dllutil_wsock.o dll/remote_function/remote_function.o common.o common_wsock.o ipc_message.o log.o cygwin_strsafe/strsafe.o
+$(DLL_PATH_RELEASE) : ../minhook/libMinHook.a ../include/function_pointers_configured.h dll/dllmain.o dll/hook_connect_win32.o dll/hook_connect_win32.o dll/hook_connect_cygwin.o dll/hook_createprocess_win32.o dll/hook_installer.o dll/ipc_client_and_child_data.o dll/dllutil_log_func.o dll/dllutil_wsock.o dll/remote_function/remote_function.o common.o common_wsock.o ipc_message.o log.o cygwin_strsafe/strsafe.o
 	$(CC) -shared -o$@ -Wl,--out-implib=$(DLL_IMPLIB_PATH_RELEASE) $(LIB_DIR_LDFLAGS) $(filter %.c %.o %.a %.lib,$^) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lws2_32 -lshlwapi
 		
 #	-Wl,--export-all-symbols \
@@ -127,13 +132,13 @@ $(DLL_PATH_RELEASE) : minhook dll/dllmain.o dll/hook_connect_win32.o dll/hook_co
 $(DLL_IMPLIB_PATH_DEBUG) : $(DLL_PATH_DEBUG)
 $(DLL_IMPLIB_PATH_RELEASE) : $(DLL_PATH_RELEASE)
 
-$(EXEC_PATH_DEBUG) : minhook exe/main.o exe/args_and_config.o exe/ipc_proc_bookkeeping.o stdlib_config_reader.o common.o common_wsock.o ipc_message.o log.o cygwin_strsafe/strsafe.o $(DLL_IMPLIB_PATH_DEBUG)
+$(EXEC_PATH_DEBUG) : ../minhook/libMinHook.a exe/main.o exe/args_and_config.o exe/ipc_proc_bookkeeping.o stdlib_config_reader.o common.o common_wsock.o ipc_message.o log.o cygwin_strsafe/strsafe.o $(DLL_IMPLIB_PATH_DEBUG)
 	$(CC) -o$@ $(filter %.c %.o %.a %.lib,$^) $(LIB_DIR_LDFLAGS) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lkernel32 -lshlwapi -ladvapi32 -lcygwin -lws2_32
 	
-$(EXEC_PATH_RELEASE) : minhook exe/main.o exe/args_and_config.o exe/ipc_proc_bookkeeping.o stdlib_config_reader.o common.o common_wsock.o ipc_message.o log.o cygwin_strsafe/strsafe.o $(DLL_IMPLIB_PATH_RELEASE)
+$(EXEC_PATH_RELEASE) : ../minhook/libMinHook.a exe/main.o exe/args_and_config.o exe/ipc_proc_bookkeeping.o stdlib_config_reader.o common.o common_wsock.o ipc_message.o log.o cygwin_strsafe/strsafe.o $(DLL_IMPLIB_PATH_RELEASE)
 	$(CC) -o$@ $(filter %.c %.o %.a %.lib,$^) $(LIB_DIR_LDFLAGS) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lkernel32 -lshlwapi -ladvapi32 -lcygwin -lws2_32
 
-.PHONY : clean minhook dist
+.PHONY : clean dist configure
 
 clean :
 	$(RM) MAKING_DEBUG MAKING_RELEASE
@@ -142,9 +147,10 @@ clean :
 	$(RM) $(ALL_IMPLIBS_DEBUG) $(ALL_IMPLIBS_RELEASE)
 	$(RM) $(OBJS)
 	$(RM) $(DEPS)
+	$(RM) ../include/function_pointers_configured.h configure.exe proxychains_remote_function_*.bin
 	$(MAKE) -C ../minhook -f ../minhook/build/MinGW/Makefile clean
 
-minhook :
+../minhook/libMinHook.a :
 	$(MAKE) -C ../minhook -f ../minhook/build/MinGW/Makefile
 
 dist :

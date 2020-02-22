@@ -41,14 +41,14 @@ void pxchlog_ipc_func_e(const wchar_t* prefix_fmt, const wchar_t* ipc_prefix_fmt
 
         GetLocalTime(&log_time);
         log_szLogLine[0] = L'\0';
-        StringCchPrintfExW(log_szLogLine, PXCH_MAXFWPRINTF_BUFSIZE, &p, NULL, 0, ipc_prefix_fmt, PXCH_LOG_IPC_PID_VALUE, log_time.wYear, log_time.wMonth, log_time.wDay, log_time.wHour, log_time.wMinute, log_time.wSecond);
+        StringCchPrintfExW(log_szLogLine, PXCH_MAX_FWPRINTF_BUFSIZE, &p, NULL, 0, ipc_prefix_fmt, PXCH_LOG_IPC_PID_VALUE, log_time.wYear, log_time.wMonth, log_time.wDay, log_time.wHour, log_time.wMinute, log_time.wSecond);
 
         va_start(args, fmt);
-        StringCchVPrintfExW(p, PXCH_MAXFWPRINTF_BUFSIZE - (p - log_szLogLine), NULL, NULL, 0, fmt, args);
+        StringCchVPrintfExW(p, PXCH_MAX_FWPRINTF_BUFSIZE - (p - log_szLogLine), NULL, NULL, 0, fmt, args);
         va_end(args);
 
-        if (log_szLogLine[PXCH_MAXFWPRINTF_BUFSIZE - 2]) log_szLogLine[PXCH_MAXFWPRINTF_BUFSIZE - 2] = L'\n';
-        log_szLogLine[PXCH_MAXFWPRINTF_BUFSIZE - 1] = L'\0';
+        if (log_szLogLine[PXCH_MAX_FWPRINTF_BUFSIZE - 2]) log_szLogLine[PXCH_MAX_FWPRINTF_BUFSIZE - 2] = L'\n';
+        log_szLogLine[PXCH_MAX_FWPRINTF_BUFSIZE - 1] = L'\0';
 
         WstrToMessage(log_msg, &log_cbMsgSize, log_szLogLine);
         IpcCommunicateWithServer(log_msg, log_cbMsgSize, log_respMsg, &log_cbRespMsgSize);
@@ -72,14 +72,14 @@ void pxchlog_ipc_func(const wchar_t* prefix_fmt, const wchar_t* ipc_prefix_fmt, 
 
         GetLocalTime(&log_time);
         log_szLogLine[0] = L'\0';
-        StringCchPrintfExW(log_szLogLine, PXCH_MAXFWPRINTF_BUFSIZE, &p, NULL, 0, ipc_prefix_fmt, PXCH_LOG_IPC_PID_VALUE, log_time.wYear, log_time.wMonth, log_time.wDay, log_time.wHour, log_time.wMinute, log_time.wSecond);
+        StringCchPrintfExW(log_szLogLine, PXCH_MAX_FWPRINTF_BUFSIZE, &p, NULL, 0, ipc_prefix_fmt, PXCH_LOG_IPC_PID_VALUE, log_time.wYear, log_time.wMonth, log_time.wDay, log_time.wHour, log_time.wMinute, log_time.wSecond);
 
         va_start(args, fmt);
-        StringCchVPrintfExW(p, PXCH_MAXFWPRINTF_BUFSIZE - (p - log_szLogLine), NULL, NULL, 0, fmt, args);
+        StringCchVPrintfExW(p, PXCH_MAX_FWPRINTF_BUFSIZE - (p - log_szLogLine), NULL, NULL, 0, fmt, args);
         va_end(args);
 
-        if (log_szLogLine[PXCH_MAXFWPRINTF_BUFSIZE - 2]) log_szLogLine[PXCH_MAXFWPRINTF_BUFSIZE - 2] = L'\n';
-        log_szLogLine[PXCH_MAXFWPRINTF_BUFSIZE - 1] = L'\0';
+        if (log_szLogLine[PXCH_MAX_FWPRINTF_BUFSIZE - 2]) log_szLogLine[PXCH_MAX_FWPRINTF_BUFSIZE - 2] = L'\n';
+        log_szLogLine[PXCH_MAX_FWPRINTF_BUFSIZE - 1] = L'\0';
 
         WstrToMessage(log_msg, &log_cbMsgSize, log_szLogLine);
         IpcCommunicateWithServer(log_msg, log_cbMsgSize, log_respMsg, &log_cbRespMsgSize);
@@ -94,7 +94,7 @@ const wchar_t* DumpMemory(const void* p, int iLength)
 
 	if (iLength == 0) iLength = 64;
 	for (i = 0; i < iLength; i++) {
-		StringCchPrintfExW(pDumpMemoryBuf, PXCH_MAXDUMP_MEMORY_BUFSIZE - (pDumpMemoryBuf - szDumpMemoryBuf), &pDumpMemoryBuf, NULL, 0, L"%02x ", (unsigned int)*((const unsigned char*)p + i));
+		StringCchPrintfExW(pDumpMemoryBuf, PXCH_MAX_DUMP_MEMORY_BUFSIZE - (pDumpMemoryBuf - szDumpMemoryBuf), &pDumpMemoryBuf, NULL, 0, L"%02x ", (unsigned int)*((const unsigned char*)p + i));
 	}
 	return szDumpMemoryBuf;
 }

@@ -26,9 +26,9 @@ fi
 echo Distributing "$PXCH_VERSION"...
 
 cmd /c dist.bat
-zip -j ../../proxychains_"$PXCH_VERSION"_win32_x64d.zip ../COPYING ../README*.md ../proxychains.conf ../x64/Debug/proxychains_x64d.exe ../x64/Debug/proxychains_hook_x64d.dll
-zip -j ../../proxychains_"$PXCH_VERSION"_win32_x64.zip ../COPYING ../README*.md ../proxychains.conf ../x64/Release/proxychains_x64.exe ../x64/Release/proxychains_hook_x64.dll
-zip -j ../../proxychains_"$PXCH_VERSION"_win32_x86d.zip ../COPYING ../README*.md ../proxychains.conf ../Debug/proxychains_x86d.exe ../Debug/proxychains_hook_x86d.dll
-zip -j ../../proxychains_"$PXCH_VERSION"_win32_x86.zip ../COPYING ../README*.md ../proxychains.conf ../Release/proxychains_x86.exe ../Release/proxychains_hook_x86.dll
+zip -j ../../proxychains_"$PXCH_VERSION"_win32_x64d.zip ../COPYING ../README*.md ../proxychains.conf ../win32_output/proxychains_x64d.exe ../win32_output/proxychains_hook_x64d.dll ../win32_output/proxychains_hook_x86d.dll ../win32_output/proxychains_remote_function_x64.bin ../win32_output/proxychains_remote_function_x86.bin
+zip -j ../../proxychains_"$PXCH_VERSION"_win32_x64.zip ../COPYING ../README*.md ../proxychains.conf ../win32_output/proxychains_x64.exe ../win32_output/proxychains_hook_x64.dll ../win32_output/proxychains_hook_x86.dll ../win32_output/proxychains_remote_function_x64.bin ../win32_output/proxychains_remote_function_x86.bin
+zip -j ../../proxychains_"$PXCH_VERSION"_win32_x86d.zip ../COPYING ../README*.md ../proxychains.conf ../win32_output/proxychains_x86d.exe ../win32_output/proxychains_hook_x86d.dll ../win32_output/proxychains_remote_function_x86.bin
+zip -j ../../proxychains_"$PXCH_VERSION"_win32_x86.zip ../COPYING ../README*.md ../proxychains.conf ../win32_output/proxychains_x86.exe ../win32_output/proxychains_hook_x86.dll ../win32_output/proxychains_remote_function_x86.bin
 make release
-zip -j ../../proxychains_"$PXCH_VERSION"_cygwin_x64.zip ../COPYING ../README*.md ../proxychains.conf proxychains_x64.exe cygproxychains_hook_x64.dll
+zip -j ../../proxychains_"$PXCH_VERSION"_cygwin_x64.zip ../COPYING ../README*.md ../proxychains.conf proxychains_x64.exe cygproxychains_hook_x64.dll proxychains_remote_function_x64.bin
