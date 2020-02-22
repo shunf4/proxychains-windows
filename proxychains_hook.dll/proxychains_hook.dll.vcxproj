@@ -162,6 +162,10 @@
       <Command>
       </Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>cd /d $(SolutionDir)win32_output
+.\configure.exe &gt; $(SolutionDir)include\function_pointers_configured.h</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -184,6 +188,10 @@
       <Command>
       </Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>cd /d $(SolutionDir)win32_output
+.\configure.exe &gt; $(SolutionDir)include\function_pointers_configured.h</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\dll\dllmain.c" />
