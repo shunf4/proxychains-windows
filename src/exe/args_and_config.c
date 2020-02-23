@@ -667,6 +667,7 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 			if (OptionGetNumberValueAfterOptionName(&lValue, sOptionNameEnd, NULL, 0, 255) == -1) goto err_invalid_config_with_msg;
 			pPxchConfig->dwFakeIpv4PrefixLength = 8;
 			ZeroMemory(&pPxchConfig->FakeIpv4Range, sizeof(pPxchConfig->FakeIpv4Range));
+			pPxchConfig->FakeIpv4Range.CommonHeader.wTag = PXCH_HOST_TYPE_IPV4;
 			((unsigned char*)&((struct sockaddr_in*)&pPxchConfig->FakeIpv4Range)->sin_addr)[0] = (unsigned char)lValue;
 		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"remote_dns_subnet_cidr_v4")) {
 			if (OptionGetIpPortValueAfterOptionName((PXCH_IP_PORT*)&pPxchConfig->FakeIpv4Range, &pPxchConfig->dwFakeIpv4PrefixLength, sOptionNameEnd, NULL, TRUE, TRUE)) goto err_invalid_config_with_msg;
