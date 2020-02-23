@@ -157,8 +157,21 @@ dist :
 	PXCH_VERSION=$$(gcc -dM -E - < ../include/version.h | grep PXCH_VERSION | sort | awk '{print $$3}' | head -c -1 | tr '\n' '.') ./dist.sh
 	
 install :
-	(install $(EXEC_PATH_RELEASE) $(PREFIX)/bin/proxychains.exe && install $(DLL_PATH_RELEASE) $(PREFIX)/bin/) || \
-	(install $(EXEC_PATH_DEBUG) $(PREFIX)/bin/proxychains.exe && install $(DLL_PATH_DEBUG) $(PREFIX)/bin/)
+	PXCH_VERSION=$$(gcc -dM -E - < ../include/version.h | grep PXCH_VERSION | sort | awk '{print $$3}' | head -c -1 | tr '\n' '.') ./dist.sh --install
+	
+install_legacy:
+	make release
+	cp $(EXEC_PATH_RELEASE) $(PREFIX)/bin/proxychains.exe
+	cp $(EXEC_PATH_RELEASE) $(PREFIX)/bin/px.exe
+	cp $(DLL_PATH_RELEASE) $(PREFIX)/bin/
+	cp proxychains_remote_function_*.bin $(PREFIX)/bin/
+	
+	make debug
+	cp $(EXEC_PATH_DEBUG) $(PREFIX)/bin/proxychainsd.exe
+	cp $(EXEC_PATH_DEBUG) $(PREFIX)/bin/pxd.exe
+	cp $(DLL_PATH_DEBUG) $(PREFIX)/bin/
+	cp proxychains_remote_function_*.bin $(PREFIX)/bin/
+	
 	
 rebuild : clean all
 rebuildrelease : clean release

@@ -16,6 +16,13 @@
  *   version 2 along with this program. If not, see
  *   <http://www.gnu.org/licenses/>.
  */
+#define PXCH_DO_NOT_INCLUDE_STD_HEADERS_NOW
+#define PXCH_DO_NOT_INCLUDE_STRSAFE_NOW
+#include "includes_win32.h"
+#include "common_win32.h"
+#include <WinSock2.h>
+#include <ws2tcpip.h>
+#include <Mswsock.h>
 #include "hookdll_interior_win32.h"
 #include "log_win32.h"
 #include <MinHook.h>
@@ -25,7 +32,7 @@
 void Win32HookWs2_32(void)
 {
 	HMODULE hWs2_32;
-	LPVOID pWs2_32_WSAStartup = NULL;
+	// LPVOID pWs2_32_WSAStartup = NULL;
 	LPVOID pWs2_32_WSAConnect = NULL;
 	LPVOID pWs2_32_connect = NULL;
 	LPVOID pWs2_32_gethostbyname = NULL;
@@ -44,11 +51,15 @@ void Win32HookWs2_32(void)
 	LoadLibraryW(L"ws2_32.dll");
 
 	if ((hWs2_32 = GetModuleHandleW(L"ws2_32.dll"))) {
-		orig_fpWs2_32_WSAStartup = (void*)GetProcAddress(hWs2_32, "WSAStartup");
+		int iReturn;
+		SOCKET DummySocket;
+		WSADATA DummyWsaData;
+
+		// orig_fpWs2_32_WSAStartup = (void*)GetProcAddress(hWs2_32, "WSAStartup");
 		orig_fpWs2_32_WSAConnect = (void*)GetProcAddress(hWs2_32, "WSAConnect");
 		orig_fpWs2_32_connect = (void*)GetProcAddress(hWs2_32, "connect");
 
-		pWs2_32_WSAStartup = orig_fpWs2_32_WSAStartup;
+		// pWs2_32_WSAStartup = orig_fpWs2_32_WSAStartup;
 		pWs2_32_WSAConnect = orig_fpWs2_32_WSAConnect;
 		pWs2_32_connect = orig_fpWs2_32_connect;
 
@@ -78,28 +89,46 @@ void Win32HookWs2_32(void)
 			pWs2_32_FreeAddrInfoExW = orig_fpWs2_32_FreeAddrInfoExW;
 			pWs2_32_getnameinfo     = orig_fpWs2_32_getnameinfo    ;
 			pWs2_32_GetNameInfoW    = orig_fpWs2_32_GetNameInfoW   ;
-		};
+		}
+
+		// CREATE_HOOK3_IFNOTNULL(Ws2_32, WSAStartup, pWs2_32_WSAStartup);
+		CREATE_HOOK3_IFNOTNULL(Ws2_32, WSAConnect, pWs2_32_WSAConnect);
+		CREATE_HOOK3_IFNOTNULL(Ws2_32, connect, pWs2_32_connect);
+		CREATE_HOOK3_IFNOTNULL(Ws2_32, gethostbyname, pWs2_32_gethostbyname);
+		CREATE_HOOK3_IFNOTNULL(Ws2_32, gethostbyaddr, pWs2_32_gethostbyaddr);
+		CREATE_HOOK3_IFNOTNULL(Ws2_32, getaddrinfo, pWs2_32_getaddrinfo);
+		CREATE_HOOK3_IFNOTNULL(Ws2_32, GetAddrInfoW, pWs2_32_GetAddrInfoW);
+		CREATE_HOOK3_IFNOTNULL(Ws2_32, GetAddrInfoExA, pWs2_32_GetAddrInfoExA);
+		CREATE_HOOK3_IFNOTNULL(Ws2_32, GetAddrInfoExW, pWs2_32_GetAddrInfoExW);
+		CREATE_HOOK3_IFNOTNULL(Ws2_32, freeaddrinfo, pWs2_32_freeaddrinfo);
+		CREATE_HOOK3_IFNOTNULL(Ws2_32, FreeAddrInfoW, pWs2_32_FreeAddrInfoW);
+		CREATE_HOOK3_IFNOTNULL(Ws2_32, FreeAddrInfoEx, pWs2_32_FreeAddrInfoEx);
+		CREATE_HOOK3_IFNOTNULL(Ws2_32, FreeAddrInfoExW, pWs2_32_FreeAddrInfoExW);
+		CREATE_HOOK3_IFNOTNULL(Ws2_32, getnameinfo, pWs2_32_getnameinfo);
+		CREATE_HOOK3_IFNOTNULL(Ws2_32, GetNameInfoW, pWs2_32_GetNameInfoW);
+
+		if (orig_fpWs2_32_FreeAddrInfoW == NULL) orig_fpWs2_32_FreeAddrInfoW = orig_fpWs2_32_freeaddrinfo;
+		if (orig_fpWs2_32_FreeAddrInfoExW == NULL) orig_fpWs2_32_FreeAddrInfoExW = orig_fpWs2_32_FreeAddrInfoEx;
+
+		// Hook ConnectEx()
+		iReturn = WSAStartup(MAKEWORD(2, 2), &DummyWsaData);
+
+		if (iReturn == 0) {
+			GUID GuidConnectEx = WSAID_CONNECTEX;
+			LPFN_CONNECTEX fpConnectEx = NULL;
+			DWORD cb;
+
+			DummySocket = socket(AF_INET, SOCK_STREAM, 0);
+			if (DummySocket != INVALID_SOCKET) {
+				if (WSAIoctl(DummySocket, SIO_GET_EXTENSION_FUNCTION_POINTER, &GuidConnectEx, sizeof(GUID), &fpConnectEx, sizeof(LPFN_CONNECTEX), &cb, NULL, NULL) == 0) {
+					if (fpConnectEx) {
+						CREATE_HOOK3_IFNOTNULL(Mswsock, ConnectEx, fpConnectEx);
+					}
+				}
+				closesocket(DummySocket);
+			}
+		}
 	}
-
-	// Another hook on ConnectEx() will take effect at WSAStartup()
-	CREATE_HOOK3_IFNOTNULL(Ws2_32, WSAStartup, pWs2_32_WSAStartup);
-	CREATE_HOOK3_IFNOTNULL(Ws2_32, WSAConnect, pWs2_32_WSAConnect);
-	CREATE_HOOK3_IFNOTNULL(Ws2_32, connect, pWs2_32_connect);
-	CREATE_HOOK3_IFNOTNULL(Ws2_32, gethostbyname, pWs2_32_gethostbyname);
-	CREATE_HOOK3_IFNOTNULL(Ws2_32, gethostbyaddr, pWs2_32_gethostbyaddr);
-	CREATE_HOOK3_IFNOTNULL(Ws2_32, getaddrinfo, pWs2_32_getaddrinfo);
-	CREATE_HOOK3_IFNOTNULL(Ws2_32, GetAddrInfoW, pWs2_32_GetAddrInfoW);
-	CREATE_HOOK3_IFNOTNULL(Ws2_32, GetAddrInfoExA, pWs2_32_GetAddrInfoExA);
-	CREATE_HOOK3_IFNOTNULL(Ws2_32, GetAddrInfoExW, pWs2_32_GetAddrInfoExW);
-	CREATE_HOOK3_IFNOTNULL(Ws2_32, freeaddrinfo, pWs2_32_freeaddrinfo);
-	CREATE_HOOK3_IFNOTNULL(Ws2_32, FreeAddrInfoW, pWs2_32_FreeAddrInfoW);
-	CREATE_HOOK3_IFNOTNULL(Ws2_32, FreeAddrInfoEx, pWs2_32_FreeAddrInfoEx);
-	CREATE_HOOK3_IFNOTNULL(Ws2_32, FreeAddrInfoExW, pWs2_32_FreeAddrInfoExW);
-	CREATE_HOOK3_IFNOTNULL(Ws2_32, getnameinfo, pWs2_32_getnameinfo);
-	CREATE_HOOK3_IFNOTNULL(Ws2_32, GetNameInfoW, pWs2_32_GetNameInfoW);
-
-	if (orig_fpWs2_32_FreeAddrInfoW == NULL) orig_fpWs2_32_FreeAddrInfoW = orig_fpWs2_32_freeaddrinfo;
-	if (orig_fpWs2_32_FreeAddrInfoExW == NULL) orig_fpWs2_32_FreeAddrInfoExW = orig_fpWs2_32_FreeAddrInfoEx;
 }
 
 void CygwinHook(void)

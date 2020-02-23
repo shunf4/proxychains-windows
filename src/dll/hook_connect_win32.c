@@ -1049,26 +1049,8 @@ end:
 
 PROXY_FUNC2(Ws2_32, WSAStartup)
 {
-	int iReturn;
-	FUNCIPCLOGD(L"Ws2_32.dll WSAStartup() called");
-	iReturn = orig_fpWs2_32_WSAStartup(wVersionRequested, lpWSAData);
-	if (iReturn == 0) {
-		SOCKET DummySocket;
-		GUID GuidConnectEx = WSAID_CONNECTEX;
-		LPFN_CONNECTEX fpConnectEx = NULL;
-		DWORD cb;
-
-		DummySocket = socket(AF_INET, SOCK_STREAM, 0);
-		if (DummySocket == INVALID_SOCKET) goto out;
-		if (WSAIoctl(DummySocket, SIO_GET_EXTENSION_FUNCTION_POINTER, &GuidConnectEx, sizeof(GUID), &fpConnectEx, sizeof(LPFN_CONNECTEX), &cb, NULL, NULL) != 0) goto out;
-		if (!fpConnectEx) goto out;
-
-		CREATE_HOOK3_IFNOTNULL(Mswsock, ConnectEx, fpConnectEx);
-		MH_EnableHook(fpConnectEx);
-	}
-
-out:
-	return iReturn;
+	// Not used
+	return 0;
 }
 
 // Hook WSAConnect
