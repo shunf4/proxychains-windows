@@ -350,3 +350,4 @@ cygwin-build/**/MAKING_*
 cygwin-build/**/distx*
 cygwin-build/**/*.stackdump
 win32_output/
+include/function_pointers_configured.h

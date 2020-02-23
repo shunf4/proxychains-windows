@@ -320,6 +320,12 @@ void PrintUsage(const WCHAR* szArgv0, BOOL bError)
 #else
 		L"32-bit"
 #endif
+		L" "
+#if defined(DEBUG)
+		L"Debug"
+#else
+		L"Release"
+#endif
 		L" %u.%u.%u - proxifier for Win32 and Cygwin.\n"
 		L"\n"
 		L"Usage: "
