@@ -466,8 +466,26 @@ void PrintConfiguration(PROXYCHAINS_CONFIG* pPxchConfig)
 		default: pszTargetDesc = L"???"; break;
 	}
 	LOGD(L"DefaultTarget: %ls", pszTargetDesc);
+	LOGD(L"sizeof(PROXYCHAINS_CONFIG): %lu", (unsigned long)(sizeof(PROXYCHAINS_CONFIG)));
 	LOGD(L"");
-	LOGD(L"[RuleList] " WPRDW L", Offset " WPRDW, pPxchConfig->dwRuleNum, pPxchConfig->cbRuleListOffset);
+
+	LOGD(L"[ProxyList] Offset: " WPRDW L", sizeof(): " WPRDW L", Length: " WPRDW, pPxchConfig->cbProxyListOffset, (DWORD)(sizeof(PXCH_PROXY_DATA)), pPxchConfig->dwProxyNum);
+	arrProxy = PXCH_CONFIG_PROXY_ARR(pPxchConfig);
+	for (dw = 0; dw < pPxchConfig->dwProxyNum; dw++) {
+		switch (arrProxy[dw].dwTag) {
+			case PXCH_PROXY_TYPE_INVALID: pszTagDesc = L"INVALID"; break;
+			case PXCH_PROXY_TYPE_SOCKS5: pszTagDesc = L"SOCKS5"; break;
+			case PXCH_PROXY_TYPE_DIRECT: pszTagDesc = L"DIRECT"; break;
+			default: pszTagDesc = L"???"; break;
+		}
+
+		if (ProxyIsType(SOCKS5, arrProxy[dw])) {
+			LOGD(L"[" WPRDW L"] <%ls> %ls(%d) " WPRS L" " WPRS L" %ls %ls", dw, pszTagDesc, FormatHostPortToStr(&arrProxy[dw].CommonHeader.HostPort, arrProxy[dw].CommonHeader.iAddrLen), arrProxy[dw].CommonHeader.iAddrLen, arrProxy[dw].CommonHeader.Ws2_32_ConnectFunctionName, arrProxy[dw].CommonHeader.Ws2_32_HandshakeFunctionName, arrProxy[dw].Socks5.szUsername, arrProxy[dw].Socks5.szPassword);
+		}
+	}
+	LOGD(L"");
+
+	LOGD(L"[RuleList] Offset: " WPRDW L", sizeof(): " WPRDW L", Length: " WPRDW, pPxchConfig->cbRuleListOffset, (DWORD)(sizeof(PXCH_RULE)), pPxchConfig->dwRuleNum);
 	arrRule = PXCH_CONFIG_RULE_ARR(pPxchConfig);
 	for (dw = 0; dw < pPxchConfig->dwRuleNum; dw++) {
 		switch (arrRule[dw].dwTag) {
@@ -491,33 +509,17 @@ void PrintConfiguration(PROXYCHAINS_CONFIG* pPxchConfig)
 		LOGD(L"[" WPRDW L"] <%ls> %ls/" WPRDW L" -> %ls", dw, pszTagDesc, FormatHostPortToStr(&arrRule[dw].HostPort, sizeof(PXCH_IP_ADDRESS)), arrRule[dw].dwCidrPrefixLength, pszTargetDesc);
 	}
 	LOGD(L"");
-	LOGD(L"[ProxyList] " WPRDW L", Offset " WPRDW, pPxchConfig->dwProxyNum, pPxchConfig->cbProxyListOffset);
-	arrProxy = PXCH_CONFIG_PROXY_ARR(pPxchConfig);
-	for (dw = 0; dw < pPxchConfig->dwProxyNum; dw++) {
-		switch (arrProxy[dw].dwTag) {
-			case PXCH_PROXY_TYPE_INVALID: pszTagDesc = L"INVALID"; break;
-			case PXCH_PROXY_TYPE_SOCKS5: pszTagDesc = L"SOCKS5"; break;
-			case PXCH_PROXY_TYPE_DIRECT: pszTagDesc = L"DIRECT"; break;
-			default: pszTagDesc = L"???"; break;
-		}
-
-		switch (arrRule[dw].dwTarget) {
-			case PXCH_RULE_TARGET_BLOCK: pszTargetDesc = L"BLOCK"; break;
-			case PXCH_RULE_TARGET_DIRECT: pszTargetDesc = L"DIRECT"; break;
-			case PXCH_RULE_TARGET_PROXY: pszTargetDesc = L"PROXY"; break;
-			default: pszTargetDesc = L"???"; break;
-		}
-
-		if (ProxyIsType(SOCKS5, arrProxy[dw])) {
-			LOGD(L"[" WPRDW L"] <%ls> %ls(%d) " WPRS L" " WPRS L" %ls %ls", dw, pszTagDesc, FormatHostPortToStr(&arrProxy[dw].CommonHeader.HostPort, arrProxy[dw].CommonHeader.iAddrLen), arrProxy[dw].CommonHeader.iAddrLen, arrProxy[dw].CommonHeader.Ws2_32_ConnectFunctionName, arrProxy[dw].CommonHeader.Ws2_32_HandshakeFunctionName, arrProxy[dw].Socks5.szUsername, arrProxy[dw].Socks5.szPassword);
-		}
-	}
-	LOGD(L"");
-	LOGD(L"[HostsEntry] " WPRDW L", Offset " WPRDW, pPxchConfig->dwHostsEntryNum, pPxchConfig->cbHostsEntryListOffset);
+	
+	LOGD(L"[HostsEntry] Offset: " WPRDW L", sizeof(): " WPRDW L", Length: " WPRDW, pPxchConfig->cbHostsEntryListOffset, (DWORD)(sizeof(PXCH_HOSTS_ENTRY)), pPxchConfig->dwHostsEntryNum);
 	arrHostsEntry = PXCH_CONFIG_HOSTS_ENTRY_ARR(pPxchConfig);
 	for (dw = 0; dw < pPxchConfig->dwHostsEntryNum; dw++) {
 		LOGD(L"[" WPRDW L"] %ls %ls", dw, arrHostsEntry[dw].Hostname.szValue, FormatHostPortToStr(&arrHostsEntry[dw].Ip, sizeof(PXCH_IP_ADDRESS)));
 	}
+	LOGD(L"");
+
+	LOGD(L"RemoteFuncX64 Offset: " WPRDW L", Size: " WPRDW, pPxchConfig->cbRemoteFuncX64Offset, pPxchConfig->cbRemoteFuncX64Size);
+	LOGD(L"RemoteFuncX86 Offset: " WPRDW L", Size: " WPRDW, pPxchConfig->cbRemoteFuncX86Offset, pPxchConfig->cbRemoteFuncX86Size);
+	LOGD(L"PXCH_CONFIG_EXTRA_SIZE_G: " WPRDW, PXCH_CONFIG_EXTRA_SIZE_G);
 }
 
 DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* pTempPxchConfig)

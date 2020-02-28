@@ -349,5 +349,6 @@ cygwin-build/**/*.lib
 cygwin-build/**/MAKING_*
 cygwin-build/**/distx*
 cygwin-build/**/*.stackdump
+cygwin-build/**/*.bin
 win32_output/
 include/function_pointers_configured.h

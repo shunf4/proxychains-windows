@@ -140,11 +140,12 @@ programs). See "To-do and Known Issues". Perhaps solution based on
 - [X] ~~Add ".bat" etc. extension (PATHEXT) when SearchPath()~~ Fixed in 0.4
 - [ ] ~~Fix 32-bit proxychains SearchPath(ssh) failure~~ (Windows Filesystem Redirection)
 - [X] ~~Dynamic selection of 32-bit DLL and 64-bit DLL~~ Fixed in 0.4
-- [ ] ~~Try to fix `proxychains git clone https://...` under Cygwin~~ Use `-q` in 0.4.1
-      reduces the probability to happen
+- [ ] ~~Try to fix `proxychains git clone https://...` under Cygwin~~
+      Using `-q` in 0.4.1 reduces the probability to happen
 - [X] ~~Try to fix `proxychains npm install` in a huge project~~
       (may be caused by excess usage of stack in GetAddrInfoW, turn off `proxy_dns` in
       0.4 fixes this)
+- [ ] Resolve race condition in `FormatHostPortToStr()`
 
 # Licensing
 

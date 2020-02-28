@@ -290,8 +290,8 @@ typedef struct _PXCH_HOSTS_ENTRY {
 
 
 #define PXCH_CONFIG_EXTRA_SIZE_G PXCH_CONFIG_EXTRA_SIZE(g_pPxchConfig)
-#define PXCH_CONFIG_EXTRA_SIZE_BY_N(proxyNum, ruleNum, hostsEntryNum, remoteFuncX64SizeInBytes, remoteFuncX86SizeInBytes) ((sizeof(PXCH_RULE) * ruleNum) + (sizeof(PXCH_PROXY_DATA) * proxyNum) + (sizeof(PXCH_HOSTS_ENTRY) * hostsEntryNum) + remoteFuncX64SizeInBytes + remoteFuncX86SizeInBytes)
-#define PXCH_CONFIG_EXTRA_SIZE(pPxchConfig) PXCH_CONFIG_EXTRA_SIZE_BY_N((pPxchConfig)->dwRuleNum, (pPxchConfig)->dwProxyNum, (pPxchConfig)->dwHostsEntryNum, (pPxchConfig)->cbRemoteFuncX64Size, (pPxchConfig)->cbRemoteFuncX86Size)
+#define PXCH_CONFIG_EXTRA_SIZE_BY_N(proxyNum, ruleNum, hostsEntryNum, remoteFuncX64SizeInBytes, remoteFuncX86SizeInBytes) ((sizeof(PXCH_PROXY_DATA) * proxyNum) + (sizeof(PXCH_RULE) * ruleNum) + (sizeof(PXCH_HOSTS_ENTRY) * hostsEntryNum) + remoteFuncX64SizeInBytes + remoteFuncX86SizeInBytes)
+#define PXCH_CONFIG_EXTRA_SIZE(pPxchConfig) PXCH_CONFIG_EXTRA_SIZE_BY_N((pPxchConfig)->dwProxyNum, (pPxchConfig)->dwRuleNum, (pPxchConfig)->dwHostsEntryNum, (pPxchConfig)->cbRemoteFuncX64Size, (pPxchConfig)->cbRemoteFuncX86Size)
 
 #define PXCH_CONFIG_PROXY_ARR(pPxchConfig) ((PXCH_PROXY_DATA*)((char*)(pPxchConfig) + pPxchConfig->cbProxyListOffset))
 #define PXCH_CONFIG_RULE_ARR(pPxchConfig) ((PXCH_RULE*)((char*)(pPxchConfig) + pPxchConfig->cbRuleListOffset))
