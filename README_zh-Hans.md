@@ -59,6 +59,8 @@ Proxychains.exe 按照以下顺序寻找配置：
 
 `proxychains "Some Path\firefox.exe"`
 
+`proxychains /bin/curl https://ifconfig.me`
+
 运行 `proxychains -h` 查看更多命令行参数选项。
 
 # 工作原理

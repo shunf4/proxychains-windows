@@ -83,12 +83,12 @@ Proxychains.exe looks for configuration in the following order:
 
 - file listed in environment variable `%PROXYCHAINS_CONF_FILE%` or
   `$PROXYCHAINS_CONF_FILE` or provided as a -f argument
-- $HOME/.proxychains/proxychains.conf (Cygwin) or
-  %USERPROFILE%\.proxychains\proxychains.conf (Win32)
-- (SYSCONFDIR)/proxychains.conf (Cygwin) or
-  (User roaming dir)\Proxychains\proxychains.conf (Win32)
-- /etc/proxychains.conf (Cygwin) or
-  (Global programdata dir)\Proxychains\proxychains.conf (Win32)
+- `$HOME/.proxychains/proxychains.conf` (Cygwin) or
+  `%USERPROFILE%\.proxychains\proxychains.conf` (Win32)
+- `(SYSCONFDIR)/proxychains.conf` (Cygwin) or
+  `(User roaming dir)\Proxychains\proxychains.conf` (Win32)
+- `/etc/proxychains.conf` (Cygwin) or
+  `(Global programdata dir)\Proxychains\proxychains.conf` (Win32)
   
 For options, see `proxychains.conf`.
 
@@ -97,6 +97,8 @@ For options, see `proxychains.conf`.
 `proxychains ssh some-server`
 
 `proxychains "Some Path\firefox.exe"`
+
+`proxychains /bin/curl https://ifconfig.me`
 
 Run `proxychains -h` for more command line argument options.
 
@@ -108,7 +110,8 @@ Run `proxychains -h` for more command line argument options.
   child process. When child process gets injected, it hooks the Win32 API call
   below:
   - `CreateProcessW`, so that every descendant process gets hooked;
-  - `connect`, `WSAConnect` and `ConnectEx`, so that TCP connections get hijacked;
+  - `connect`, `WSAConnect` and `ConnectEx`, so that TCP connections get
+    hijacked;
   - `GetAddrInfoW` series, so that Fake IP is used to trace hostnames you
     visited, allowing remote DNS resolving;
   - etc.
@@ -135,17 +138,22 @@ programs). See "To-do and Known Issues". Perhaps solution based on
 - [ ] Hook `sendto()`, coping with applications which do TCP fast open
 - [ ] Fix Cygwin proxychains pip failure (0xc0000005 Access Denied)
 - [ ] ~~Adapt proxychains_hook.dll to Sandboxie (???)~~
-- [X] ~~Make -lVERBOSE available in proxychainsd.exe (The debug versions)~~ Fixed in 0.4
-- [X] ~~Suppress connect() warning log when connection has target BLOCK~~ Fixed in 0.4
+- [X] ~~Make -lVERBOSE available in proxychainsd.exe (The debug versions)~~
+      Fixed in 0.4
+- [X] ~~Suppress connect() warning log when connection has target BLOCK~~
+      Fixed in 0.4
 - [X] ~~Add ".bat" etc. extension (PATHEXT) when SearchPath()~~ Fixed in 0.4
-- [ ] ~~Fix 32-bit proxychains SearchPath(ssh) failure~~ (Windows Filesystem Redirection)
+- [ ] ~~Fix 32-bit proxychains SearchPath(ssh) failure~~
+      (Windows Filesystem Redirection)
 - [X] ~~Dynamic selection of 32-bit DLL and 64-bit DLL~~ Fixed in 0.4
 - [ ] ~~Try to fix `proxychains git clone https://...` under Cygwin~~
       Using `-q` in 0.4.1 reduces the probability to happen
 - [X] ~~Try to fix `proxychains npm install` in a huge project~~
-      (may be caused by excess usage of stack in GetAddrInfoW, turn off `proxy_dns` in
-      0.4 fixes this)
+      (may be caused by excess usage of stack in GetAddrInfoW, turning off
+      `proxy_dns` in 0.4 fixes this)
 - [ ] Resolve race condition in `FormatHostPortToStr()`
+- [ ] Resolve remote thread exit code `0xc0000005` (Access Denied)
+      when calling `C:\ProgramData\chocolatey\tools\7z.exe`
 
 # Licensing
 
