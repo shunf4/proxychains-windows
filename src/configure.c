@@ -31,23 +31,23 @@
 // #error "Only compile it to x86 program"
 int main()
 {
-    wprintf(L"#define PXCH_ADDRESS_FreeLibrary        " PREFIX_ZERO_X "%p\n", NULL);
-    wprintf(L"#define PXCH_ADDRESS_GetModuleHandleW   " PREFIX_ZERO_X "%p\n", NULL);
-    wprintf(L"#define PXCH_ADDRESS_GetProcAddress     " PREFIX_ZERO_X "%p\n", NULL);
-    wprintf(L"#define PXCH_ADDRESS_LoadLibraryW       " PREFIX_ZERO_X "%p\n", NULL);
-    wprintf(L"#define PXCH_ADDRESS_GetLastError       " PREFIX_ZERO_X "%p\n", NULL);
-    wprintf(L"#define PXCH_ADDRESS_OutputDebugStringA " PREFIX_ZERO_X "%p\n", NULL);
+    wprintf(L"#define PXCH_ADDRESS_FreeLibrary        " PREFIX_ZERO_X L"%p\n", NULL);
+    wprintf(L"#define PXCH_ADDRESS_GetModuleHandleW   " PREFIX_ZERO_X L"%p\n", NULL);
+    wprintf(L"#define PXCH_ADDRESS_GetProcAddress     " PREFIX_ZERO_X L"%p\n", NULL);
+    wprintf(L"#define PXCH_ADDRESS_LoadLibraryW       " PREFIX_ZERO_X L"%p\n", NULL);
+    wprintf(L"#define PXCH_ADDRESS_GetLastError       " PREFIX_ZERO_X L"%p\n", NULL);
+    wprintf(L"#define PXCH_ADDRESS_OutputDebugStringA " PREFIX_ZERO_X L"%p\n", NULL);
     return 0;
 }
 #else
 int main()
 {
-    wprintf(L"#define PXCH_ADDRESS_FreeLibrary        " PREFIX_ZERO_X "%p\n", &FreeLibrary);
-	wprintf(L"#define PXCH_ADDRESS_GetModuleHandleW   " PREFIX_ZERO_X "%p\n", &GetModuleHandleW);
-	wprintf(L"#define PXCH_ADDRESS_GetProcAddress     " PREFIX_ZERO_X "%p\n", &GetProcAddress);
-	wprintf(L"#define PXCH_ADDRESS_LoadLibraryW       " PREFIX_ZERO_X "%p\n", &LoadLibraryW);
-	wprintf(L"#define PXCH_ADDRESS_GetLastError       " PREFIX_ZERO_X "%p\n", &GetLastError);
-	wprintf(L"#define PXCH_ADDRESS_OutputDebugStringA " PREFIX_ZERO_X "%p\n", &OutputDebugStringA);
+    wprintf(L"#define PXCH_ADDRESS_FreeLibrary        " PREFIX_ZERO_X L"%p\n", &FreeLibrary);
+	wprintf(L"#define PXCH_ADDRESS_GetModuleHandleW   " PREFIX_ZERO_X L"%p\n", &GetModuleHandleW);
+	wprintf(L"#define PXCH_ADDRESS_GetProcAddress     " PREFIX_ZERO_X L"%p\n", &GetProcAddress);
+	wprintf(L"#define PXCH_ADDRESS_LoadLibraryW       " PREFIX_ZERO_X L"%p\n", &LoadLibraryW);
+	wprintf(L"#define PXCH_ADDRESS_GetLastError       " PREFIX_ZERO_X L"%p\n", &GetLastError);
+	wprintf(L"#define PXCH_ADDRESS_OutputDebugStringA " PREFIX_ZERO_X L"%p\n", &OutputDebugStringA);
     return 0;
 }
 #endif

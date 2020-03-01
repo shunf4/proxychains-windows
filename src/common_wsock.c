@@ -29,24 +29,25 @@
 #include "common_win32.h"
 #include "log_generic.h"
 
-static WCHAR g_HostPrintBuf[100];
+wchar_t g_szFormatHostPortBuf_early[PXCH_MAX_FORMAT_HOST_PORT_BUFSIZE];
+wchar_t* g_szFormatHostPortBuf = g_szFormatHostPortBuf_early;
 
 const wchar_t* FormatHostPortToStr(const void* pHostPort, int iAddrLen)
 {
 	DWORD dwLen;
-	dwLen = _countof(g_HostPrintBuf);
-	g_HostPrintBuf[0] = L'\0';
+	dwLen = PXCH_MAX_FORMAT_HOST_PORT_BUFSIZE;
+	g_szFormatHostPortBuf[0] = L'\0';
 
 	if (HostIsType(HOSTNAME, *(PXCH_HOST*)pHostPort)) {
 		if (((PXCH_HOSTNAME*)pHostPort)->wPort) {
-			StringCchPrintfW(g_HostPrintBuf, dwLen, L"%ls:%hu", ((PXCH_HOSTNAME*)pHostPort)->szValue, ntohs(((PXCH_HOSTNAME*)pHostPort)->wPort));
+			StringCchPrintfW(g_szFormatHostPortBuf, dwLen, L"%ls:%hu", ((PXCH_HOSTNAME*)pHostPort)->szValue, ntohs(((PXCH_HOSTNAME*)pHostPort)->wPort));
 		} else {
-			StringCchPrintfW(g_HostPrintBuf, dwLen, L"%ls", ((PXCH_HOSTNAME*)pHostPort)->szValue);
+			StringCchPrintfW(g_szFormatHostPortBuf, dwLen, L"%ls", ((PXCH_HOSTNAME*)pHostPort)->szValue);
 		}
 	} else {
-		WSAAddressToStringW((struct sockaddr*)(pHostPort), iAddrLen, NULL, g_HostPrintBuf, &dwLen);
+		WSAAddressToStringW((struct sockaddr*)(pHostPort), iAddrLen, NULL, g_szFormatHostPortBuf, &dwLen);
 	}
-	return g_HostPrintBuf;
+	return g_szFormatHostPortBuf;
 }
 
 void IndexToIp(const PROXYCHAINS_CONFIG* pPxchConfig, PXCH_IP_ADDRESS* pIp, PXCH_UINT32 iIndex)

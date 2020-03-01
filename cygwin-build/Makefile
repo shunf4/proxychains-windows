@@ -156,10 +156,10 @@ clean :
 dist :
 	PXCH_VERSION=$$(gcc -dM -E - < ../include/version.h | grep PXCH_VERSION | sort | awk '{print $$3}' | head -c -1 | tr '\n' '.') ./dist.sh
 	
-install :
+distinstall :
 	PXCH_VERSION=$$(gcc -dM -E - < ../include/version.h | grep PXCH_VERSION | sort | awk '{print $$3}' | head -c -1 | tr '\n' '.') ./dist.sh --install
 	
-install_legacy:
+distinstall_legacy:
 	make release
 	cp $(EXEC_PATH_RELEASE) $(PREFIX)/bin/proxychains.exe
 	cp $(EXEC_PATH_RELEASE) $(PREFIX)/bin/px.exe

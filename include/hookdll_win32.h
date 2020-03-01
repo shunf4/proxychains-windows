@@ -266,4 +266,3 @@ PXCH_DLL_API int Ws2_32_Socks5Connect(void* pTempData, PXCH_UINT_PTR s, const PX
 PXCH_DLL_API int Ws2_32_Socks5Handshake(void* pTempData, PXCH_UINT_PTR s, const PXCH_PROXY_DATA* pProxy /* Mostly myself */);
 
 extern UT_array* g_arrHeapAllocatedPointers;
-PXCH_DLL_API const wchar_t* DumpMemory(const void* p, int iLength);

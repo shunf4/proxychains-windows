@@ -85,16 +85,3 @@ void pxchlog_ipc_func(const wchar_t* prefix_fmt, const wchar_t* ipc_prefix_fmt, 
         IpcCommunicateWithServer(log_msg, log_cbMsgSize, log_respMsg, &log_cbRespMsgSize);
 	}
 }
-
-const wchar_t* DumpMemory(const void* p, int iLength)
-{
-	int i;
-	wchar_t* szDumpMemoryBuf = PXCH_TLS_PTR_DUMP_MEMORY_BUF(g_dwTlsIndex);
-	wchar_t* pDumpMemoryBuf = szDumpMemoryBuf;
-
-	if (iLength == 0) iLength = 64;
-	for (i = 0; i < iLength; i++) {
-		StringCchPrintfExW(pDumpMemoryBuf, PXCH_MAX_DUMP_MEMORY_BUFSIZE - (pDumpMemoryBuf - szDumpMemoryBuf), &pDumpMemoryBuf, NULL, 0, L"%02x ", (unsigned int)*((const unsigned char*)p + i));
-	}
-	return szDumpMemoryBuf;
-}

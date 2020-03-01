@@ -27,7 +27,7 @@
 #include "log_generic.h"
 #include "tls_win32.h"
 
-// Per-process, will cause race condition, only used at early stages of DLL loading and hook initializing
+// *_early are per-process instead of per-thread, which will cause race condition, and are only used at early stages of DLL loading and hook initializing
 extern SYSTEMTIME log_time_early;
 extern wchar_t log_szLogLine_early[PXCH_LOG_IPC_BUFSIZE];
 extern PXCH_IPC_MSGBUF log_msg_early;
@@ -61,7 +61,8 @@ static void __attribute__((unused)) suppress_unused_variable(void)
 }
 #endif
 
-// Per-thread(in TLS), thread safe
+// After the load of Hook DLL, they will be per-thread(in TLS), thread safe
+// TODO: make log_* pointers instead of macros, like what we do in common_generic.h
 #define log_time (*(g_dwTlsIndex ? PXCH_TLS_PTR_LOG_TIME(g_dwTlsIndex) : &log_time_early))
 #define log_szLogLine (g_dwTlsIndex ? PXCH_TLS_PTR_LOG_SZLOGLINE(g_dwTlsIndex) : log_szLogLine_early)
 #define log_msg (g_dwTlsIndex ? PXCH_TLS_PTR_LOG_MSG(g_dwTlsIndex) : log_msg_early)

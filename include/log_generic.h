@@ -19,8 +19,11 @@
 #pragma once
 #include "tls_generic.h"
 
+// *_early are per-process instead of per-thread, which will cause race condition, and are only used at early stages of DLL loading and hook initializing
 extern wchar_t log_ods_buf_early[PXCH_LOG_ODS_BUFSIZE];
 
+// After the load of Hook DLL, they will be per-thread(in TLS), thread safe
+// TODO: make log_* pointers instead of macros, like what we do in common_generic.h
 #define log_ods_buf (g_dwTlsIndex ? PXCH_TLS_PTR_LOG_ODS_BUF(g_dwTlsIndex) : log_ods_buf_early)
 
 #define PXCH_LOG_LEVEL_VERBOSE 600

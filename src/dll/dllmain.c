@@ -282,7 +282,7 @@ PXCH_DLL_API BOOL DumpRemoteFunction(void)
 	if (f == NULL) return FALSE;
 
 	if (*(BYTE*)pCode == 0xE9) {
-		LOGV(L"Function body is a JMP instruction! This is usually caused by \"incremental linking\". Try to disable that.");
+		LOGV(L"Function body is a JMP instruction! This is usually caused by \"incremental linking\". Although I will handle that in a right way, but there might be problems in the future. Try to disable that.");
 		pCode = (void*)((char*)pCode + *(DWORD*)((char*)pCode + 1) + 5);
 	}
 
@@ -393,6 +393,13 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 		pvData = HeapAlloc(GetProcessHeap(), 0, PXCH_TLS_TOTAL_SIZE);
 		TlsSetValue(g_dwTlsIndex, pvData);
 		ODBGSTRLOG(L"Initialized TLS: g_dwTlsIndex = " WPRDW, g_dwTlsIndex);
+		
+		g_szDumpMemoryBuf = PXCH_TLS_PTR_DUMP_MEMORY_BUF_BY_BASE(pvData);
+		g_szErrorMessageBuf = PXCH_TLS_PTR_ERROR_MESSAGE_BUF_BY_BASE(pvData);
+		g_szFormatHostPortBuf = PXCH_TLS_PTR_FORMAT_HOST_PORT_BUF_BY_BASE(pvData);
+
+		// TODO: initialize log_* here after they are made as pointers rather than macros
+
 		break;
 	case DLL_THREAD_DETACH:
 		pvData = TlsGetValue(g_dwTlsIndex);

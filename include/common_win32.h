@@ -21,10 +21,6 @@
 #include "defines_win32.h"
 #include "common_generic.h"
 
-#define PXCH_MAX_ERROR_MESSAGE_BUFSIZE 256
-
-extern wchar_t szErrorMessage[PXCH_MAX_ERROR_MESSAGE_BUFSIZE];
-
 PWCHAR FormatErrorToStr(DWORD dwError);
 void StdWprintf(DWORD dwStdHandle, const WCHAR* fmt, ...);
 void StdVwprintf(DWORD dwStdHandle, const WCHAR* fmt, va_list args);

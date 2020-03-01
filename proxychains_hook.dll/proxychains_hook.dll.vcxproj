@@ -120,7 +120,7 @@
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>cd /d $(SolutionDir)win32_output
-.\configure.exe &gt; $(SolutionDir)include\function_pointers_configured.h</Command>
+.\configure_x86.exe &gt; $(SolutionDir)include\function_pointers_configured.h</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -142,7 +142,7 @@
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>cd /d $(SolutionDir)win32_output
-.\configure.exe &gt; $(SolutionDir)include\function_pointers_configured.h</Command>
+.\configure_x86.exe &gt; $(SolutionDir)include\function_pointers_configured.h</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -168,7 +168,7 @@
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>cd /d $(SolutionDir)win32_output
-.\configure.exe &gt; $(SolutionDir)include\function_pointers_configured.h</Command>
+.\configure_x86.exe &gt; $(SolutionDir)include\function_pointers_configured.h</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -194,7 +194,7 @@
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>cd /d $(SolutionDir)win32_output
-.\configure.exe &gt; $(SolutionDir)include\function_pointers_configured.h</Command>
+.\configure_x86.exe &gt; $(SolutionDir)include\function_pointers_configured.h</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

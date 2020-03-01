@@ -19,7 +19,12 @@
 #include "common_win32.h"
 #include "tls_generic.h"
 
-WCHAR szErrorMessage[PXCH_MAX_ERROR_MESSAGE_BUFSIZE];
+wchar_t g_szDumpMemoryBuf_early[PXCH_MAX_DUMP_MEMORY_BUFSIZE];
+wchar_t g_szErrorMessageBuf_early[PXCH_MAX_ERROR_MESSAGE_BUFSIZE];
+
+wchar_t* g_szDumpMemoryBuf = g_szDumpMemoryBuf_early;
+wchar_t* g_szErrorMessageBuf = g_szErrorMessageBuf_early;
+
 static WCHAR szFwprintfWbuf[PXCH_MAX_FWPRINTF_BUFSIZE];
 static CHAR szFwprintfBuf[PXCH_MAX_FWPRINTF_BUFSIZE];
 
@@ -99,11 +104,23 @@ after_fmt:
 		if (buf[dwCb - 2] == L'\r') {
 			buf[dwCb - 2] = L'\0';
 		}
-		StringCchPrintfW(szErrorMessage, PXCH_MAX_ERROR_MESSAGE_BUFSIZE, L"%ls(" WPRDW L")", buf, dwError);
+		StringCchPrintfW(g_szErrorMessageBuf, PXCH_MAX_ERROR_MESSAGE_BUFSIZE, L"%ls(" WPRDW L")", buf, dwError);
 		LocalFree(hLocalBuffer);
 	}
 	else {
-		StringCchPrintfW(szErrorMessage, PXCH_MAX_ERROR_MESSAGE_BUFSIZE, L"(" WPRDW L")", dwError);
+		StringCchPrintfW(g_szErrorMessageBuf, PXCH_MAX_ERROR_MESSAGE_BUFSIZE, L"(" WPRDW L")", dwError);
 	}
-	return szErrorMessage;
+	return g_szErrorMessageBuf;
+}
+
+const wchar_t* DumpMemory(const void* p, int iLength)
+{
+	int i;
+	wchar_t* pDumpMemoryBuf = g_szDumpMemoryBuf;
+
+	if (iLength == 0) iLength = 64;
+	for (i = 0; i < iLength; i++) {
+		StringCchPrintfExW(pDumpMemoryBuf, PXCH_MAX_DUMP_MEMORY_BUFSIZE - (pDumpMemoryBuf - g_szDumpMemoryBuf), &pDumpMemoryBuf, NULL, 0, L"%02x ", (unsigned int)*((const unsigned char*)p + i));
+	}
+	return g_szDumpMemoryBuf;
 }
