@@ -19,7 +19,7 @@ SRC_PREFIX = ../src/
 INCLUDE_DIR_CFLAGS = -I../include/ -I../uthash/src -I../minhook/include
 LIB_DIR_LDFLAGS = -L../minhook/
 
-DLL_SRCS = $(sort $(sort $(wildcard $(SRC_PREFIX)dll/*.c)) $(sort $(wildcard $(SRC_PREFIX)dll/remote_function/*.c)))
+DLL_SRCS = $(sort $(sort $(wildcard $(SRC_PREFIX)dll/*.c)))
 DLL_OBJS = $(patsubst $(SRC_PREFIX)%,%,$(DLL_SRCS:.c=.o))
 
 NONDLL_SRCS = $(sort $(wildcard $(SRC_PREFIX)cygwin_strsafe/*.c)) $(sort $(wildcard $(SRC_PREFIX)exe/*.c)) $(sort $(wildcard $(SRC_PREFIX)*.c))
@@ -44,10 +44,13 @@ endif
 
 EXEC_PATH_DEBUG = ./proxychains_$(ARCHITECT)d.exe
 EXEC_PATH_RELEASE = ./proxychains_$(ARCHITECT).exe
-DLL_MODULE_NAME = proxychains_hook_$(ARCHITECT)
+HELPER_PATH_DEBUG = ./proxychains_helper_$(ARCHITECT)d.exe
+HELPER_PATH_RELEASE = ./proxychains_helper_$(ARCHITECT).exe
+REMOTE_FUNC_BIN_HEADER_DEBUG = ../include/remote_func_bin_$(ARCHITECT)d.h
+REMOTE_FUNC_BIN_HEADER_RELEASE = ../include/remote_func_bin_$(ARCHITECT).h
 
-DLL_MODULE_NAME_DEBUG = $(DLL_MODULE_NAME)d
-DLL_MODULE_NAME_RELEASE = $(DLL_MODULE_NAME)
+DLL_MODULE_NAME_DEBUG = proxychains_hook_$(ARCHITECT)d
+DLL_MODULE_NAME_RELEASE = proxychains_hook_$(ARCHITECT)
 
 DLL_NAME_DEBUG = cyg$(DLL_MODULE_NAME_DEBUG)
 DLL_NAME_RELEASE = cyg$(DLL_MODULE_NAME_RELEASE)
@@ -65,7 +68,6 @@ ALL_SHARED_LIBS_RELEASE = $(DLL_PATH_RELEASE)
 ALL_EXECS_RELEASE = $(EXEC_PATH_RELEASE)
 
 MAKE_DIR_1 := $(shell [ -d dll ] || mkdir -p dll)
-MAKE_DIR_1 := $(shell [ -d dll/remote_function ] || mkdir -p dll/remote_function)
 MAKE_DIR_2 := $(shell [ -d exe ] || mkdir -p exe)
 MAKE_DIR_3 := $(shell [ -d cygwin_strsafe ] || mkdir -p cygwin_strsafe)
 
@@ -73,7 +75,7 @@ ifeq ($(DEBUG),0)
 
 all : release
 	@echo Made release
-	
+
 else
 ifndef DEBUG
 
@@ -90,13 +92,17 @@ endif
 
 debug : CFLAGS += -g -DDEBUG -D_DEBUG
 debug : DLL_CFLAGS += -g -DDEBUG -D_DEBUG
-debug : MAKING_DEBUG $(ALL_EXECS_DEBUG)
-	./$(EXEC_PATH_DEBUG) --dump-remote
+debug : pre_debug $(ALL_EXECS_DEBUG)
 
 release : CFLAGS += -DPXCH_LOG_LEVEL=400
 release : DLL_CFLAGS += -DPXCH_LOG_LEVEL=400
-release : MAKING_RELEASE $(ALL_EXECS_RELEASE)
-	./$(EXEC_PATH_RELEASE) --dump-remote
+release : pre_release $(ALL_EXECS_RELEASE)
+
+pre_debug : MAKING_DEBUG $(REMOTE_FUNC_BIN_HEADER_DEBUG)
+	$(eval REMOTE_FUNC_BIN_HEADER := $(REMOTE_FUNC_BIN_HEADER_DEBUG))
+
+pre_release : MAKING_RELEASE $(REMOTE_FUNC_BIN_HEADER_RELEASE)
+	$(eval REMOTE_FUNC_BIN_HEADER := $(REMOTE_FUNC_BIN_HEADER_RELEASE))
 
 MAKING_DEBUG :
 	$(MAKE) clean
@@ -114,18 +120,24 @@ $(DLL_OBJS) : %.o : $(SRC_PREFIX)%.c %.d
 
 $(DEPS) : 
 	
-configure.exe : configure.o
-	$(CC) -o$@ configure.o -Wl,-Bdynamic -lntdllcrt -lkernel32 -lcygwin
-    
-../include/function_pointers_configured.h : configure.exe
-	./configure.exe > ../include/function_pointers_configured.h
+$(HELPER_PATH_DEBUG) : proxychains_helper.o remote_function.o
+	$(CC) -o$@ $(filter %.c %.o %.a %.lib,$^) -Wl,-Bdynamic -lntdllcrt -lkernel32 -lcygwin
+
+$(HELPER_PATH_RELEASE) : proxychains_helper.o remote_function.o
+	$(CC) -o$@ $(filter %.c %.o %.a %.lib,$^) -Wl,-Bdynamic -lntdllcrt -lkernel32 -lcygwin
+
+$(REMOTE_FUNC_BIN_HEADER_DEBUG) : $(HELPER_PATH_DEBUG)
+	$(HELPER_PATH_DEBUG) --dump-remote-function > $@
+
+$(REMOTE_FUNC_BIN_HEADER_RELEASE) : $(HELPER_PATH_RELEASE)
+	$(HELPER_PATH_RELEASE) --dump-remote-function > $@
 	
-$(DLL_PATH_DEBUG) : ../minhook/libMinHook.a ../include/function_pointers_configured.h dll/dllmain.o dll/hook_connect_win32.o dll/hook_connect_win32.o dll/hook_connect_cygwin.o dll/hook_createprocess_win32.o dll/hook_installer.o dll/ipc_client_and_child_data.o dll/dllutil_log_func.o dll/dllutil_wsock.o dll/remote_function/remote_function.o common.o common_wsock.o ipc_message.o log.o cygwin_strsafe/strsafe.o
+$(DLL_PATH_DEBUG) : ../minhook/libMinHook.a dll/dllmain.o dll/hook_connect_win32.o dll/hook_connect_win32.o dll/hook_connect_cygwin.o dll/hook_createprocess_win32.o dll/hook_installer.o dll/ipc_client_and_child_data.o dll/dllutil_log_func.o dll/dllutil_wsock.o common.o common_wsock.o ipc_message.o log.o cygwin_strsafe/strsafe.o
 	$(CC) -shared -o$@ -Wl,--out-implib=$(DLL_IMPLIB_PATH_DEBUG) $(LIB_DIR_LDFLAGS) $(filter %.c %.o %.a %.lib,$^) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lws2_32 -lshlwapi
 	
-$(DLL_PATH_RELEASE) : ../minhook/libMinHook.a ../include/function_pointers_configured.h dll/dllmain.o dll/hook_connect_win32.o dll/hook_connect_win32.o dll/hook_connect_cygwin.o dll/hook_createprocess_win32.o dll/hook_installer.o dll/ipc_client_and_child_data.o dll/dllutil_log_func.o dll/dllutil_wsock.o dll/remote_function/remote_function.o common.o common_wsock.o ipc_message.o log.o cygwin_strsafe/strsafe.o
+$(DLL_PATH_RELEASE) : ../minhook/libMinHook.a dll/dllmain.o dll/hook_connect_win32.o dll/hook_connect_win32.o dll/hook_connect_cygwin.o dll/hook_createprocess_win32.o dll/hook_installer.o dll/ipc_client_and_child_data.o dll/dllutil_log_func.o dll/dllutil_wsock.o common.o common_wsock.o ipc_message.o log.o cygwin_strsafe/strsafe.o
 	$(CC) -shared -o$@ -Wl,--out-implib=$(DLL_IMPLIB_PATH_RELEASE) $(LIB_DIR_LDFLAGS) $(filter %.c %.o %.a %.lib,$^) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lws2_32 -lshlwapi
-		
+
 #	-Wl,--export-all-symbols \
 #	-Wl,--enable-auto-import \
 	
@@ -138,7 +150,7 @@ $(EXEC_PATH_DEBUG) : ../minhook/libMinHook.a exe/main.o exe/args_and_config.o ex
 $(EXEC_PATH_RELEASE) : ../minhook/libMinHook.a exe/main.o exe/args_and_config.o exe/ipc_proc_bookkeeping.o stdlib_config_reader.o common.o common_wsock.o ipc_message.o log.o cygwin_strsafe/strsafe.o $(DLL_IMPLIB_PATH_RELEASE)
 	$(CC) -o$@ $(filter %.c %.o %.a %.lib,$^) $(LIB_DIR_LDFLAGS) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lkernel32 -lshlwapi -ladvapi32 -lcygwin -lws2_32
 
-.PHONY : clean dist configure
+.PHONY : clean dist pre_debug pre_release
 
 clean :
 	$(RM) MAKING_DEBUG MAKING_RELEASE
@@ -147,7 +159,8 @@ clean :
 	$(RM) $(ALL_IMPLIBS_DEBUG) $(ALL_IMPLIBS_RELEASE)
 	$(RM) $(OBJS)
 	$(RM) $(DEPS)
-	$(RM) ../include/function_pointers_configured.h configure.exe proxychains_remote_function_*.bin
+	$(RM) $(HELPER_PATH_DEBUG) $(HELPER_PATH_RELEASE)
+	$(RM) $(REMOTE_FUNC_BIN_HEADER_DEBUG) $(REMOTE_FUNC_BIN_HEADER_RELEASE)
 	$(MAKE) -C ../minhook -f ../minhook/build/MinGW/Makefile clean
 
 ../minhook/libMinHook.a :
@@ -164,13 +177,13 @@ distinstall_legacy:
 	cp $(EXEC_PATH_RELEASE) $(PREFIX)/bin/proxychains.exe
 	cp $(EXEC_PATH_RELEASE) $(PREFIX)/bin/px.exe
 	cp $(DLL_PATH_RELEASE) $(PREFIX)/bin/
-	cp proxychains_remote_function_*.bin $(PREFIX)/bin/
+	cp $(HELPER_PATH_RELEASE) $(PREFIX)/bin/
 	
 	make debug
 	cp $(EXEC_PATH_DEBUG) $(PREFIX)/bin/proxychainsd.exe
 	cp $(EXEC_PATH_DEBUG) $(PREFIX)/bin/pxd.exe
 	cp $(DLL_PATH_DEBUG) $(PREFIX)/bin/
-	cp proxychains_remote_function_*.bin $(PREFIX)/bin/
+	cp $(HELPER_PATH_DEBUG) $(PREFIX)/bin/
 	
 	
 rebuild : clean all

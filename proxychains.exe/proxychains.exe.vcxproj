@@ -117,6 +117,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -132,7 +133,8 @@
     </PostBuildEvent>
     <CustomBuildStep>
       <Command>cd /d $(SolutionDir)win32_output
-.\$(TargetFileName) --dump-remote</Command>
+.\proxychains_helper_x86d.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x86d.h
+.\proxychains_helper_x64d.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x64d.h</Command>
       <Outputs>something_not_exists;%(Outputs)</Outputs>
     </CustomBuildStep>
     <PreBuildEvent>
@@ -147,6 +149,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -162,7 +165,8 @@
     </PostBuildEvent>
     <CustomBuildStep>
       <Command>cd /d $(SolutionDir)win32_output
-.\$(TargetFileName) --dump-remote</Command>
+.\proxychains_helper_x86d.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x86d.h
+.\proxychains_helper_x64d.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x64d.h</Command>
       <Outputs>something_not_exists;%(Outputs)</Outputs>
     </CustomBuildStep>
     <PreBuildEvent>
@@ -196,7 +200,8 @@
     </PostBuildEvent>
     <CustomBuildStep>
       <Command>cd /d $(SolutionDir)win32_output
-.\$(TargetFileName) --dump-remote</Command>
+.\proxychains_helper_x86.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x86.h
+.\proxychains_helper_x64.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x64.h</Command>
       <Outputs>something_not_exists;%(Outputs)</Outputs>
     </CustomBuildStep>
     <PreBuildEvent>
@@ -230,7 +235,8 @@
     </PostBuildEvent>
     <CustomBuildStep>
       <Command>cd /d $(SolutionDir)win32_output
-.\$(TargetFileName) --dump-remote</Command>
+.\proxychains_helper_x86.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x86.h
+.\proxychains_helper_x64.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x64.h</Command>
       <Outputs>something_not_exists;%(Outputs)</Outputs>
     </CustomBuildStep>
     <PreBuildEvent>

@@ -10,7 +10,7 @@ Proxychains.exe 通过给动态链接的程序注入一个 DLL，对 Ws2_32.dll 
 
 Proxychains.exe 是 [proxychains4](https://github.com/haad/proxychains) 或者 [proxychains-ng](https://github.com/rofl0r/proxychains-ng) 到 Win32 和 Cygwin 的移植产物。它也使用了 [uthash](https://github.com/troydhanson/uthash) 构建一些数据结构，以及使用了 [minhook](https://github.com/TsudaKageyu/minhook) 进行 API 的挂钩。
 
-Proxychains.exe 在 Windows 10 x64 1909 (18363.418)、Windows XP x86 SP3 和 Cygwin 64-bit 3.1.2 经过测试。注意目标操作系统需要安装 [Visual C++ Redistributable for Visual Studio 2015](https://www.microsoft.com/zh-cn/download/details.aspx?id=48145)。
+Proxychains.exe 在 Windows 10 x64 1909 (18363.418)、Windows 7 x64 SP1、Windows XP x86 SP3 和 Cygwin 64-bit 3.1.2 经过测试。注意目标操作系统需要安装 [Visual C++ Redistributable for Visual Studio 2015](https://www.microsoft.com/zh-cn/download/details.aspx?id=48145)。
 
 警告：此程序只对动态链接的程序有用。同时，Proxychains.exe 和需要运行的目标程序必须是同一架构和平台（用 proxychains_x86.exe 运行 x86 程序，用 proxychains_x64.exe 运行 x64 程序；用 Cygwin 下构建的版本来运行 Cygwin 程序）。
 
@@ -32,15 +32,17 @@ Proxychains.exe 在 Windows 10 x64 1909 (18363.418)、Windows XP x86 SP3 和 Cyg
 
 ## 构建 Win32 版本
 
-使用较新版本的 Visual Studio 打开 proxychains.exe.sln （Visual Studio 2019 测试有效）。Visual Studio 应该安装 v141_xp 平台工具集。构建整个解决方案，在 `win32_output/` 找到输出的 EXE 和 DLL 文件。
+在 64 位 Windows 下使用较新版本的 Visual Studio 打开 proxychains.exe.sln （Visual Studio 2019 测试有效）。Visual Studio 应该安装 v141_xp 平台工具集。
+
+构建整个解决方案，在 `win32_output/` 找到输出的 EXE 和 DLL 文件。
 
 ## 构建 Cygwin 版本
 
-安装 Cygwin 和各种构建工具程序包（gcc、w32api-headers、w32api-runtime 等）。运行 Cygwin bash，切换到 `cygwin-build` 目录下，执行 `make`。
+安装 Cygwin 和各种构建工具程序包（gcc、w32api-headers、w32api-runtime 等）。运行 Cygwin bash，切换到 `cygwin_build` 目录下，执行 `make`。
 
 # 安装
 
-把生成的 `proxychains*.exe`、 `[cyg]proxychains_hook*.dll` 和 `proxychains_remote_function_*.bin` 复制到 `PATH` 环境变量包含的某个目录下。另外你还需要在正确的位置创建配置文件。参见“配置”。
+把生成的 `proxychains*.exe`、 `[cyg]proxychains_hook*.dll` 复制到 `PATH` 环境变量包含的某个目录下。另外你还需要在正确的位置创建配置文件。参见“配置”。
 
 # 配置
 

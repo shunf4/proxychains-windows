@@ -4,9 +4,9 @@
 
 [README](README.md) | [简体中文文档](README_zh-Hans.md)
 
-Proxychains.exe is a proxifier for Win32(Windows) or Cygwin programs. It hijacks
-most of the Win32 or Cygwin programs' TCP connection, making them through one or
-more SOCKS5 proxy(ies).
+Proxychains.exe is a proxifier for Win32(Windows) or Cygwin programs.
+It hijacks most of the Win32 or Cygwin programs' TCP connection, making
+them through one or more SOCKS5 proxy(ies).
 
 Proxychains.exe hooks network-related Ws2_32.dll Winsock functions in
 dynamically linked programs via injecting a DLL and redirects the connections
@@ -19,8 +19,8 @@ It also uses [uthash](https://github.com/troydhanson/uthash) for some data
 structures and [minhook](https://github.com/TsudaKageyu/minhook) for API 
 hooking.
 
-Proxychains.exe is tested on Windows 10 x64 1909 (18363.418), Windows XP x86 SP3
-and Cygwin 64-bit 3.1.2. Target OS should have 
+Proxychains.exe is tested on Windows 10 x64 1909 (18363.418), Windows 7 x64
+SP1, Windows XP x86 SP3 and Cygwin 64-bit 3.1.2. Target OS should have 
 [Visual C++ Redistributable for Visual Studio 2015](https://www.microsoft.com/en-us/download/details.aspx?id=48145)
 installed.
 
@@ -41,10 +41,10 @@ doing so can be VERY DANGEROUS in certain countries.
 ALWAYS MAKE SURE THAT PROXYCHAINS.EXE WORKS AS EXPECTED
 BEFORE USING IT FOR ANYTHING SERIOUS.
 
-this involves both the program and the proxy that you're going to
+This involves both the program and the proxy that you're going to
 use.
 
-for example, you can connect to some "what is my ip" service
+For example, you can connect to some "what is my ip" service
 like ifconfig.me to make sure that it's not using your real ip.
 
 ONLY USE PROXYCHAINS.EXE IF YOU KNOW WHAT YOU'RE DOING.
@@ -61,19 +61,21 @@ First you need to clone this repository and run
 ## Win32 Build
 
 Open proxychains.exe.sln with a recent version Visual Studio (tested with
-Visual Studio 2019) with platform toolset v141_xp. Build Solution and see
-DLL file and executable file generated under `win32_output/`.
+Visual Studio 2019) with platform toolset v141_xp on a 64-bit Windows.
+
+Build the whole solution and you will see DLL file and executable
+file generated under `win32_output/`.
 
 ## Cygwin Build
 
 Install Cygwin and various build tool packages (gcc, w32api-headers,
-w32api-runtime etc). Run Cygwin bash, switch to `cygwin-build` directory and
+w32api-runtime etc). Run Cygwin bash, switch to `cygwin_build` directory and
 run `make`.
 
 # Install
 
-Copy `proxychains*.exe`, `[cyg]proxychains_hook*.dll`,
-`proxychains_remote_function_*.bin` to some directory included in your `PATH`
+Copy `proxychains*.exe`, `[cyg]proxychains_hook*.dll`
+ to some directory included in your `PATH`
 environment variable. Also create the needed configuration file in correct
 place. See "Configuration".
 
@@ -136,7 +138,8 @@ programs). See "To-do and Known Issues". Perhaps solution based on
 
 - [ ] Remote DNS resolving based on UDP associate
 - [ ] Hook `sendto()`, coping with applications which do TCP fast open
-- [ ] Fix Cygwin proxychains pip failure (0xc0000005 Access Denied)
+- [ ] ~~Fix Cygwin proxychains pip failure (0xc0000005 Access Denied)~~
+      Not reproduced
 - [ ] ~~Adapt proxychains_hook.dll to Sandboxie (???)~~
 - [X] ~~Make -lVERBOSE available in proxychainsd.exe (The debug versions)~~
       Fixed in 0.4
@@ -146,16 +149,16 @@ programs). See "To-do and Known Issues". Perhaps solution based on
 - [ ] ~~Fix 32-bit proxychains SearchPath(ssh) failure~~
       (Windows Filesystem Redirection)
 - [X] ~~Dynamic selection of 32-bit DLL and 64-bit DLL~~ ~~Fixed in 0.4~~
-      Finally fixed in 0.4.3 (More tests needed)
+      Finally fixed in ~~0.4.3~~ ~~0.4.4~~ 0.4.5
 - [ ] ~~Try to fix `proxychains git clone https://...` under Cygwin~~
       Using `-q` in 0.4.1 reduces the probability to happen
 - [X] ~~Try to fix `proxychains npm install` in a huge project~~
-      (may be caused by excess usage of stack in GetAddrInfoW, turning off
-      `proxy_dns` in 0.4 fixes this)
-- [X] ~~Resolve race condition in `FormatHostPortToStr()`~~ (0.4.3)
+      ~~(may be caused by excess usage of stack in GetAddrInfoW, turning off
+      `proxy_dns` in 0.4 fixes this)~~ Fixed in 0.4.3
+- [X] ~~Resolve race condition in `FormatHostPortToStr()`~~ Fixed in 0.4.3
 - [X] ~~Resolve remote thread exit code `0xc0000005` (Access Denied)
       when calling `C:\ProgramData\chocolatey\tools\7z.exe`~~
-      Finally fixed in 0.4.3 (More tests needed)
+      Finally fixed in ~~0.4.3~~ ~~0.4.4~~ 0.4.5
 
 # Licensing
 

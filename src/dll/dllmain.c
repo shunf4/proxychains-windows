@@ -19,17 +19,21 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "defines_win32.h"
 #include "log_win32.h"
-#include "remote_win32.h"
 #include "hookdll_interior_win32.h"
 #include <MinHook.h>
 #include "hookdll_win32.h"
 
-#include "function_pointers_configured.h"
+#ifdef _DEBUG
+#include "remote_func_bin_x86d.h"
+#include "remote_func_bin_x64d.h"
+#else
+#include "remote_func_bin_x86.h"
+#include "remote_func_bin_x64.h"
+#endif
 
 PXCH_INJECT_REMOTE_DATA* g_pRemoteData;
 PXCH_DLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;
 PXCH_DLL_API BOOL g_bCurrentlyInWinapiCall = FALSE;
-PXCH_DLL_API PXCH_UINT32 g_dwTlsIndex;
 UT_array* g_arrHeapAllocatedPointers;
 
 // To verify that this process has its original data (not overwritten with those of parent by fork())
@@ -39,7 +43,7 @@ static SYSTEM_INFO SystemInfo;
 
 DWORD RemoteCopyExecute(HANDLE hProcess, BOOL bIsX86, PXCH_INJECT_REMOTE_DATA* pRemoteData)
 {
-	void* pCode;
+	const void* pCode;
 	void* pTargetBuf;
 	LPTHREAD_START_ROUTINE pTargetCode;
 	void* pTargetData;
@@ -52,16 +56,24 @@ DWORD RemoteCopyExecute(HANDLE hProcess, BOOL bIsX86, PXCH_INJECT_REMOTE_DATA* p
 	DWORD dwRemoteTid;
 	DWORD dwRemoteDataSize = pRemoteData->dwSize;
 
+	// if (bIsX86) {
+	// 	pCode = PXCH_CONFIG_REMOTE_FUNC_X86(g_pPxchConfig);
+	// 	cbCodeSize = g_pPxchConfig->cbRemoteFuncX86Size;
+	// } else {
+	// 	pCode = PXCH_CONFIG_REMOTE_FUNC_X64(g_pPxchConfig);
+	// 	cbCodeSize = g_pPxchConfig->cbRemoteFuncX64Size;
+	// }
 	if (bIsX86) {
-		pCode = PXCH_CONFIG_REMOTE_FUNC_X86(g_pPxchConfig);
-		cbCodeSize = g_pPxchConfig->cbRemoteFuncX86Size;
+		pCode = g_RemoteFuncX86;
+		cbCodeSize = sizeof(g_RemoteFuncX86) - 1;
 	} else {
-		pCode = PXCH_CONFIG_REMOTE_FUNC_X64(g_pPxchConfig);
-		cbCodeSize = g_pPxchConfig->cbRemoteFuncX64Size;
+		pCode = g_RemoteFuncX64;
+		cbCodeSize = sizeof(g_RemoteFuncX64) - 1;
 	}
 
 	if (!cbCodeSize) return ERROR_NOT_SUPPORTED;
 
+	IPCLOGD(L"Before DumpMemory");
 	IPCLOGD(L"%ls", DumpMemory(pCode, 16));
 
 	IPCLOGV(L"CreateProcessW: Before VirtualAllocEx. %lld", (long long)cbCodeSize);
@@ -176,7 +188,6 @@ DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi)
 	DWORD dwExtraSize = PXCH_CONFIG_EXTRA_SIZE_G;
 	BOOL bIsX86;
 	BOOL bIsWow64;
-	BOOL bSelfIsX86;
 
 	hProcess = pPi->hProcess;
 	if (!IsWow64Process(hProcess, &bIsWow64)) goto err_wow64;
@@ -184,22 +195,25 @@ DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi)
 	bIsX86 = (SystemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL || bIsWow64);
 
 	// Another method to inject X64 -> X86: https://github.com/OpenWireSec/metasploit/blob/master/external/source/meterpreter/source/common/arch/win/i386/base_inject.c
-
 	if (bIsX86) {
-		IPCLOGD(L"X86 process.");
+		if (g_pPxchConfig->FunctionPointers.fpGetModuleHandleWX86 == 0) {
+			IPCLOGD(L"Child is an X86(Win32) process; function address missing: won't inject");
+			return NO_ERROR;
+		} else {
+			IPCLOGD(L"Child is an X86(Win32) process.");
+		}
 	} else {
-		IPCLOGD(L"X64 process.");
+		if (g_pPxchConfig->FunctionPointers.fpGetModuleHandleWX64 == 0) {
+			IPCLOGD(L"Child is an X64 process; function address missing: won't inject");
+			return NO_ERROR;
+		} else {
+			IPCLOGD(L"Child is an X64 process.");
+		}
 	}
-
-#if defined(_M_X64) || defined(__x86_64__)
-	bSelfIsX86 = FALSE;
-#else
-	bSelfIsX86 = TRUE;
-#endif
 
 	pRemoteData = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(PXCH_INJECT_REMOTE_DATA) + dwExtraSize);
 
-	IPCLOGD(L"CreateProcessW: Entering InjectTargetProcess. %llu", (unsigned long long)(sizeof(*pRemoteData) + dwExtraSize));
+	IPCLOGV(L"CreateProcessW: Entering InjectTargetProcess. %llu", (unsigned long long)(sizeof(*pRemoteData) + dwExtraSize));
 
 	IPCLOGV(L"CreateProcessW: Before CopyMemory. " WPRDW, 0);
 
@@ -210,28 +224,12 @@ DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi)
 	pRemoteData->dwErrorCode = -1;
 	pRemoteData->dwParentPid = GetCurrentProcessId();
 
-	if (bIsX86 && !bSelfIsX86) {
-		pRemoteData->fpFreeLibrary = (PXCH_UINT64)PXCH_ADDRESS_FreeLibrary;
-		pRemoteData->fpGetModuleHandleW = (PXCH_UINT64)PXCH_ADDRESS_GetModuleHandleW;
-		pRemoteData->fpGetProcAddress = (PXCH_UINT64)PXCH_ADDRESS_GetProcAddress;
-		pRemoteData->fpLoadLibraryW = (PXCH_UINT64)PXCH_ADDRESS_LoadLibraryW;
-		pRemoteData->fpGetLastError = (PXCH_UINT64)PXCH_ADDRESS_GetLastError;
-		pRemoteData->fpOutputDebugStringA = (PXCH_UINT64)PXCH_ADDRESS_OutputDebugStringA;
-	} else {
-		pRemoteData->fpFreeLibrary = (PXCH_UINT64)FreeLibrary;
-		pRemoteData->fpGetModuleHandleW = (PXCH_UINT64)GetModuleHandleW;
-		pRemoteData->fpGetProcAddress = (PXCH_UINT64)GetProcAddress;
-		pRemoteData->fpLoadLibraryW = (PXCH_UINT64)LoadLibraryW;
-		pRemoteData->fpGetLastError = (PXCH_UINT64)GetLastError;
-		pRemoteData->fpOutputDebugStringA = (PXCH_UINT64)OutputDebugStringA;
-	}
-
 	pRemoteData->dwDebugDepth = g_pRemoteData ? g_pRemoteData->dwDebugDepth + 1 : 1;
 
 	IPCLOGV(L"CreateProcessW: After remoteData assignment. " WPRDW, 0);
 
-	StringCchCopyA(pRemoteData->szInitFuncName, _countof(pRemoteData->szInitFuncName), g_pRemoteData ? g_pRemoteData->szInitFuncName : bIsX86 ? PXCH_INITHOOK_SYMBOL_NAME_X86 : PXCH_INITHOOK_SYMBOL_NAME_X64);
-	StringCchCopyA(pRemoteData->szCIWCVarName, _countof(pRemoteData->szCIWCVarName), g_pRemoteData ? g_pRemoteData->szCIWCVarName : "g_bCurrentlyInWinapiCall");
+	StringCchCopyA(pRemoteData->szInitFuncName, _countof(pRemoteData->szInitFuncName), bIsX86 ? PXCH_INITHOOK_SYMBOL_NAME_X86 : PXCH_INITHOOK_SYMBOL_NAME_X64);
+	StringCchCopyA(pRemoteData->szCIWCVarName, _countof(pRemoteData->szCIWCVarName), "g_bCurrentlyInWinapiCall");
 	CopyMemory(pRemoteData->chDebugOutput, g_pRemoteData ? g_pRemoteData->chDebugOutput : "A\0B\0C\0D\0E\0F\0G\0H\0I\0J\0K\0L\0M\0N\0O\0P\0Q\0R\0S\0T\0", sizeof(pRemoteData->chDebugOutput));
 	StringCchCopyW(pRemoteData->szCygwin1ModuleName, _countof(pRemoteData->szCygwin1ModuleName), g_pRemoteData ? g_pRemoteData->szCygwin1ModuleName : L"cygwin1.dll");
 	StringCchCopyW(pRemoteData->szHookDllModuleName, _countof(pRemoteData->szHookDllModuleName), g_pRemoteData ? g_pRemoteData->szHookDllModuleName : g_szHookDllFileName);
@@ -268,39 +266,6 @@ err_wow64:
 error:
 	HeapFree(GetProcessHeap(), 0, pRemoteData);
 	return dwReturn;
-}
-
-PXCH_DLL_API BOOL DumpRemoteFunction(void)
-{
-	FILE* f;
-	void* pCode = LoadHookDll;
-	void* pAfterCode = LoadHookDll_End;
-	SSIZE_T cbCodeSize;
-	SSIZE_T cbCodeSizeAligned;
-
-	f = fopen(PXCH_DUMP_REMOTE_FUNCTION_PATH, "wb");
-	if (f == NULL) return FALSE;
-
-	if (*(BYTE*)pCode == 0xE9) {
-		LOGV(L"Function body is a JMP instruction! This is usually caused by \"incremental linking\". Although I will handle that in a right way, but there might be problems in the future. Try to disable that.");
-		pCode = (void*)((char*)pCode + *(DWORD*)((char*)pCode + 1) + 5);
-	}
-
-	if (*(BYTE*)pAfterCode == 0xE9) {
-		pAfterCode = (void*)((char*)pAfterCode + *(DWORD*)((char*)pAfterCode + 1) + 5);
-	}
-
-	cbCodeSize = ((char*)pAfterCode - (char*)pCode);
-	cbCodeSizeAligned = (cbCodeSize + (sizeof(LONG_PTR) - 1)) & ~(sizeof(LONG_PTR) - 1);
-
-	if (fwrite(pCode, cbCodeSizeAligned, 1, f) != 1) goto err_ret_close;
-
-	fclose(f);
-	return TRUE;
-
-err_ret_close:
-	fclose(f);
-	return FALSE;
 }
 
 PXCH_DLL_API DWORD __stdcall InitHookForMain(PROXYCHAINS_CONFIG* pPxchConfig)
@@ -393,12 +358,6 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 		pvData = HeapAlloc(GetProcessHeap(), 0, PXCH_TLS_TOTAL_SIZE);
 		TlsSetValue(g_dwTlsIndex, pvData);
 		ODBGSTRLOG(L"Initialized TLS: g_dwTlsIndex = " WPRDW, g_dwTlsIndex);
-		
-		g_szDumpMemoryBuf = PXCH_TLS_PTR_DUMP_MEMORY_BUF_BY_BASE(pvData);
-		g_szErrorMessageBuf = PXCH_TLS_PTR_ERROR_MESSAGE_BUF_BY_BASE(pvData);
-		g_szFormatHostPortBuf = PXCH_TLS_PTR_FORMAT_HOST_PORT_BUF_BY_BASE(pvData);
-
-		// TODO: initialize log_* here after they are made as pointers rather than macros
 
 		break;
 	case DLL_THREAD_DETACH:

@@ -35,12 +35,26 @@
 #ifndef __CYGWIN__
 #pragma comment(lib, "Shlwapi.lib")
 #pragma comment(lib, "Ws2_32.lib")
+#define popen _popen
 #endif
 
 #define PXCH_CONFIG_PARSE_WHITE L" \n\t\r\v"
 #define PXCH_CONFIG_PARSE_DIGIT L"0123456789"
 #define PXCH_CONFIG_PARSE_HEX PXCH_CONFIG_PARSE_DIGIT L"abcdefABCDEF"
 #define PXCH_CONFIG_PARSE_IP_PORT PXCH_CONFIG_PARSE_HEX L"[.:]"
+
+#if defined(_M_X64) || defined(__x86_64__)
+#define FUNCTION_SUFFIX_ARCH X64
+#else
+#define FUNCTION_SUFFIX_ARCH X86
+#endif
+
+#define ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, funcName, funcPtr, arch) (pPxchConfig)->FunctionPointers.fp##funcName##arch = (PXCH_UINT64)(funcPtr)
+#define ASSIGN_FUNC_ADDR_WITH_ARCH_X(pPxchConfig, funcName, funcPtr, arch) ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, funcName, funcPtr, arch)
+#define ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, funcName) ASSIGN_FUNC_ADDR_WITH_ARCH_X(pPxchConfig, funcName, &funcName, FUNCTION_SUFFIX_ARCH)
+#define ASSIGN_FUNC_ADDR(pPxchConfig, funcName, funcPtr) ASSIGN_FUNC_ADDR_WITH_ARCH_X(pPxchConfig, funcName, funcPtr, FUNCTION_SUFFIX_ARCH)
+
+#define PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, funcName) LOGD(L"fp" PREFIX_L(#funcName) L"X64 = %p", (pPxchConfig)->FunctionPointers.fp##funcName##X64);LOGD(L"fp" PREFIX_L(#funcName) L"X86 = %p", (pPxchConfig)->FunctionPointers.fp##funcName##X86)
 
 #ifndef __CYGWIN__
 #define wcsncasecmp _wcsnicmp
@@ -517,8 +531,8 @@ void PrintConfiguration(PROXYCHAINS_CONFIG* pPxchConfig)
 	}
 	LOGD(L"");
 
-	LOGD(L"RemoteFuncX64 Offset: " WPRDW L", Size: " WPRDW, pPxchConfig->cbRemoteFuncX64Offset, pPxchConfig->cbRemoteFuncX64Size);
-	LOGD(L"RemoteFuncX86 Offset: " WPRDW L", Size: " WPRDW, pPxchConfig->cbRemoteFuncX86Offset, pPxchConfig->cbRemoteFuncX86Size);
+	LOGD(L"(Deprecated)RemoteFuncX64 Offset: " WPRDW L", Size: " WPRDW, pPxchConfig->cbRemoteFuncX64Offset, pPxchConfig->cbRemoteFuncX64Size);
+	LOGD(L"(Deprecated)RemoteFuncX86 Offset: " WPRDW L", Size: " WPRDW, pPxchConfig->cbRemoteFuncX86Offset, pPxchConfig->cbRemoteFuncX86Size);
 	LOGD(L"PXCH_CONFIG_EXTRA_SIZE_G: " WPRDW, PXCH_CONFIG_EXTRA_SIZE_G);
 }
 
@@ -531,8 +545,8 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 	ULARGE_INTEGER uli;
 	PROXYCHAINS_CONFIG* pPxchConfig;
 	int iDummy;
-	CHAR szBinFileX64Path[PXCH_MAX_BIN_FILE_PATH_BUFSIZE];
-	CHAR szBinFileX86Path[PXCH_MAX_BIN_FILE_PATH_BUFSIZE];
+	CHAR szHelperX64CommandLine[PXCH_MAX_HELPER_PATH_BUFSIZE];
+	CHAR szHelperX86CommandLine[PXCH_MAX_HELPER_PATH_BUFSIZE];
 	WCHAR szConfigurationLine[PXCH_MAX_CONFIGURATION_LINE_BUFSIZE];
 	WCHAR szHostsLine[PXCH_MAX_HOSTS_LINE_BUFSIZE];
 	unsigned long long ullLineNum;
@@ -543,13 +557,10 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 	DWORD dwProxyCounter = 0;
 	DWORD dwRuleCounter = 0;
 	DWORD dwHostsEntryCounter = 0;
-	FILE* fRemoteFuncX64 = NULL;
-	FILE* fRemoteFuncX86 = NULL;
 
 	WSAStartup(MAKEWORD(2, 2), &wsaData);
 
-	// Default
-
+	// Defaults
 	pPxchConfig = pTempPxchConfig;
 	pPxchConfig->dwMasterProcessId = GetCurrentProcessId();
 
@@ -569,15 +580,23 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 	if (FAILED(StringCchCopyW(pPxchConfig->szHookDllPathX86, PXCH_MAX_DLL_PATH_BUFSIZE, pPxchConfig->szHookDllPathX64))) goto err_insuf_buf;
 	if (FAILED(StringCchCopyW(pPxchConfig->szMinHookDllPathX64, PXCH_MAX_DLL_PATH_BUFSIZE, pPxchConfig->szHookDllPathX64))) goto err_insuf_buf;
 	if (FAILED(StringCchCopyW(pPxchConfig->szMinHookDllPathX86, PXCH_MAX_DLL_PATH_BUFSIZE, pPxchConfig->szHookDllPathX64))) goto err_insuf_buf;
-	if (FAILED(StringCchPrintfA(szBinFileX64Path, PXCH_MAX_BIN_FILE_PATH_BUFSIZE, "%ls", pPxchConfig->szHookDllPathX64))) goto err_insuf_buf;
-	if (FAILED(StringCchPrintfA(szBinFileX86Path, PXCH_MAX_BIN_FILE_PATH_BUFSIZE, "%ls", pPxchConfig->szHookDllPathX64))) goto err_insuf_buf;
+	if (FAILED(StringCchPrintfA(szHelperX64CommandLine, PXCH_MAX_HELPER_PATH_BUFSIZE, "%ls", pPxchConfig->szHookDllPathX64))) goto err_insuf_buf;
+	if (FAILED(StringCchPrintfA(szHelperX86CommandLine, PXCH_MAX_HELPER_PATH_BUFSIZE, "%ls", pPxchConfig->szHookDllPathX64))) goto err_insuf_buf;
+
+#ifdef __CYGWIN__
+	{
+		CHAR* pChar;
+		for (pChar = szHelperX64CommandLine; *pChar; pChar++) if (*pChar == '\\') *pChar = '/';
+		for (pChar = szHelperX86CommandLine; *pChar; pChar++) if (*pChar == '\\') *pChar = '/';
+	}
+#endif
 
 	if (FAILED(StringCchCatW(pPxchConfig->szHookDllPathX64, PXCH_MAX_DLL_PATH_BUFSIZE, g_szHookDllFileNameX64))) goto err_insuf_buf;
 	if (FAILED(StringCchCatW(pPxchConfig->szHookDllPathX86, PXCH_MAX_DLL_PATH_BUFSIZE, g_szHookDllFileNameX86))) goto err_insuf_buf;
 	if (FAILED(StringCchCatW(pPxchConfig->szMinHookDllPathX64, PXCH_MAX_DLL_PATH_BUFSIZE, g_szMinHookDllFileNameX64))) goto err_insuf_buf;
 	if (FAILED(StringCchCatW(pPxchConfig->szMinHookDllPathX86, PXCH_MAX_DLL_PATH_BUFSIZE, g_szMinHookDllFileNameX86))) goto err_insuf_buf;
-	if (FAILED(StringCchCatA(szBinFileX64Path, PXCH_MAX_BIN_FILE_PATH_BUFSIZE, PXCH_DUMP_REMOTE_FUNCTION_X64_PATH))) goto err_insuf_buf;
-	if (FAILED(StringCchCatA(szBinFileX86Path, PXCH_MAX_BIN_FILE_PATH_BUFSIZE, PXCH_DUMP_REMOTE_FUNCTION_X86_PATH))) goto err_insuf_buf;
+	if (FAILED(StringCchCatA(szHelperX64CommandLine, PXCH_MAX_HELPER_PATH_BUFSIZE, PXCH_HELPER_X64_COMMANDLINE_SUFFIX))) goto err_insuf_buf;
+	if (FAILED(StringCchCatA(szHelperX86CommandLine, PXCH_MAX_HELPER_PATH_BUFSIZE, PXCH_HELPER_X86_COMMANDLINE_SUFFIX))) goto err_insuf_buf;
 
 #if defined(_M_X64) || defined(__x86_64__)
 	if (!PathFileExistsW(pPxchConfig->szHookDllPathX64)) goto err_dll_not_exist;
@@ -642,7 +661,6 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 			LOGE(L"Config line %llu: Unknown proxy: %.*ls", ullLineNum, sOptionNameEnd - sOption, sOption);
 			goto err_invalid_config;
 		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"strict_chain")) {
-			LOGD(L"Use strict chain");
 		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"random_chain")) {
 			pszParseErrorMessage = L"random_chain is not supported!";
 			goto err_invalid_config_with_msg;
@@ -660,7 +678,6 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 				pPxchConfig->dwLogLevel = (DWORD)lValue;
 			}
 		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"proxy_dns")) {
-			LOGD(L"Proxy dns using fake IP");
 			pTempPxchConfig->dwWillUseFakeIpAsRemoteDns = TRUE;
 		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"proxy_dns_udp_associate")) {
 			pszParseErrorMessage = L"proxy_dns_udp_associate is not supported!";
@@ -810,35 +827,11 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 
 	if (dwLastError != ERROR_END_OF_MEDIA) goto err_read_hosts;
 
-	// Open remote function .bin files
-	fRemoteFuncX64 = fopen(szBinFileX64Path, "rb");
-	if (fRemoteFuncX64 == NULL) {
-#if defined(_M_X64) || defined(__x86_64__)
-		goto err_remote_func;
-#else
-		(void)fRemoteFuncX64;
-		pPxchConfig->cbRemoteFuncX64Size = 0;
-#endif
-	} else {
-		fseek(fRemoteFuncX64, 0, SEEK_END);
-		pPxchConfig->cbRemoteFuncX64Size = (PXCH_UINT32)ftell(fRemoteFuncX64);
-	}
-
-	fRemoteFuncX86 = fopen(szBinFileX86Path, "rb");
-	if (fRemoteFuncX86 == NULL) {
-#if !(defined(_M_X64) || defined(__x86_64__))
-		goto err_remote_func;
-#else
-		(void)fRemoteFuncX86;
-		pPxchConfig->cbRemoteFuncX86Size = 0;
-#endif
-	} else {
-		fseek(fRemoteFuncX86, 0, SEEK_END);
-		pPxchConfig->cbRemoteFuncX86Size = (PXCH_UINT32)ftell(fRemoteFuncX86);
-	}
+	// Deprecated
+	pPxchConfig->cbRemoteFuncX64Size = 0;
+	pPxchConfig->cbRemoteFuncX86Size = 0;
 
 	// Allocate space
-
 	pPxchConfig = *ppPxchConfig = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(PROXYCHAINS_CONFIG) + PXCH_CONFIG_EXTRA_SIZE_BY_N(dwProxyNum, dwRuleNum, dwHostsEntryNum, pPxchConfig->cbRemoteFuncX64Size, pPxchConfig->cbRemoteFuncX86Size));
 
 	CopyMemory(pPxchConfig, pTempPxchConfig, sizeof(PROXYCHAINS_CONFIG));
@@ -849,22 +842,9 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 	pPxchConfig->cbRuleListOffset = sizeof(PROXYCHAINS_CONFIG) + (sizeof(PXCH_PROXY_DATA) * pPxchConfig->dwProxyNum);
 	pPxchConfig->dwHostsEntryNum = dwHostsEntryNum;
 	pPxchConfig->cbHostsEntryListOffset = sizeof(PROXYCHAINS_CONFIG) + (sizeof(PXCH_PROXY_DATA) * pPxchConfig->dwProxyNum) + (sizeof(PXCH_RULE) * pPxchConfig->dwRuleNum);
-
+	// Deprecated
 	pPxchConfig->cbRemoteFuncX64Offset = pPxchConfig->cbHostsEntryListOffset + (sizeof(PXCH_HOSTS_ENTRY) * pPxchConfig->dwHostsEntryNum);
 	pPxchConfig->cbRemoteFuncX86Offset = pPxchConfig->cbRemoteFuncX64Offset + pPxchConfig->cbRemoteFuncX64Size;
-
-	// Write remote function
-	if (fRemoteFuncX64) {
-		fseek(fRemoteFuncX64, 0, SEEK_SET);
-		if (fread(PXCH_CONFIG_REMOTE_FUNC_X64(pPxchConfig), pPxchConfig->cbRemoteFuncX64Size, 1, fRemoteFuncX64) != 1) goto err_remote_func;
-		fclose(fRemoteFuncX64);
-	}
-
-	if (fRemoteFuncX86) {
-		fseek(fRemoteFuncX86, 0, SEEK_SET);
-		if (fread(PXCH_CONFIG_REMOTE_FUNC_X86(pPxchConfig), pPxchConfig->cbRemoteFuncX86Size, 1, fRemoteFuncX86) != 1) goto err_remote_func;
-		fclose(fRemoteFuncX86);
-	}
 
 	ConfigurationRewind();
 
@@ -1123,15 +1103,70 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 
 	if (dwLastError != ERROR_END_OF_MEDIA) goto err_read_hosts;
 
+	// Get winapi function addresses, calling helper if needed
+	ZeroMemory(&pPxchConfig->FunctionPointers, sizeof(pPxchConfig->FunctionPointers));
+
+	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, GetModuleHandleW   );
+	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, LoadLibraryW       );
+	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, GetProcAddress     );
+	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, FreeLibrary        );
+	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, GetLastError       );
+	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, OutputDebugStringA );
+
+#if defined(_M_X64) || defined(__x86_64__)
+	{
+		FILE* fHelperProcOut;
+		fHelperProcOut = popen(szHelperX86CommandLine, "rt");
+
+		if (fHelperProcOut == NULL) {
+#ifndef __CYGWIN__
+			LOGW(L"Warning: X86 Helper executable " WPRS L" not found. In this case proxychains.exe will not inject X86 descendant processes.", szHelperX86CommandLine);
+#else
+			LOGD(L"Warning: X86 Helper executable " WPRS L" not found. In this case proxychains.exe will not inject X86 descendant processes.", szHelperX86CommandLine);
+#endif
+		} else {
+			unsigned long long tmp;
+			int i;
+
+			for (i = 0; i < 6; i++) {
+				if (fscanf(fHelperProcOut, "%llX", &tmp) != 1) {
+#ifndef __CYGWIN__
+					LOGW(L"Warning: Output from X86 Helper executable is in a wrong format. In this case proxychains.exe will not inject X86 descendant processes.");
+#else
+					LOGD(L"Warning: Output from X86 Helper executable is in a wrong format. In this case proxychains.exe will not inject X86 descendant processes.");
+#endif
+					ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, GetModuleHandleW   , NULL, X86);
+					ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, LoadLibraryW       , NULL, X86);
+					ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, GetProcAddress     , NULL, X86);
+					ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, FreeLibrary        , NULL, X86);
+					ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, GetLastError       , NULL, X86);
+					ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, OutputDebugStringA , NULL, X86);
+					break;
+				}
+				switch (i) {
+				case 0: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, GetModuleHandleW   , tmp, X86); break;
+				case 1: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, LoadLibraryW       , tmp, X86); break;
+				case 2: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, GetProcAddress     , tmp, X86); break;
+				case 3: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, FreeLibrary        , tmp, X86); break;
+				case 4: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, GetLastError       , tmp, X86); break;
+				case 5: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, OutputDebugStringA , tmp, X86); break;
+				}
+			}
+		}
+	}
+#endif
+
+	PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, GetModuleHandleW   );
+	PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, LoadLibraryW       );
+	PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, GetProcAddress     );
+	PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, FreeLibrary        );
+	PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, GetLastError       );
+	PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, OutputDebugStringA );
+
 	return NO_ERROR;
 
 err_general:
 	return dwLastError;
-err_remote_func:
-	LOGE(L"Read remote function .bin files failure");
-	if (fRemoteFuncX86) fclose(fRemoteFuncX86);
-	if (fRemoteFuncX64) fclose(fRemoteFuncX64);
-	return ERROR_BAD_CONFIGURATION;
 err_insuf_buf:
 	return ERROR_INSUFFICIENT_BUFFER;
 err_dll_not_exist:
@@ -1215,10 +1250,6 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 				bOptionFile = TRUE;
 				iOptionPrefixLen = 2;
 				bOptionHasValue = TRUE;
-			}
-			else if (wcsncmp(pWchar, L"--dump-remote", 13) == 0) {
-				if (!DumpRemoteFunction()) LOGE(L"DumpRemoteFunction() Failed!");
-				exit(0);
 			}
 			else if (wcsncmp(pWchar, L"-l", 2) == 0) {
 				bOptionLogLevel = TRUE;

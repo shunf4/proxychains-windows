@@ -108,6 +108,7 @@
       <PreprocessorDefinitions>PXCH_DLL_EXPORTS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -120,7 +121,8 @@
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>cd /d $(SolutionDir)win32_output
-.\configure_x86.exe &gt; $(SolutionDir)include\function_pointers_configured.h</Command>
+.\proxychains_helper_x86d.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x86d.h
+.\proxychains_helper_x64d.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x64d.h</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -130,6 +132,7 @@
       <PreprocessorDefinitions>PXCH_DLL_EXPORTS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -142,7 +145,8 @@
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>cd /d $(SolutionDir)win32_output
-.\configure_x86.exe &gt; $(SolutionDir)include\function_pointers_configured.h</Command>
+.\proxychains_helper_x86d.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x86d.h
+.\proxychains_helper_x64d.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x64d.h</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -168,7 +172,8 @@
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>cd /d $(SolutionDir)win32_output
-.\configure_x86.exe &gt; $(SolutionDir)include\function_pointers_configured.h</Command>
+.\proxychains_helper_x86.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x86.h
+.\proxychains_helper_x64.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x64.h</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -194,7 +199,8 @@
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>cd /d $(SolutionDir)win32_output
-.\configure_x86.exe &gt; $(SolutionDir)include\function_pointers_configured.h</Command>
+.\proxychains_helper_x86.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x86.h
+.\proxychains_helper_x64.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x64.h</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -205,30 +211,6 @@
     <ClCompile Include="..\src\dll\hook_installer.c" />
     <ClCompile Include="..\src\dll\ipc_client_and_child_data.c" />
     <ClCompile Include="..\src\dll\dllutil_log_func.c" />
-    <ClCompile Include="..\src\dll\remote_function\remote_function.c">
-      <SupportJustMyCode Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</SupportJustMyCode>
-      <SupportJustMyCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</SupportJustMyCode>
-      <BufferSecurityCheck Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</BufferSecurityCheck>
-      <BufferSecurityCheck Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</BufferSecurityCheck>
-      <BufferSecurityCheck Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</BufferSecurityCheck>
-      <BufferSecurityCheck Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</BufferSecurityCheck>
-      <SDLCheck Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </SDLCheck>
-      <SDLCheck Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-      </SDLCheck>
-      <SDLCheck Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-      </SDLCheck>
-      <SDLCheck Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </SDLCheck>
-      <BasicRuntimeChecks Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-      </BasicRuntimeChecks>
-      <BasicRuntimeChecks Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-      </BasicRuntimeChecks>
-      <BasicRuntimeChecks Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </BasicRuntimeChecks>
-      <BasicRuntimeChecks Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </BasicRuntimeChecks>
-    </ClCompile>
     <ClCompile Include="..\src\dll\dllutil_wsock.c" />
   </ItemGroup>
   <ItemGroup>

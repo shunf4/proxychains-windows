@@ -19,6 +19,7 @@
 #pragma once
 
 #include "defines_generic.h"
+#include "tls_generic.h"
 
 extern const wchar_t* g_szRuleTargetDesc[3];
 
@@ -27,10 +28,10 @@ extern wchar_t g_szDumpMemoryBuf_early[PXCH_MAX_DUMP_MEMORY_BUFSIZE];
 extern wchar_t g_szErrorMessageBuf_early[PXCH_MAX_ERROR_MESSAGE_BUFSIZE];
 extern wchar_t g_szFormatHostPortBuf_early[PXCH_MAX_FORMAT_HOST_PORT_BUFSIZE];
 
-// After the load of Hook DLL, they will be per-thread(in TLS), thread safe; before that they are assigned *_early
-extern wchar_t* g_szDumpMemoryBuf;
-extern wchar_t* g_szErrorMessageBuf;
-extern wchar_t* g_szFormatHostPortBuf;
+// After the load of Hook DLL, they will be per-thread(in TLS), thread safe
+#define g_szDumpMemoryBuf (g_dwTlsIndex ? PXCH_TLS_PTR_DUMP_MEMORY_BUF(g_dwTlsIndex) : g_szDumpMemoryBuf_early)
+#define g_szErrorMessageBuf (g_dwTlsIndex ? PXCH_TLS_PTR_ERROR_MESSAGE_BUF(g_dwTlsIndex) : g_szErrorMessageBuf_early)
+#define g_szFormatHostPortBuf (g_dwTlsIndex ? PXCH_TLS_PTR_FORMAT_HOST_PORT_BUF(g_dwTlsIndex) : g_szFormatHostPortBuf_early)
 
 const wchar_t* FormatHostPortToStr(const void* pHostPort, int iAddrLen);
 const wchar_t* DumpMemory(const void* p, int iLength);

@@ -158,13 +158,13 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 #else
 		dwWait = WaitForMultipleObjects(PXCH_IPC_INSTANCE_NUM, hEvents, FALSE, 100);
 		if (dwWait == WAIT_TIMEOUT) {
-			BOOL bChild = FALSE;
-			int iChildPid = 0;
-			while ((iChildPid = waitpid((pid_t)(-1), 0, WNOHANG)) > 0) { bChild = TRUE; }
-			if (bChild) {
-				LOGI(L"Cygwin child process exited (between WaitForMultipleObjects()). Master exiting");
-				IF_CYGWIN_EXIT(0);
-			}
+			// BOOL bChild = FALSE;
+			// int iChildPid = 0;
+			// while ((iChildPid = waitpid((pid_t)(-1), 0, WNOHANG)) > 0) { bChild = TRUE; }
+			// if (bChild) {
+			// 	LOGI(L"Cygwin child process %d exited (between WaitForMultipleObjects()). Master exiting", iChildPid);
+			// 	IF_CYGWIN_EXIT(0);
+			// }
 			continue;
 		}
 #endif
@@ -464,7 +464,7 @@ int wmain(int argc, WCHAR* argv[])
 	if ((dwError = InitProcessBookkeeping()) != NOERROR) goto err;
 	if ((dwError = ParseArgs(&TempProxychainsConfig, argc, argv, &iCommandStart)) != NOERROR) goto err_args;
 	if ((dwError = LoadConfiguration(&g_pPxchConfig, &TempProxychainsConfig)) != NOERROR) goto err;
-	if (g_pPxchConfig->dwLogLevel >= PXCH_LOG_LEVEL_INFO) PrintConfiguration(g_pPxchConfig);
+	if (g_pPxchConfig->dwLogLevel >= PXCH_LOG_LEVEL_DEBUG) PrintConfiguration(g_pPxchConfig);
 
 	InitHookForMain(g_pPxchConfig);
 
@@ -505,6 +505,11 @@ int wmain(int argc, WCHAR* argv[])
 	}
 
 	if (!ProxyCreateProcessW(NULL, g_pPxchConfig->szCommandLine, 0, 0, 0, 0, 0, 0, &startupInfo, &processInformation)) goto err_get;
+
+	if (g_tabPerProcess == NULL) {
+		LOGI(L"No child process registered. Injection might not have succeeded.");
+		IF_WIN32_EXIT(1);
+	}
 
 	SetConsoleCtrlHandler(CtrlHandler, TRUE);
 	Sleep(INFINITE);
@@ -577,7 +582,7 @@ int main(int argc, char* const argv[], char* const envp[])
 	if ((dwError = InitProcessBookkeeping()) != NOERROR) goto err;
 	if ((dwError = ParseArgs(&TempProxychainsConfig, argc, wargv, &iCommandStart)) != NOERROR) goto err_args;
 	if ((dwError = LoadConfiguration(&g_pPxchConfig, &TempProxychainsConfig)) != NOERROR) goto err;
-	if (g_pPxchConfig->dwLogLevel >= PXCH_LOG_LEVEL_INFO) PrintConfiguration(g_pPxchConfig);
+	if (g_pPxchConfig->dwLogLevel >= PXCH_LOG_LEVEL_DEBUG) PrintConfiguration(g_pPxchConfig);
 	InitHookForMain(g_pPxchConfig);
 
 	if (CreateThread(0, 0, &ServerLoop, g_pPxchConfig, 0, &dwTid) == NULL) goto err_get;
@@ -618,13 +623,13 @@ int main(int argc, char* const argv[], char* const envp[])
 	LOGD(L"iCommandStart: %d", iCommandStart);
 	ctx[0] = &argv[iCommandStart];
 	ctx[1] = envp;
-
-	// if (CreateThread(0, 0, &CygwinSpawn, ctx, 0, &dwTid) == NULL) goto err_get;
-	LOGD(L"Cygwin spawn Tid: " WPRDW, dwTid);
 	
 	CygwinSpawn(ctx);
-	// i = posix_spawnp(&child_pid, &argv[iCommandStart], NULL, NULL, p_argv_command_start, p_envp);
-	// LOGD(L"Spawn ret: %d; CYGPID: " WPRDW L"", i, child_pid);
+
+	if (g_tabPerProcess == NULL) {
+		LOGI(L"No child process registered. Injection might not have succeeded.");
+		IF_CYGWIN_EXIT(1);
+	}
 
 	signal(SIGINT, handle_sigint);
 	signal(SIGCHLD, handle_sigchld);

@@ -29,8 +29,9 @@
 #include "common_win32.h"
 #include "log_generic.h"
 
+const PXCH_UINT32 g_dwW32HostentSize = sizeof(struct hostent);
+
 wchar_t g_szFormatHostPortBuf_early[PXCH_MAX_FORMAT_HOST_PORT_BUFSIZE];
-wchar_t* g_szFormatHostPortBuf = g_szFormatHostPortBuf_early;
 
 const wchar_t* FormatHostPortToStr(const void* pHostPort, int iAddrLen)
 {

@@ -65,13 +65,6 @@ typedef struct _PXCH_INJECT_REMOTE_DATA {
 	PXCH_UINT32 dwParentPid;
 	PXCH_UINT32 dwDebugDepth;
 
-	PXCH_UINT64 fpGetModuleHandleW;
-	PXCH_UINT64 fpLoadLibraryW;
-	PXCH_UINT64 fpGetProcAddress;
-	PXCH_UINT64 fpFreeLibrary;
-	PXCH_UINT64 fpGetLastError;
-	PXCH_UINT64 fpOutputDebugStringA;
-
 	CHAR szInitFuncName[PXCH_MAX_DLL_FUNC_NAME_BUFSIZE];
 	CHAR szCIWCVarName[PXCH_MAX_DLL_FUNC_NAME_BUFSIZE];
 
@@ -88,5 +81,4 @@ typedef struct _PXCH_INJECT_REMOTE_DATA {
 
 extern PXCH_DLL_API BOOL g_bCurrentlyInWinapiCall;
 extern PXCH_DLL_API DWORD g_dwCurrentProcessIdForVerify;
-extern PXCH_DLL_API PXCH_UINT32 g_dwTlsIndex;
 

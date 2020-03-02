@@ -78,6 +78,7 @@ typedef unsigned int PXCH_UINT_PTR;
 #define PXCH_MAX_DLL_PATH_BUFSIZE 512
 #define PXCH_MAX_CONFIG_FILE_PATH_BUFSIZE 512
 #define PXCH_MAX_BIN_FILE_PATH_BUFSIZE 512
+#define PXCH_MAX_HELPER_PATH_BUFSIZE 512
 #define PXCH_MAX_HOSTS_FILE_PATH_BUFSIZE 512
 #define PXCH_MAX_DLL_FILE_NAME_BUFSIZE 64
 #define PXCH_MAX_DLL_FUNC_NAME_BUFSIZE 64
@@ -318,6 +319,22 @@ typedef struct _PROXYCHAINS_CONFIG {
 	wchar_t szMinHookDllPathX64[PXCH_MAX_DLL_PATH_BUFSIZE];
 	wchar_t szHostsFilePath[PXCH_MAX_HOSTS_FILE_PATH_BUFSIZE];
 	wchar_t szCommandLine[PXCH_MAX_COMMAND_LINE_BUFSIZE];
+
+	struct {
+		PXCH_UINT64 fpGetModuleHandleWX64;
+		PXCH_UINT64 fpLoadLibraryWX64;
+		PXCH_UINT64 fpGetProcAddressX64;
+		PXCH_UINT64 fpFreeLibraryX64;
+		PXCH_UINT64 fpGetLastErrorX64;
+		PXCH_UINT64 fpOutputDebugStringAX64;
+
+		PXCH_UINT64 fpGetModuleHandleWX86;
+		PXCH_UINT64 fpLoadLibraryWX86;
+		PXCH_UINT64 fpGetProcAddressX86;
+		PXCH_UINT64 fpFreeLibraryX86;
+		PXCH_UINT64 fpGetLastErrorX86;
+		PXCH_UINT64 fpOutputDebugStringAX86;
+	} FunctionPointers;
 	
 	PXCH_UINT32 cbProxyListOffset;
 	PXCH_UINT32 dwProxyNum;
@@ -368,8 +385,19 @@ static const wchar_t g_szChildDataSavingFileMappingPrefix[] = L"Local\\proxychai
 #define PXCH_HOOKDLL_DEBUG_SUFFIX_NARROW ""
 #endif
 
+// Deprecated
 #define PXCH_DUMP_REMOTE_FUNCTION_X64_PATH "proxychains_remote_function_x64" PXCH_HOOKDLL_DEBUG_SUFFIX_NARROW ".bin"
 #define PXCH_DUMP_REMOTE_FUNCTION_X86_PATH "proxychains_remote_function_x86" PXCH_HOOKDLL_DEBUG_SUFFIX_NARROW ".bin"
+
+#if __CYGWIN__
+#define PXCH_REDIRECT_NULL_FILE "/dev/null"
+#else
+#define PXCH_REDIRECT_NULL_FILE "nul"
+#endif
+
+#define PXCH_HELPER_X64_COMMANDLINE_SUFFIX "proxychains_helper_x64" PXCH_HOOKDLL_DEBUG_SUFFIX_NARROW ".exe --get-winapi-func-addr 2> " PXCH_REDIRECT_NULL_FILE
+#define PXCH_HELPER_X86_COMMANDLINE_SUFFIX "proxychains_helper_x86" PXCH_HOOKDLL_DEBUG_SUFFIX_NARROW ".exe --get-winapi-func-addr 2> " PXCH_REDIRECT_NULL_FILE
+
 
 #if defined(_M_X64) || defined(__x86_64__)
 #define PXCH_HOOKDLL_ARCHITECT_SUFFIX L"_x64"

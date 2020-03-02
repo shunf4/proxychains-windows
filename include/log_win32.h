@@ -62,7 +62,6 @@ static void __attribute__((unused)) suppress_unused_variable(void)
 #endif
 
 // After the load of Hook DLL, they will be per-thread(in TLS), thread safe
-// TODO: make log_* pointers instead of macros, like what we do in common_generic.h
 #define log_time (*(g_dwTlsIndex ? PXCH_TLS_PTR_LOG_TIME(g_dwTlsIndex) : &log_time_early))
 #define log_szLogLine (g_dwTlsIndex ? PXCH_TLS_PTR_LOG_SZLOGLINE(g_dwTlsIndex) : log_szLogLine_early)
 #define log_msg (g_dwTlsIndex ? PXCH_TLS_PTR_LOG_MSG(g_dwTlsIndex) : log_msg_early)

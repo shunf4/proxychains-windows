@@ -55,6 +55,7 @@ err_orig:
 
 err_inject:
 	// PrintErrorToFile(stderr, dwReturn);
+	// TODO: remove this line
 	SetLastError(dwReturn);
 	return 1;
 }
@@ -78,7 +79,7 @@ PROXY_FUNC(CreateProcessW)
 	bRet = orig_fpCreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &processInformation);
 	dwErrorCode = GetLastError();
 
-	IPCLOGV(L"CreateProcessW: Created.(%u) Child process id: " WPRDW, bRet, processInformation.dwProcessId);
+	IPCLOGD(L"CreateProcessW: Created.(%u) Child process id: " WPRDW, bRet, processInformation.dwProcessId);
 
 	if (lpProcessInformation) {
 		CopyMemory(lpProcessInformation, &processInformation, sizeof(PROCESS_INFORMATION));
@@ -111,6 +112,7 @@ err_orig:
 
 err_inject:
 	IPCLOGE(L"Injecting WINPID " WPRDW L" Error: %ls", processInformation.dwProcessId, FormatErrorToStr(dwReturn));
+	// TODO: remove this line
 	SetLastError(dwReturn);
 	g_bCurrentlyInWinapiCall = FALSE;
 	return 1;

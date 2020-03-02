@@ -60,6 +60,7 @@
         "initializer_list": "c",
         "utility": "c",
         "hookdll_interior_win32.h": "c",
-        "hookdll_interior_generic.h": "c"
+        "hookdll_interior_generic.h": "c",
+        "ut_helpers.h": "c"
     }
 }

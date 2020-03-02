@@ -209,7 +209,6 @@ int main()
     closesocket(ConnectSocket);
     WSACleanup();
 
-    Sleep(INFINITE);
     return 0;
 
 }

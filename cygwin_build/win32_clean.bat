@@ -1,4 +1,4 @@
-@rem dist.bat
+@rem win32_build.bat
 @rem Copyright (C) 2020 Feng Shun.
 @rem
 @rem   This program is free software: you can redistribute it and/or modify
@@ -15,8 +15,8 @@
 @rem   version 2 along with this program. If not, see
 @rem   <http://www.gnu.org/licenses/>.
 
-"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\devenv.com" ..\proxychains.exe.sln /build "Debug^|x64"
-"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\devenv.com" ..\proxychains.exe.sln /build "Debug^|x86"
-"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\devenv.com" ..\proxychains.exe.sln /build "Release^|x64"
-"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\devenv.com" ..\proxychains.exe.sln /build "Release^|x86"
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\devenv.com" ..\proxychains.exe.sln /clean "Debug^|x64"
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\devenv.com" ..\proxychains.exe.sln /clean "Debug^|x86"
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\devenv.com" ..\proxychains.exe.sln /clean "Release^|x64"
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\devenv.com" ..\proxychains.exe.sln /clean "Release^|x86"
 

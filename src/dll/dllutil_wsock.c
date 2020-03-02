@@ -31,9 +31,6 @@
 #include "hookdll_win32.h"
 #include "ut_helpers.h"
 	
-
-PXCH_DLL_API const PXCH_UINT32 g_dwW32HostentSize = sizeof(struct hostent);
-
 void HostentToHostnameAndIps(PXCH_HOSTNAME* pHostname, PXCH_UINT32* pdwIpNum, PXCH_IP_ADDRESS* Ips, const struct hostent* pHostent)
 {
 	PXCH_UINT32 i;

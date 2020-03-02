@@ -18,9 +18,6 @@
     <ClCompile Include="..\src\dll\dllmain.c">
       <Filter>Sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\dll\remote_function\remote_function.c">
-      <Filter>Sources</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\dll\hook_cygwin_msvcstub.c">
       <Filter>Sources</Filter>
     </ClCompile>

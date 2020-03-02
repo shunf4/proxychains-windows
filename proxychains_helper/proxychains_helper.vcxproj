@@ -18,6 +18,51 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\proxychains_helper.c" />
+    <ClCompile Include="..\src\remote_function.c">
+      <SupportJustMyCode Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</SupportJustMyCode>
+      <SDLCheck Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </SDLCheck>
+      <SDLCheck Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </SDLCheck>
+      <SupportJustMyCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</SupportJustMyCode>
+      <SDLCheck Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </SDLCheck>
+      <SDLCheck Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </SDLCheck>
+      <BufferSecurityCheck Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</BufferSecurityCheck>
+      <BufferSecurityCheck Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</BufferSecurityCheck>
+      <BufferSecurityCheck Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</BufferSecurityCheck>
+      <BufferSecurityCheck Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</BufferSecurityCheck>
+      <BasicRuntimeChecks Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </BasicRuntimeChecks>
+      <BasicRuntimeChecks Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </BasicRuntimeChecks>
+      <BasicRuntimeChecks Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </BasicRuntimeChecks>
+      <BasicRuntimeChecks Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </BasicRuntimeChecks>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\common_generic.h" />
+    <ClInclude Include="..\include\common_win32.h" />
+    <ClInclude Include="..\include\defines_generic.h" />
+    <ClInclude Include="..\include\defines_win32.h" />
+    <ClInclude Include="..\include\includes_generic.h" />
+    <ClInclude Include="..\include\includes_win32.h" />
+    <ClInclude Include="..\include\log_generic.h" />
+    <ClInclude Include="..\include\log_win32.h" />
+    <ClInclude Include="..\include\remote_win32.h" />
+    <ClInclude Include="..\include\tls_generic.h" />
+    <ClInclude Include="..\include\tls_win32.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\proxychains_common\proxychains_common.vcxproj">
+      <Project>{d7744e4c-b1f8-495b-bdd4-dcdb0738b2be}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{91EF5C95-F872-47AE-B045-C39C7DBE2FF0}</ProjectGuid>
@@ -80,22 +125,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)win32_output\</OutDir>
-    <TargetName>$(ProjectName)_x86</TargetName>
+    <TargetName>$(ProjectName)_x86d</TargetName>
+    <IncludePath>$(SolutionDir)uthash\src;$(SolutionDir)minhook\include;$(SolutionDir)include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)win32_output\</OutDir>
-    <TargetName>$(ProjectName)_x64</TargetName>
+    <TargetName>$(ProjectName)_x64d</TargetName>
+    <IncludePath>$(SolutionDir)uthash\src;$(SolutionDir)minhook\include;$(SolutionDir)include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)win32_output\</OutDir>
     <TargetName>$(ProjectName)_x86</TargetName>
+    <IncludePath>$(SolutionDir)uthash\src;$(SolutionDir)minhook\include;$(SolutionDir)include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)win32_output\</OutDir>
     <TargetName>$(ProjectName)_x64</TargetName>
+    <IncludePath>$(SolutionDir)uthash\src;$(SolutionDir)minhook\include;$(SolutionDir)include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -103,6 +152,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -115,6 +165,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -153,10 +204,10 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="..\src\configure.c" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <Target Name="AfterBuild">
+    <MSBuild Condition=" '$(Platform)' == 'Win32' " Projects="$(MSBuildProjectFile)" Properties="Platform=x64;PlatFormTarget=x64" RunEachTargetSeparately="true" />
+  </Target>
 </Project>

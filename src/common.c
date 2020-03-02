@@ -19,11 +19,11 @@
 #include "common_win32.h"
 #include "tls_generic.h"
 
+PXCH_UINT32 g_dwTlsIndex;
+const PXCH_UINT32 g_dwW32SystemTimeSize = sizeof(SYSTEMTIME);
+
 wchar_t g_szDumpMemoryBuf_early[PXCH_MAX_DUMP_MEMORY_BUFSIZE];
 wchar_t g_szErrorMessageBuf_early[PXCH_MAX_ERROR_MESSAGE_BUFSIZE];
-
-wchar_t* g_szDumpMemoryBuf = g_szDumpMemoryBuf_early;
-wchar_t* g_szErrorMessageBuf = g_szErrorMessageBuf_early;
 
 static WCHAR szFwprintfWbuf[PXCH_MAX_FWPRINTF_BUFSIZE];
 static CHAR szFwprintfBuf[PXCH_MAX_FWPRINTF_BUFSIZE];

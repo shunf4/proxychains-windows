@@ -20,12 +20,23 @@
 
 #include "includes_win32.h"
 
+#if defined(_M_X64) || defined(__x86_64__)
+#define FUNCTION_SUFFIX_ARCH X64
+#else
+#define FUNCTION_SUFFIX_ARCH X86
+#endif
+
+#define CAST_FUNC_ADDR_WITH_PTR_ARCH(pRemoteData, funcName, arch) ((Fp##funcName)((pRemoteData)->pxchConfig.FunctionPointers.fp##funcName##arch))
+#define CAST_FUNC_ADDR_WITH_PTR_ARCH_X(pRemoteData, funcName, arch) CAST_FUNC_ADDR_WITH_PTR_ARCH(pRemoteData, funcName, arch)
+#define CAST_FUNC_ADDR_WITH_PTR(pRemoteData, funcName) CAST_FUNC_ADDR_WITH_PTR_ARCH_X(pRemoteData, funcName, FUNCTION_SUFFIX_ARCH)
+#define CAST_FUNC_ADDR(funcName) CAST_FUNC_ADDR_WITH_PTR_ARCH_X(pRemoteData, funcName, FUNCTION_SUFFIX_ARCH)
+
 #define PXCHDEBUG_ODS
 
 #if defined(PXCHDEBUG_ODS) && defined(_DEBUG)
-#define DBGCHR(ch) do { ((FpOutputDebugStringA)(pRemoteData->fpOutputDebugStringA))(pRemoteData->chDebugOutput + ((ch) - 'A') * 2); } while(0)
-#define DBGCHR_GP(ch) do { if (g_pRemoteData) ((FpOutputDebugStringA)(pRemoteData->fpOutputDebugStringA))(g_pRemoteData->chDebugOutput + ((ch) - 'A') * 2); } while(0)
-#define DBGSTR_GP(str) do { if (g_pRemoteData) ((FpOutputDebugStringA)(pRemoteData->fpOutputDebugStringA))(str); } while(0)
+#define DBGCHR(ch) do { CAST_FUNC_ADDR(OutputDebugStringA)(pRemoteData->chDebugOutput + ((ch) - 'A') * 2); } while(0)
+#define DBGCHR_GP(ch) do { if (g_pRemoteData) CAST_FUNC_ADDR_WITH_PTR(g_pRemoteData, OutputDebugStringA)(g_pRemoteData->chDebugOutput + ((ch) - 'A') * 2); } while(0)
+#define DBGSTR_GP(str) do { if (g_pRemoteData) CAST_FUNC_ADDR_WITH_PTR(g_pRemoteData, OutputDebugStringA)(str); } while(0)
 #else
 #define DBGCHR(ch) do { } while(0)
 #define DBGCHR_GP(ch) do {  } while(0)

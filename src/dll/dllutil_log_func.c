@@ -20,8 +20,6 @@
 #include "tls_generic.h"
 #include "hookdll_generic.h"
 
-const PXCH_UINT32 g_dwW32SystemTimeSize = sizeof(SYSTEMTIME);
-
 WCHAR log_ods_buf_early[PXCH_LOG_ODS_BUFSIZE];
 
 void pxchlog_ipc_func_e(const wchar_t* prefix_fmt, const wchar_t* ipc_prefix_fmt, const wchar_t* fmt, ...)
