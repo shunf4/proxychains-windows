@@ -3,16 +3,10 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29613.14
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "proxychains_common", "proxychains_common\proxychains_common.vcxproj", "{D7744E4C-B1F8-495B-BDD4-DCDB0738B2BE}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "proxychains.exe", "proxychains.exe\proxychains.exe.vcxproj", "{3F3F5D43-FEE4-4656-A992-D4D0371E303D}"
-	ProjectSection(ProjectDependencies) = postProject
-		{D7744E4C-B1F8-495B-BDD4-DCDB0738B2BE} = {D7744E4C-B1F8-495B-BDD4-DCDB0738B2BE}
-	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "proxychains_hook.dll", "proxychains_hook.dll\proxychains_hook.dll.vcxproj", "{FDBD3C8E-2DDF-4BBB-A157-0CB0054D5782}"
 	ProjectSection(ProjectDependencies) = postProject
-		{D7744E4C-B1F8-495B-BDD4-DCDB0738B2BE} = {D7744E4C-B1F8-495B-BDD4-DCDB0738B2BE}
 		{91EF5C95-F872-47AE-B045-C39C7DBE2FF0} = {91EF5C95-F872-47AE-B045-C39C7DBE2FF0}
 	EndProjectSection
 EndProject
@@ -30,14 +24,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{D7744E4C-B1F8-495B-BDD4-DCDB0738B2BE}.Debug|x64.ActiveCfg = Debug|x64
-		{D7744E4C-B1F8-495B-BDD4-DCDB0738B2BE}.Debug|x64.Build.0 = Debug|x64
-		{D7744E4C-B1F8-495B-BDD4-DCDB0738B2BE}.Debug|x86.ActiveCfg = Debug|Win32
-		{D7744E4C-B1F8-495B-BDD4-DCDB0738B2BE}.Debug|x86.Build.0 = Debug|Win32
-		{D7744E4C-B1F8-495B-BDD4-DCDB0738B2BE}.Release|x64.ActiveCfg = Release|x64
-		{D7744E4C-B1F8-495B-BDD4-DCDB0738B2BE}.Release|x64.Build.0 = Release|x64
-		{D7744E4C-B1F8-495B-BDD4-DCDB0738B2BE}.Release|x86.ActiveCfg = Release|Win32
-		{D7744E4C-B1F8-495B-BDD4-DCDB0738B2BE}.Release|x86.Build.0 = Release|Win32
 		{3F3F5D43-FEE4-4656-A992-D4D0371E303D}.Debug|x64.ActiveCfg = Debug|x64
 		{3F3F5D43-FEE4-4656-A992-D4D0371E303D}.Debug|x64.Build.0 = Debug|x64
 		{3F3F5D43-FEE4-4656-A992-D4D0371E303D}.Debug|x86.ActiveCfg = Debug|Win32

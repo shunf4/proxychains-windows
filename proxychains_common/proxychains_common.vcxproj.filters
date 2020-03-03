@@ -21,7 +21,7 @@
     <ClCompile Include="..\src\log.c">
       <Filter>Sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\ipc_message.c">
+    <ClCompile Include="..\src\dll\hookdll_util_ipc_message.c">
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="..\src\common_wsock.c">

@@ -79,6 +79,6 @@ typedef struct _PXCH_INJECT_REMOTE_DATA {
 } PXCH_INJECT_REMOTE_DATA;
 #pragma pack(pop)
 
-extern PXCH_DLL_API BOOL g_bCurrentlyInWinapiCall;
-extern PXCH_DLL_API DWORD g_dwCurrentProcessIdForVerify;
+PXCH_DLL_API  extern BOOL g_bCurrentlyInWinapiCall;
+PXCH_DLL_API  extern DWORD g_dwCurrentProcessIdForVerify;
 

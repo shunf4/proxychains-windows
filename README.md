@@ -159,6 +159,7 @@ programs). See "To-do and Known Issues". Perhaps solution based on
 - [X] ~~Resolve remote thread exit code `0xc0000005` (Access Denied)
       when calling `C:\ProgramData\chocolatey\tools\7z.exe`~~
       Finally fixed in ~~0.4.3~~ ~~0.4.4~~ 0.4.5
+- [X] ~~Resolve race condition in `StdWprintf()`~~ Fixed in 0.4.5
 
 # Licensing
 

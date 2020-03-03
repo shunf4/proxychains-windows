@@ -1,5 +1,5 @@
 ﻿// SPDX-License-Identifier: GPL-2.0-or-later
-/* dllmain.c
+/* hookdll_main.c
  * Copyright (C) 2020 Feng Shun.
  *
  *   This program is free software: you can redistribute it and/or modify
@@ -19,17 +19,30 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "defines_win32.h"
 #include "log_win32.h"
-#include "hookdll_interior_win32.h"
+#include "hookdll_util_win32.h"
 #include <MinHook.h>
 #include "hookdll_win32.h"
 
+#if defined(_M_X64) || defined(__x86_64__) || !defined(__CYGWIN__)
+#ifdef _DEBUG
+#include "remote_func_bin_x64d.h"
+#else // _DEBUG
+#include "remote_func_bin_x64.h"
+#endif // _DEBUG
+#else // defined(_M_X64) || defined(__x86_64__) || !defined(__CYGWIN__)
+static const char g_RemoteFuncX64[1];
+#endif // defined(_M_X64) || defined(__x86_64__) || !defined(__CYGWIN__)
+
+#if !(defined(_M_X64) || defined(__x86_64__)) || !defined(__CYGWIN__)
 #ifdef _DEBUG
 #include "remote_func_bin_x86d.h"
-#include "remote_func_bin_x64d.h"
-#else
+#else // _DEBUG
 #include "remote_func_bin_x86.h"
-#include "remote_func_bin_x64.h"
-#endif
+#endif // _DEBUG
+#else // !(defined(_M_X64) || defined(__x86_64__)) || !defined(__CYGWIN__)
+static const char g_RemoteFuncX86[1];
+#endif // !(defined(_M_X64) || defined(__x86_64__)) || !defined(__CYGWIN__)
+
 
 PXCH_INJECT_REMOTE_DATA* g_pRemoteData;
 PXCH_DLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;
@@ -355,9 +368,10 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 		}
 		// No break: initailize the index for the main thread.
 	case DLL_THREAD_ATTACH:
-		pvData = HeapAlloc(GetProcessHeap(), 0, PXCH_TLS_TOTAL_SIZE);
-		TlsSetValue(g_dwTlsIndex, pvData);
-		ODBGSTRLOG(L"Initialized TLS: g_dwTlsIndex = " WPRDW, g_dwTlsIndex);
+		if (g_dwTlsIndex != TLS_OUT_OF_INDEXES) {
+			pvData = HeapAlloc(GetProcessHeap(), 0, PXCH_TLS_TOTAL_SIZE);
+			TlsSetValue(g_dwTlsIndex, pvData);
+		}
 
 		break;
 	case DLL_THREAD_DETACH:

@@ -18,7 +18,7 @@
  */
 #pragma once
 #include "defines_win32.h"
-#include "ipc_win32.h"
+#include "hookdll_util_ipc_win32.h"
 #include "ut_helpers.h"
 
 

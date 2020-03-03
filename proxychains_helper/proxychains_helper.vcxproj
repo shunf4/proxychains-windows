@@ -46,10 +46,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\common_generic.h" />
-    <ClInclude Include="..\include\common_win32.h" />
     <ClInclude Include="..\include\defines_generic.h" />
     <ClInclude Include="..\include\defines_win32.h" />
+    <ClInclude Include="..\include\hookdll_util_generic.h" />
+    <ClInclude Include="..\include\hookdll_util_win32.h" />
     <ClInclude Include="..\include\includes_generic.h" />
     <ClInclude Include="..\include\includes_win32.h" />
     <ClInclude Include="..\include\log_generic.h" />
@@ -57,11 +57,6 @@
     <ClInclude Include="..\include\remote_win32.h" />
     <ClInclude Include="..\include\tls_generic.h" />
     <ClInclude Include="..\include\tls_win32.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\proxychains_common\proxychains_common.vcxproj">
-      <Project>{d7744e4c-b1f8-495b-bdd4-dcdb0738b2be}</Project>
-    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

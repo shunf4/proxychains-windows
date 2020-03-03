@@ -1,5 +1,5 @@
 ﻿// SPDX-License-Identifier: GPL-2.0-or-later
-/* ipc_message.c
+/* hookdll_util_ipc_message.c
  * Copyright (C) 2020 Feng Shun.
  *
  *   This program is free software: you can redistribute it and/or modify
@@ -16,9 +16,9 @@
  *   version 2 along with this program. If not, see
  *   <http://www.gnu.org/licenses/>.
  */
-#include "ipc_win32.h"
+#include "hookdll_util_ipc_win32.h"
 
-PXCH_UINT32 WstrToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, const wchar_t* szWstr)
+PXCH_DLL_API PXCH_UINT32 WstrToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, const wchar_t* szWstr)
 {
 	PXCH_IPC_MSGHDR_WSTR* pHdr = (PXCH_IPC_MSGHDR_WSTR*)chMessageBuf;
 	PWCHAR szWstrEnd;
@@ -35,7 +35,8 @@ err_copy:
 	return ERROR_FUNCTION_FAILED;
 }
 
-PXCH_UINT32 MessageToWstr(wchar_t* szWstr, CPXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize)
+
+PXCH_DLL_API PXCH_UINT32 MessageToWstr(wchar_t* szWstr, CPXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize)
 {
 	const PXCH_IPC_MSGHDR_WSTR* pHdr = (const PXCH_IPC_MSGHDR_WSTR*)chMessageBuf;
 	szWstr[0] = L'\0';
@@ -45,7 +46,8 @@ PXCH_UINT32 MessageToWstr(wchar_t* szWstr, CPXCH_IPC_MSGBUF chMessageBuf, PXCH_U
 	return 0;
 }
 
-DWORD ChildDataToMessage(PXCH_IPC_MSGBUF chMessageBuf, DWORD* pcbMessageSize, const REPORTED_CHILD_DATA* pChildData)
+
+PXCH_DLL_API DWORD ChildDataToMessage(PXCH_IPC_MSGBUF chMessageBuf, DWORD* pcbMessageSize, const REPORTED_CHILD_DATA* pChildData)
 {
 	PXCH_IPC_MSGHDR_CHILDDATA* pHdr = (PXCH_IPC_MSGHDR_CHILDDATA*)chMessageBuf;
 
@@ -55,7 +57,8 @@ DWORD ChildDataToMessage(PXCH_IPC_MSGBUF chMessageBuf, DWORD* pcbMessageSize, co
 	return 0;
 }
 
-DWORD MessageToChildData(REPORTED_CHILD_DATA* pChildData, CPXCH_IPC_MSGBUF chMessageBuf, DWORD cbMessageSize)
+
+PXCH_DLL_API DWORD MessageToChildData(REPORTED_CHILD_DATA* pChildData, CPXCH_IPC_MSGBUF chMessageBuf, DWORD cbMessageSize)
 {
 	const PXCH_IPC_MSGHDR_CHILDDATA* pHdr = (const PXCH_IPC_MSGHDR_CHILDDATA*)chMessageBuf;
 	if (!MsgIsType(CHILDDATA, chMessageBuf)) return ERROR_INVALID_PARAMETER;
@@ -63,7 +66,8 @@ DWORD MessageToChildData(REPORTED_CHILD_DATA* pChildData, CPXCH_IPC_MSGBUF chMes
 	return 0;
 }
 
-DWORD QueryStorageToMessage(PXCH_IPC_MSGBUF chMessageBuf, DWORD* pcbMessageSize, DWORD dwChildPid)
+
+PXCH_DLL_API DWORD QueryStorageToMessage(PXCH_IPC_MSGBUF chMessageBuf, DWORD* pcbMessageSize, DWORD dwChildPid)
 {
 	PXCH_IPC_MSGHDR_QUERYSTORAGE* pHdr = (PXCH_IPC_MSGHDR_QUERYSTORAGE*)chMessageBuf;
 
@@ -73,7 +77,8 @@ DWORD QueryStorageToMessage(PXCH_IPC_MSGBUF chMessageBuf, DWORD* pcbMessageSize,
 	return 0;
 }
 
-DWORD MessageToQueryStorage(DWORD* pdwChildPid, CPXCH_IPC_MSGBUF chMessageBuf, DWORD cbMessageSize)
+
+PXCH_DLL_API DWORD MessageToQueryStorage(DWORD* pdwChildPid, CPXCH_IPC_MSGBUF chMessageBuf, DWORD cbMessageSize)
 {
 	const PXCH_IPC_MSGHDR_QUERYSTORAGE* pHdr = (const PXCH_IPC_MSGHDR_QUERYSTORAGE*)chMessageBuf;
 	if (!MsgIsType(QUERYSTORAGE, chMessageBuf)) return ERROR_INVALID_PARAMETER;
@@ -81,7 +86,8 @@ DWORD MessageToQueryStorage(DWORD* pdwChildPid, CPXCH_IPC_MSGBUF chMessageBuf, D
 	return 0;
 }
 
-PXCH_UINT32 HostnameAndIpsToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, PXCH_UINT32 dwPid, const PXCH_HOSTNAME* Hostname, BOOL bWillMapResolvedIpToHost, PXCH_UINT32 dwIpNum, const PXCH_IP_ADDRESS* Ips, PXCH_UINT32 dwTarget)
+
+PXCH_DLL_API PXCH_UINT32 HostnameAndIpsToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, PXCH_UINT32 dwPid, const PXCH_HOSTNAME* Hostname, BOOL bWillMapResolvedIpToHost, PXCH_UINT32 dwIpNum, const PXCH_IP_ADDRESS* Ips, PXCH_UINT32 dwTarget)
 {
 	PXCH_IPC_MSGHDR_HOSTNAMEANDIPS* pHdr = (PXCH_IPC_MSGHDR_HOSTNAMEANDIPS*)chMessageBuf;
 
@@ -97,7 +103,8 @@ PXCH_UINT32 HostnameAndIpsToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* p
 	return 0;
 }
 
-PXCH_UINT32 MessageToHostnameAndIps(PXCH_UINT32* pdwPid, PXCH_HOSTNAME* pHostname, BOOL* pbWillMapResolvedIpToHost, PXCH_UINT32* pdwIpNum, PXCH_IP_ADDRESS* Ips, PXCH_UINT32* pdwTarget, CPXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize)
+
+PXCH_DLL_API PXCH_UINT32 MessageToHostnameAndIps(PXCH_UINT32* pdwPid, PXCH_HOSTNAME* pHostname, BOOL* pbWillMapResolvedIpToHost, PXCH_UINT32* pdwIpNum, PXCH_IP_ADDRESS* Ips, PXCH_UINT32* pdwTarget, CPXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize)
 {
 	const PXCH_IPC_MSGHDR_HOSTNAMEANDIPS* pHdr = (const PXCH_IPC_MSGHDR_HOSTNAMEANDIPS*)chMessageBuf;
 	if (!MsgIsType(HOSTNAMEANDIPS, chMessageBuf)) return ERROR_INVALID_PARAMETER;

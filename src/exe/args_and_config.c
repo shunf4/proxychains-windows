@@ -31,6 +31,7 @@
 #include "defines_win32.h"
 #include "log_win32.h"
 #include "hookdll_win32.h"
+#include "hookdll_util_win32.h"
 
 #ifndef __CYGWIN__
 #pragma comment(lib, "Shlwapi.lib")
@@ -64,6 +65,18 @@
 #define WSTR_EQUAL_I(str, strend, literal) ((wcsncasecmp(str, literal, _countof(literal) - 1) == 0) ? (strend == str + _countof(literal) - 1) : FALSE)
 
 static const WCHAR* pszParseErrorMessage;
+
+// stdlib_config_reader.c
+PXCH_UINT32 OpenConfigurationFile(PROXYCHAINS_CONFIG* pPxchConfig);
+PXCH_UINT32 OpenHostsFile(const WCHAR* szHostsFilePath);
+PXCH_UINT32 ConfigurationFileReadLine(unsigned long long* pullLineNum, wchar_t* chBuf, size_t cbBufSize);
+PXCH_UINT32 HostsFileReadLine(unsigned long long* pullHostsLineNum, wchar_t* chBuf, size_t cbBufSize);
+PXCH_UINT32 CloseConfigurationFile();
+PXCH_UINT32 CloseHostsFile();
+long ConfigurationTellPos();
+void ConfigurationRewind();
+long HostsTellPos();
+void HostsRewind();
 
 static inline size_t SizeMin(size_t a, size_t b)
 {

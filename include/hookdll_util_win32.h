@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-/* hookdll_interior_win32.h
+/* hookdll_util_win32.h
  * Copyright (C) 2020 Feng Shun.
  *
  *   This program is free software: you can redistribute it and/or modify
@@ -18,15 +18,18 @@
  */
 #pragma once
 
-#include "hookdll_interior_generic.h"
+#include "defines_win32.h"
+#include "hookdll_util_generic.h"
+
+PXCH_DLL_API PWCHAR FormatErrorToStr(DWORD dwError);
+PXCH_DLL_API void StdWprintf(DWORD dwStdHandle, const WCHAR* fmt, ...);
+PXCH_DLL_API void StdVwprintf(DWORD dwStdHandle, const WCHAR* fmt, va_list args);
+PXCH_DLL_API void StdFlush(DWORD dwStdHandle);
 
 DWORD IpcClientRegisterChildProcess();
 PXCH_UINT32 RestoreChildData();
 
 DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi);
-
-void Win32HookWs2_32(void);
-void CygwinHook(void);
 
 #ifdef PXCH_INCLUDE_WINSOCK_UTIL
 #include <WinSock2.h>

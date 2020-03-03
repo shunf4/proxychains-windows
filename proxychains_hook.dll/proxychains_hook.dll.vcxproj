@@ -204,36 +204,32 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\dll\dllmain.c" />
+    <ClCompile Include="..\src\dll\hookdll_main.c" />
     <ClCompile Include="..\src\dll\hook_createprocess_win32.c" />
     <ClCompile Include="..\src\dll\hook_cygwin_msvcstub.c" />
     <ClCompile Include="..\src\dll\hook_connect_win32.c" />
     <ClCompile Include="..\src\dll\hook_installer.c" />
     <ClCompile Include="..\src\dll\ipc_client_and_child_data.c" />
-    <ClCompile Include="..\src\dll\dllutil_log_func.c" />
-    <ClCompile Include="..\src\dll\dllutil_wsock.c" />
+    <ClCompile Include="..\src\dll\hookdll_util.c" />
+    <ClCompile Include="..\src\dll\hookdll_util_wsock.c" />
+    <ClCompile Include="..\src\dll\hookdll_util_ipc_message.c" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\minhook\build\VC15\libMinHook.vcxproj">
       <Project>{f142a341-5ee0-442d-a15f-98ae9b48dbae}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\proxychains_common\proxychains_common.vcxproj">
-      <Project>{d7744e4c-b1f8-495b-bdd4-dcdb0738b2be}</Project>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\common_generic.h" />
-    <ClInclude Include="..\include\common_win32.h" />
     <ClInclude Include="..\include\defines_generic.h" />
     <ClInclude Include="..\include\defines_win32.h" />
     <ClInclude Include="..\include\hookdll_generic.h" />
-    <ClInclude Include="..\include\hookdll_interior_generic.h" />
-    <ClInclude Include="..\include\hookdll_interior_win32.h" />
+    <ClInclude Include="..\include\hookdll_util_generic.h" />
+    <ClInclude Include="..\include\hookdll_util_win32.h" />
     <ClInclude Include="..\include\hookdll_win32.h" />
     <ClInclude Include="..\include\includes_win32.h" />
     <ClInclude Include="..\include\includes_generic.h" />
-    <ClInclude Include="..\include\ipc_generic.h" />
-    <ClInclude Include="..\include\ipc_win32.h" />
+    <ClInclude Include="..\include\hookdll_util_ipc_generic.h" />
+    <ClInclude Include="..\include\hookdll_util_ipc_win32.h" />
     <ClInclude Include="..\include\log_generic.h" />
     <ClInclude Include="..\include\log_win32.h" />
     <ClInclude Include="..\include\MinHook.h" />

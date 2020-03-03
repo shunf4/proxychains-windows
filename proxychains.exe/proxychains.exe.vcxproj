@@ -248,26 +248,24 @@
     <ClCompile Include="..\src\exe\args_and_config.c" />
     <ClCompile Include="..\src\exe\ipc_proc_bookkeeping.c" />
     <ClCompile Include="..\src\exe\main.c" />
+    <ClCompile Include="..\src\stdlib_config_reader.c" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\proxychains_common\proxychains_common.vcxproj">
-      <Project>{d7744e4c-b1f8-495b-bdd4-dcdb0738b2be}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\proxychains_hook.dll\proxychains_hook.dll.vcxproj">
       <Project>{fdbd3c8e-2ddf-4bbb-a157-0cb0054d5782}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\common_generic.h" />
-    <ClInclude Include="..\include\common_win32.h" />
     <ClInclude Include="..\include\defines_generic.h" />
     <ClInclude Include="..\include\defines_win32.h" />
     <ClInclude Include="..\include\hookdll_generic.h" />
+    <ClInclude Include="..\include\hookdll_util_generic.h" />
+    <ClInclude Include="..\include\hookdll_util_win32.h" />
     <ClInclude Include="..\include\hookdll_win32.h" />
     <ClInclude Include="..\include\includes_win32.h" />
     <ClInclude Include="..\include\includes_generic.h" />
-    <ClInclude Include="..\include\ipc_generic.h" />
-    <ClInclude Include="..\include\ipc_win32.h" />
+    <ClInclude Include="..\include\hookdll_util_ipc_generic.h" />
+    <ClInclude Include="..\include\hookdll_util_ipc_win32.h" />
     <ClInclude Include="..\include\log_generic.h" />
     <ClInclude Include="..\include\log_win32.h" />
     <ClInclude Include="..\include\proc_bookkeeping_win32.h" />

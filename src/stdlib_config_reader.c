@@ -19,7 +19,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "defines_win32.h"
 #include "log_win32.h"
-#include "common_win32.h"
+#include "hookdll_util_win32.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <ShlObj.h>
@@ -28,6 +28,18 @@ static FILE* fPxchConfig;
 static FILE* fHosts;
 static unsigned long long ullConfigurationLineNum;
 static unsigned long long ullHostsLineNum;
+
+// stdlib_config_reader.c
+PXCH_UINT32 OpenConfigurationFile(PROXYCHAINS_CONFIG* pPxchConfig);
+PXCH_UINT32 OpenHostsFile(const WCHAR* szHostsFilePath);
+PXCH_UINT32 ConfigurationFileReadLine(unsigned long long* pullLineNum, wchar_t* chBuf, size_t cbBufSize);
+PXCH_UINT32 HostsFileReadLine(unsigned long long* pullHostsLineNum, wchar_t* chBuf, size_t cbBufSize);
+PXCH_UINT32 CloseConfigurationFile();
+PXCH_UINT32 CloseHostsFile();
+long ConfigurationTellPos();
+void ConfigurationRewind();
+long HostsTellPos();
+void HostsRewind();
 
 PXCH_UINT32 OpenConfigurationFile(PROXYCHAINS_CONFIG* pPxchConfig)
 {

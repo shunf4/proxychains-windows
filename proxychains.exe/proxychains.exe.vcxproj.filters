@@ -24,12 +24,15 @@
     <ClCompile Include="..\src\exe\ipc_proc_bookkeeping.c">
       <Filter>Sources</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\stdlib_config_reader.c">
+      <Filter>Sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\ipc_generic.h">
+    <ClInclude Include="..\include\hookdll_util_ipc_generic.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\ipc_win32.h">
+    <ClInclude Include="..\include\hookdll_util_ipc_win32.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\include\log_generic.h">
@@ -39,12 +42,6 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\include\uthash.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\common_generic.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\common_win32.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\include\defines_generic.h">
@@ -81,6 +78,12 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\include\version.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\hookdll_util_generic.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\hookdll_util_win32.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

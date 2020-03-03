@@ -18,7 +18,7 @@
  */
 #include "defines_win32.h"
 #include "log_win32.h"
-#include "hookdll_interior_win32.h"
+#include "hookdll_util_win32.h"
 #include "hookdll_win32.h"
 
 

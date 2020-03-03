@@ -19,11 +19,10 @@
 #define PXCH_DO_NOT_INCLUDE_STD_HEADERS_NOW
 #define PXCH_DO_NOT_INCLUDE_STRSAFE_NOW
 #include "includes_win32.h"
-#include "common_win32.h"
 #include <WinSock2.h>
 #include <ws2tcpip.h>
 #include <Mswsock.h>
-#include "hookdll_interior_win32.h"
+#include "hookdll_util_win32.h"
 #include "log_win32.h"
 #include <MinHook.h>
 

@@ -20,14 +20,13 @@
 #define PXCH_DO_NOT_INCLUDE_STRSAFE_NOW
 #define PXCH_INCLUDE_WINSOCK_UTIL
 #include "includes_win32.h"
-#include "common_win32.h"
 #include <WinSock2.h>
 #include <ws2tcpip.h>
 #include <Mswsock.h>
 #include <Shlwapi.h>
 #include <stdlib.h>
 #include <strsafe.h>
-#include "hookdll_interior_win32.h"
+#include "hookdll_util_win32.h"
 #include "log_generic.h"
 #include "tls_win32.h"
 #include <MinHook.h>

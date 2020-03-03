@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-/* ipc_generic.h
+/* hookdll_util_ipc_generic.h
  * Copyright (C) 2020 Feng Shun.
  *
  *   This program is free software: you can redistribute it and/or modify
@@ -89,6 +89,6 @@ typedef struct _IPC_MSGHDR_HOSTNAMEANDIPS {
 
 PXCH_UINT32 IpcCommunicateWithServer(const PXCH_IPC_MSGBUF sendMessage, PXCH_UINT32 cbSendMessageSize, PXCH_IPC_MSGBUF responseMessage, PXCH_UINT32* pcbResponseMessageSize);
 
-PXCH_UINT32 WstrToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, const wchar_t* szWstr);
-PXCH_UINT32 MessageToWstr(wchar_t* wstr, CPXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize);
+PXCH_DLL_API PXCH_UINT32 WstrToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, const wchar_t* szWstr);
+PXCH_DLL_API PXCH_UINT32 MessageToWstr(wchar_t* wstr, CPXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize);
 

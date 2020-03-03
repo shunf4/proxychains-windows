@@ -16,8 +16,7 @@
  *   version 2 along with this program. If not, see
  *   <http://www.gnu.org/licenses/>.
  */
-#include "common_win32.h"
-#include "hookdll_interior_win32.h"
+#include "hookdll_util_win32.h"
 #include "log_win32.h"
 
 #include "hookdll_win32.h"

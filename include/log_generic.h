@@ -20,10 +20,10 @@
 #include "tls_generic.h"
 
 // *_early are per-process instead of per-thread, which will cause race condition, and are only used at early stages of DLL loading and hook initializing
-extern wchar_t log_ods_buf_early[PXCH_LOG_ODS_BUFSIZE];
+PXCH_DLL_API extern wchar_t log_ods_buf_early[PXCH_LOG_ODS_BUFSIZE];
 
 // After the load of Hook DLL, they will be per-thread(in TLS), thread safe
-#define log_ods_buf (g_dwTlsIndex ? PXCH_TLS_PTR_LOG_ODS_BUF(g_dwTlsIndex) : log_ods_buf_early)
+#define log_ods_buf ((g_dwTlsIndex != TLS_OUT_OF_INDEXES) ? PXCH_TLS_PTR_LOG_ODS_BUF(g_dwTlsIndex) : log_ods_buf_early)
 
 #define PXCH_LOG_LEVEL_VERBOSE 600
 #define PXCH_LOG_LEVEL_DEBUG 500
@@ -57,6 +57,8 @@ extern wchar_t log_ods_buf_early[PXCH_LOG_ODS_BUFSIZE];
 #else
 #define PXCH_LOG_IPC_PID_PREFIX  PXCH_LOG_IPC_PID_PREFIX_WIN
 #endif
+
+#define ODBGSTRLOG_FORCE_WITH_EARLY_BUF(fmt, ...) do { StringCchPrintfW(log_ods_buf_early, PXCH_LOG_ODS_BUFSIZE, fmt, ##__VA_ARGS__); OutputDebugStringW(log_ods_buf_early); } while(0)
 
 #if PXCH_LOG_LEVEL_ENABLED >= PXCH_LOG_LEVEL_DEBUG
 #define ODBGSTRLOG(fmt, ...) do { StringCchPrintfW(log_ods_buf, PXCH_LOG_ODS_BUFSIZE, fmt, ##__VA_ARGS__); OutputDebugStringW(log_ods_buf); } while(0)

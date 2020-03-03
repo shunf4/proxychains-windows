@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\dll\dllmain.c">
+    <ClCompile Include="..\src\dll\hookdll_main.c">
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="..\src\dll\hook_cygwin_msvcstub.c">
@@ -33,10 +33,13 @@
     <ClCompile Include="..\src\dll\hook_installer.c">
       <Filter>Sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\dll\dllutil_log_func.c">
+    <ClCompile Include="..\src\dll\hookdll_util.c">
       <Filter>Sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\dll\dllutil_wsock.c">
+    <ClCompile Include="..\src\dll\hookdll_util_wsock.c">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\dll\hookdll_util_ipc_message.c">
       <Filter>Sources</Filter>
     </ClCompile>
   </ItemGroup>
@@ -45,12 +48,6 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\include\remote_win32.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\common_generic.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\common_win32.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\include\defines_generic.h">
@@ -71,10 +68,10 @@
     <ClInclude Include="..\include\includes_win32.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\ipc_generic.h">
+    <ClInclude Include="..\include\hookdll_util_ipc_generic.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\ipc_win32.h">
+    <ClInclude Include="..\include\hookdll_util_ipc_win32.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\include\log_generic.h">
@@ -86,10 +83,10 @@
     <ClInclude Include="..\include\proxy_core.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\hookdll_interior_win32.h">
+    <ClInclude Include="..\include\hookdll_util_win32.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\hookdll_interior_generic.h">
+    <ClInclude Include="..\include\hookdll_util_generic.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\include\ut_helpers.h">

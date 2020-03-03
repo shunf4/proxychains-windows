@@ -27,6 +27,7 @@
 #include "log_win32.h"
 #include "proc_bookkeeping_win32.h"
 #include "hookdll_win32.h"
+#include "hookdll_util_win32.h"
 
 #ifdef __CYGWIN__
 #include <unistd.h>
@@ -561,11 +562,18 @@ int main(int argc, char* const argv[], char* const envp[])
 	const char* szLocale;
 	PROXYCHAINS_CONFIG TempProxychainsConfig;
 
-	// char* spawn_argv[] = { "bash.exe", NULL };
 	WCHAR** wargv = malloc(argc * sizeof(WCHAR*));
 	const void* ctx[2];
 
 	setvbuf(stderr, NULL, _IOFBF, 65536);
+	// WriteFile() executed inside StdWprintf() in DLL won't work??? This is a workaround.
+	{
+		DWORD cbWritten;
+		WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), "", 0, &cbWritten, NULL);
+		FlushFileBuffers(GetStdHandle(STD_OUTPUT_HANDLE));
+		WriteFile(GetStdHandle(STD_ERROR_HANDLE), "", 0, &cbWritten, NULL);
+		FlushFileBuffers(GetStdHandle(STD_ERROR_HANDLE));
+	}
 
 	for (i = 0; i < argc; i++) {
 		int iNeededChars = MultiByteToWideChar(CP_UTF8, 0, argv[i], -1, NULL, 0);

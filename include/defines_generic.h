@@ -430,4 +430,4 @@ static const wchar_t g_szMinHookDllFileName[] = L"MinHook.x64.dll";
 static const wchar_t g_szMinHookDllFileName[] = L"MinHook.x86.dll";
 #endif
 
-extern PXCH_DLL_API PROXYCHAINS_CONFIG* g_pPxchConfig;
+PXCH_DLL_API  extern PROXYCHAINS_CONFIG* g_pPxchConfig;

@@ -21,21 +21,20 @@
 #include <sys/cygwin.h>
 #endif
 
-#include "common_win32.h"
 #include "defines_win32.h"
-#include "ipc_win32.h"
+#include "hookdll_util_ipc_win32.h"
 #include "log_generic.h"
 #include "tls_win32.h"
 
 // *_early are per-process instead of per-thread, which will cause race condition, and are only used at early stages of DLL loading and hook initializing
-extern SYSTEMTIME log_time_early;
-extern wchar_t log_szLogLine_early[PXCH_LOG_IPC_BUFSIZE];
-extern PXCH_IPC_MSGBUF log_msg_early;
-extern PXCH_IPC_MSGBUF log_respMsg_early;
-extern PXCH_UINT32 log_cbMsgSize_early;
-extern PXCH_UINT32 log_cbRespMsgSize_early;
-extern PXCH_UINT32 log_pid_early;
-extern PXCH_UINT32 log_tid_early;
+PXCH_DLL_API  extern SYSTEMTIME log_time_early;
+PXCH_DLL_API  extern wchar_t log_szLogLine_early[PXCH_LOG_IPC_BUFSIZE];
+PXCH_DLL_API  extern PXCH_IPC_MSGBUF log_msg_early;
+PXCH_DLL_API  extern PXCH_IPC_MSGBUF log_respMsg_early;
+PXCH_DLL_API  extern PXCH_UINT32 log_cbMsgSize_early;
+PXCH_DLL_API  extern PXCH_UINT32 log_cbRespMsgSize_early;
+PXCH_DLL_API  extern PXCH_UINT32 log_pid_early;
+PXCH_DLL_API  extern PXCH_UINT32 log_tid_early;
 
 #ifdef __CYGWIN__
 extern PXCH_UINT32 log_cygpid_early;
@@ -62,15 +61,15 @@ static void __attribute__((unused)) suppress_unused_variable(void)
 #endif
 
 // After the load of Hook DLL, they will be per-thread(in TLS), thread safe
-#define log_time (*(g_dwTlsIndex ? PXCH_TLS_PTR_LOG_TIME(g_dwTlsIndex) : &log_time_early))
-#define log_szLogLine (g_dwTlsIndex ? PXCH_TLS_PTR_LOG_SZLOGLINE(g_dwTlsIndex) : log_szLogLine_early)
-#define log_msg (g_dwTlsIndex ? PXCH_TLS_PTR_LOG_MSG(g_dwTlsIndex) : log_msg_early)
-#define log_respMsg (g_dwTlsIndex ? PXCH_TLS_PTR_LOG_RESPMSG(g_dwTlsIndex) : log_respMsg_early)
-#define log_cbMsgSize (*(g_dwTlsIndex ? PXCH_TLS_PTR_LOG_CBMSGSIZE(g_dwTlsIndex) : &log_cbMsgSize_early))
-#define log_cbRespMsgSize (*(g_dwTlsIndex ? PXCH_TLS_PTR_LOG_CBRESPMSGSIZE(g_dwTlsIndex) : &log_cbRespMsgSize_early))
-#define log_pid (*(g_dwTlsIndex ? PXCH_TLS_PTR_LOG_PID(g_dwTlsIndex) : &log_pid_early))
-#define log_cygpid (*(g_dwTlsIndex ? PXCH_TLS_PTR_LOG_CYGPID(g_dwTlsIndex) : &log_cygpid_early))
-#define log_tid (*(g_dwTlsIndex ? PXCH_TLS_PTR_LOG_TID(g_dwTlsIndex) : &log_tid_early))
+#define log_time (*((g_dwTlsIndex != TLS_OUT_OF_INDEXES) ? PXCH_TLS_PTR_LOG_TIME(g_dwTlsIndex) : &log_time_early))
+#define log_szLogLine ((g_dwTlsIndex != TLS_OUT_OF_INDEXES) ? PXCH_TLS_PTR_LOG_SZLOGLINE(g_dwTlsIndex) : log_szLogLine_early)
+#define log_msg ((g_dwTlsIndex != TLS_OUT_OF_INDEXES) ? PXCH_TLS_PTR_LOG_MSG(g_dwTlsIndex) : log_msg_early)
+#define log_respMsg ((g_dwTlsIndex != TLS_OUT_OF_INDEXES) ? PXCH_TLS_PTR_LOG_RESPMSG(g_dwTlsIndex) : log_respMsg_early)
+#define log_cbMsgSize (*((g_dwTlsIndex != TLS_OUT_OF_INDEXES) ? PXCH_TLS_PTR_LOG_CBMSGSIZE(g_dwTlsIndex) : &log_cbMsgSize_early))
+#define log_cbRespMsgSize (*((g_dwTlsIndex != TLS_OUT_OF_INDEXES) ? PXCH_TLS_PTR_LOG_CBRESPMSGSIZE(g_dwTlsIndex) : &log_cbRespMsgSize_early))
+#define log_pid (*((g_dwTlsIndex != TLS_OUT_OF_INDEXES) ? PXCH_TLS_PTR_LOG_PID(g_dwTlsIndex) : &log_pid_early))
+#define log_cygpid (*((g_dwTlsIndex != TLS_OUT_OF_INDEXES) ? PXCH_TLS_PTR_LOG_CYGPID(g_dwTlsIndex) : &log_cygpid_early))
+#define log_tid (*((g_dwTlsIndex != TLS_OUT_OF_INDEXES) ? PXCH_TLS_PTR_LOG_TID(g_dwTlsIndex) : &log_tid_early))
 
 #define PXCH_LOG_IPC_PID_QUERY_CYG() log_pid = GetCurrentProcessId(); log_cygpid = g_bCurrentlyInWinapiCall ? -1 : cygwin_winpid_to_pid(log_pid)
 #define PXCH_LOG_IPC_PID_VALUE_CYG log_cygpid, log_pid

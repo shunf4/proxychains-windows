@@ -20,6 +20,7 @@
 #include "log_win32.h"
 #include "proc_bookkeeping_win32.h"
 #include "hookdll_win32.h"
+#include "hookdll_util_win32.h"
 
 tab_per_process_t* g_tabPerProcess;
 tab_fake_ip_hostname_t* g_tabFakeIpHostname;
@@ -96,7 +97,7 @@ DWORD ChildProcessExitedCallbackWorker(PVOID lpParameter, BOOLEAN TimerOrWaitFir
 		if (!GetExitCodeProcess(Entry->hProcess, &dwExitCode)) {
 			LOGE(L"GetExitCodeProcess() error: %ls", FormatErrorToStr(GetLastError()));
 		}
-		LOGI(L"Child process winpid " WPRDW L" exited (%#010x).", Entry->Data.dwPid, dwExitCode);
+		LOGD(L"Child process winpid " WPRDW L" exited (%#010x).", Entry->Data.dwPid, dwExitCode);
 
 		LL_FOREACH_SAFE(Entry->Ips, pIpNode, pTmpIpNode) {
 			IpHostnameAsKey.Ip = pIpNode->Ip;
@@ -417,7 +418,7 @@ DWORD HandleMessage(int i, PXCH_IPC_INSTANCE* pipc)
 		REPORTED_CHILD_DATA ChildData;
 		LOGV(L"Message is CHILDDATA");
 		MessageToChildData(&ChildData, pMsg, pipc->cbRead);
-		LOGD(L"Child process pid " WPRDW L" created.", ChildData.dwPid);
+		LOGD(L"Child process winpid " WPRDW L" created.", ChildData.dwPid);
 		LOGV(L"RegisterNewChildProcess...");
 		RegisterNewChildProcess(&ChildData);
 		LOGV(L"RegisterNewChildProcess done.");
