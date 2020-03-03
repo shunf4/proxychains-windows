@@ -1126,17 +1126,13 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, GetLastError       );
 	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, OutputDebugStringA );
 
-#if defined(_M_X64) || defined(__x86_64__)
+#if (defined(_M_X64) || defined(__x86_64__)) && !defined(__CYGWIN__)
 	{
 		FILE* fHelperProcOut;
 		fHelperProcOut = popen(szHelperX86CommandLine, "rt");
 
 		if (fHelperProcOut == NULL) {
-#ifndef __CYGWIN__
 			LOGW(L"Warning: X86 Helper executable " WPRS L" not found. In this case proxychains.exe will not inject X86 descendant processes.", szHelperX86CommandLine);
-#else
-			LOGD(L"Warning: X86 Helper executable " WPRS L" not found. In this case proxychains.exe will not inject X86 descendant processes.", szHelperX86CommandLine);
-#endif
 		} else {
 			unsigned long long tmp;
 			int i;

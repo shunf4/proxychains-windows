@@ -41,6 +41,55 @@ HANDLE g_hIpcServerSemaphore;
 
 DWORD HandleMessage(int i, PXCH_IPC_INSTANCE* pipc);
 
+void StdVwprintf_NotImported(DWORD dwStdHandle, const WCHAR* fmt, va_list args)
+{
+	HANDLE h;
+	STRSAFE_LPWSTR pEnd = g_szFwprintfWbuf;
+	int iBufSize;
+	DWORD cbWritten;
+
+	g_szFwprintfWbuf[0] = L'\0';
+	g_szFwprintfBuf[0] = '\0';
+
+#ifdef __CYGWIN__
+	pEnd = g_szFwprintfWbuf + newlib_vswprintf(g_szFwprintfWbuf, PXCH_MAX_FWPRINTF_BUFSIZE, fmt, args);
+#else
+	StringCchVPrintfExW(g_szFwprintfWbuf, PXCH_MAX_FWPRINTF_BUFSIZE, &pEnd, NULL, 0, fmt, args);
+#endif
+
+	if (pEnd < g_szFwprintfWbuf) pEnd = g_szFwprintfWbuf;
+
+	if (g_szFwprintfWbuf[PXCH_MAX_FWPRINTF_BUFSIZE - 2]) g_szFwprintfWbuf[PXCH_MAX_FWPRINTF_BUFSIZE - 2] = L'\n';
+	g_szFwprintfWbuf[PXCH_MAX_FWPRINTF_BUFSIZE - 1] = L'\0';
+	iBufSize = WideCharToMultiByte(CP_ACP, 0, g_szFwprintfWbuf, (int)(pEnd - g_szFwprintfWbuf), g_szFwprintfBuf, PXCH_MAX_FWPRINTF_BUFSIZE, NULL, NULL);
+	g_szFwprintfBuf[PXCH_MAX_FWPRINTF_BUFSIZE - 1] = '\0';
+
+	h = GetStdHandle(dwStdHandle);
+	if (h && h != INVALID_HANDLE_VALUE) WriteFile(h, g_szFwprintfBuf, iBufSize, &cbWritten, NULL);
+}
+
+
+void StdWprintf_NotImported(DWORD dwStdHandle, const WCHAR* fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+	StdVwprintf_NotImported(dwStdHandle, fmt, args);
+    va_end(args);
+}
+
+
+void StdFlush_NotImported(DWORD dwStdHandle)
+{
+	HANDLE h;
+
+	h = GetStdHandle(dwStdHandle);
+	if (h && h != INVALID_HANDLE_VALUE) FlushFileBuffers(h);
+}
+
+#define StdVwprintf StdVwprintf_NotImported
+#define StdWprintf StdWprintf_NotImported
+#define StdFlush StdFlush_NotImported
+
 DWORD ConnectToNewClient(HANDLE hPipe, LPOVERLAPPED lpo)
 {
 	BOOL bConnected;
@@ -159,13 +208,13 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 #else
 		dwWait = WaitForMultipleObjects(PXCH_IPC_INSTANCE_NUM, hEvents, FALSE, 100);
 		if (dwWait == WAIT_TIMEOUT) {
-			// BOOL bChild = FALSE;
-			// int iChildPid = 0;
-			// while ((iChildPid = waitpid((pid_t)(-1), 0, WNOHANG)) > 0) { bChild = TRUE; }
-			// if (bChild) {
-			// 	LOGI(L"Cygwin child process %d exited (between WaitForMultipleObjects()). Master exiting", iChildPid);
-			// 	IF_CYGWIN_EXIT(0);
-			// }
+			BOOL bChild = FALSE;
+			int iChildPid = 0;
+			while ((iChildPid = waitpid((pid_t)(-1), 0, WNOHANG)) > 0) { bChild = TRUE; break; }
+			if (bChild) {
+				LOGI(L"Cygwin child process %d exited (between WaitForMultipleObjects()). Master exiting", iChildPid);
+				IF_CYGWIN_EXIT(0);
+			}
 			continue;
 		}
 #endif
@@ -571,14 +620,6 @@ int main(int argc, char* const argv[], char* const envp[])
 	const void* ctx[2];
 
 	setvbuf(stderr, NULL, _IOFBF, 65536);
-	// WriteFile() executed inside StdWprintf() in DLL won't work??? This is a workaround.
-	{
-		DWORD cbWritten;
-		WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), "", 0, &cbWritten, NULL);
-		FlushFileBuffers(GetStdHandle(STD_OUTPUT_HANDLE));
-		WriteFile(GetStdHandle(STD_ERROR_HANDLE), "", 0, &cbWritten, NULL);
-		FlushFileBuffers(GetStdHandle(STD_ERROR_HANDLE));
-	}
 
 	for (i = 0; i < argc; i++) {
 		int iNeededChars = MultiByteToWideChar(CP_UTF8, 0, argv[i], -1, NULL, 0);
@@ -589,6 +630,14 @@ int main(int argc, char* const argv[], char* const envp[])
 	setvbuf(stderr, NULL, _IOFBF, 65536);
 	szLocale = setlocale(LC_ALL, "");
 	(void)szLocale;
+	// WriteFile() executed inside StdWprintf() in DLL won't work??? This is a (deprecated) workaround.
+	if (0) {
+		DWORD cbWritten;
+		WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), "", 0, &cbWritten, NULL);
+		FlushFileBuffers(GetStdHandle(STD_OUTPUT_HANDLE));
+		WriteFile(GetStdHandle(STD_ERROR_HANDLE), "", 0, &cbWritten, NULL);
+		FlushFileBuffers(GetStdHandle(STD_ERROR_HANDLE));
+	}
 	LOGD(L"Locale: " WPRS, szLocale);
 
 	if ((dwError = Init()) != NOERROR) goto err;
@@ -646,8 +695,6 @@ int main(int argc, char* const argv[], char* const envp[])
 
 	signal(SIGINT, handle_sigint);
 	signal(SIGCHLD, handle_sigchld);
-
-	SetConsoleCtrlHandler(CtrlHandler, TRUE);
 
 	while(1) pause();
 

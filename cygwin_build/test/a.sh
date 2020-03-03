@@ -1,3 +1,3 @@
 #!/bin/sh
 echo this is a
-./b.sh
+$(dirname $0)/b.sh

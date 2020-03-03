@@ -136,12 +136,16 @@ programs). See "To-do and Known Issues". Perhaps solution based on
 
 # To-do and Known Issues
 
+(Development will be suspended for some time)
+
+- [ ] Try to fix hang when executing `git clone https://` and
+      `git submodule update --init --recursive`
+- [ ] Try to fix frequent failure of `proxychains bash` under Cygwin
+      (Or maybe we should focus on Win32 ? Cygwin is quite a mess)
 - [ ] Remote DNS resolving based on UDP associate
 - [ ] Hook `sendto()`, coping with applications which do TCP fast open
 - [X] ~~Dynamic selection of 32-bit DLL and 64-bit DLL~~ ~~Fixed in 0.4~~
       Finally fixed in ~~0.4.3~~ ~~0.4.4~~ 0.4.5
-- [ ] Try to fix hang when executing `git clone https://` and
-      `git submodule update --init --recursive`
 - [X] ~~Resolve race condition in `StdWprintf()`~~ Fixed in 0.4.5
 
 # Licensing

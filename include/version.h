@@ -23,5 +23,5 @@
 #define PXCH_VERSION_MINOR 4
 #endif
 #ifndef PXCH_VERSION_PATCH
-#define PXCH_VERSION_PATCH 6
+#define PXCH_VERSION_PATCH 7
 #endif

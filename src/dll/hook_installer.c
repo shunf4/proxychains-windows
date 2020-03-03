@@ -50,10 +50,6 @@ void Win32HookWs2_32(void)
 	LoadLibraryW(L"ws2_32.dll");
 
 	if ((hWs2_32 = GetModuleHandleW(L"ws2_32.dll"))) {
-		int iReturn;
-		SOCKET DummySocket;
-		WSADATA DummyWsaData;
-
 		// orig_fpWs2_32_WSAStartup = (void*)GetProcAddress(hWs2_32, "WSAStartup");
 		orig_fpWs2_32_WSAConnect = (void*)GetProcAddress(hWs2_32, "WSAConnect");
 		orig_fpWs2_32_connect = (void*)GetProcAddress(hWs2_32, "connect");
@@ -110,23 +106,31 @@ void Win32HookWs2_32(void)
 		if (orig_fpWs2_32_FreeAddrInfoExW == NULL) orig_fpWs2_32_FreeAddrInfoExW = orig_fpWs2_32_FreeAddrInfoEx;
 
 		// Hook ConnectEx()
-		iReturn = WSAStartup(MAKEWORD(2, 2), &DummyWsaData);
+#ifndef __CYGWIN__
+		{
+			int iReturn;
+			SOCKET DummySocket;
+			WSADATA DummyWsaData;
 
-		if (iReturn == 0) {
-			GUID GuidConnectEx = WSAID_CONNECTEX;
-			LPFN_CONNECTEX fpConnectEx = NULL;
-			DWORD cb;
+			iReturn = WSAStartup(MAKEWORD(2, 2), &DummyWsaData);
 
-			DummySocket = socket(AF_INET, SOCK_STREAM, 0);
-			if (DummySocket != INVALID_SOCKET) {
-				if (WSAIoctl(DummySocket, SIO_GET_EXTENSION_FUNCTION_POINTER, &GuidConnectEx, sizeof(GUID), &fpConnectEx, sizeof(LPFN_CONNECTEX), &cb, NULL, NULL) == 0) {
-					if (fpConnectEx) {
-						CREATE_HOOK3_IFNOTNULL(Mswsock, ConnectEx, fpConnectEx);
+			if (iReturn == 0) {
+				GUID GuidConnectEx = WSAID_CONNECTEX;
+				LPFN_CONNECTEX fpConnectEx = NULL;
+				DWORD cb;
+
+				DummySocket = socket(AF_INET, SOCK_STREAM, 0);
+				if (DummySocket != INVALID_SOCKET) {
+					if (WSAIoctl(DummySocket, SIO_GET_EXTENSION_FUNCTION_POINTER, &GuidConnectEx, sizeof(GUID), &fpConnectEx, sizeof(LPFN_CONNECTEX), &cb, NULL, NULL) == 0) {
+						if (fpConnectEx) {
+							CREATE_HOOK3_IFNOTNULL(Mswsock, ConnectEx, fpConnectEx);
+						}
 					}
+					closesocket(DummySocket);
 				}
-				closesocket(DummySocket);
 			}
 		}
+#endif
 	}
 }
 

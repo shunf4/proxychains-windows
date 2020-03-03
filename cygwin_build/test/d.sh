@@ -1,4 +1,4 @@
 #!/bin/sh
 echo this is d
-./e.sh
-./f.sh
+$(dirname $0)/e.sh
+$(dirname $0)/f.sh
