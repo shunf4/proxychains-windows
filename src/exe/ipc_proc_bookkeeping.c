@@ -86,14 +86,20 @@ void PrintTablePerProcess()
 DWORD ChildProcessExitedCallbackWorker(PVOID lpParameter, BOOLEAN TimerOrWaitFired)
 {
 	PXCH_DO_IN_CRITICAL_SECTION_RETURN_DWORD{
-		tab_per_process_t * Entry = (tab_per_process_t*)lpParameter;
+		tab_per_process_t* Entry = (tab_per_process_t*)lpParameter;
+		tab_per_process_t* TempEntry;
 		tab_fake_ip_hostname_t IpHostnameAsKey;
 		tab_fake_ip_hostname_t* IpHostnameEntry;
 		IpNode* pIpNode;
 		IpNode* pTmpIpNode;
 
 		DWORD dwExitCode = UINT32_MAX;
-		HASH_DELETE(hh, g_tabPerProcess, Entry);
+		HASH_FIND(hh, g_tabPerProcess, &Entry->Data.dwPid, sizeof(pid_key_t), TempEntry);
+		if (TempEntry) {
+			HASH_DELETE(hh, g_tabPerProcess, Entry);
+		} else {
+			LOGE(L"Error trying to delete entry associated with winpid " WPRDW L": not found", Entry->Data.dwPid);
+		}
 		if (!GetExitCodeProcess(Entry->hProcess, &dwExitCode)) {
 			LOGE(L"GetExitCodeProcess() error: %ls", FormatErrorToStr(GetLastError()));
 		}

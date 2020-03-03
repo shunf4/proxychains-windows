@@ -351,3 +351,4 @@ cygwin_build/**/distx*
 cygwin_build/**/*.stackdump
 cygwin_build/**/*.bin
 win32_output/
+dist/

@@ -1170,7 +1170,7 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 	int iWSALastError;
 	DWORD dwLastError;
 
-	// Stack size is limited. We need to store big data on heap
+	// Stack size is limited (?????). We need to store big data on heap
 	struct {
 		ADDRINFOW RequeryAddrInfoHints;
 		ADDRINFOW* pRequeryAddrInfo;
@@ -1180,6 +1180,13 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 		PXCH_IP_ADDRESS Ips[PXCH_MAX_ARRAY_IP_NUM];
 		PXCH_UINT32 dwTarget;
 		BOOL bMatchedHostnameRule;
+
+		PXCH_IPC_MSGBUF chMessageBuf;
+		PXCH_UINT32 cbMessageSize;
+		PXCH_IPC_MSGBUF chRespMessageBuf;
+		PXCH_UINT32 cbRespMessageSize;
+		PXCH_IP_ADDRESS FakeIps[2];
+		PXCH_IP_ADDRESS* pFakeIps;
 	} *pLocalData;
 
 	pLocalData = HeapAlloc(GetProcessHeap(), 0, sizeof(*pLocalData));
@@ -1217,35 +1224,38 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 	pLocalData->dwTarget = GetTargetByRule(&pLocalData->bMatchedHostnameRule, NULL, NULL, NULL, (PXCH_HOST_PORT*)&pLocalData->OriginalHostname, g_pPxchConfig->dwDefaultTarget);
 
 	if (pLocalData->bMatchedHostnameRule || g_pPxchConfig->dwWillUseFakeIpWhenHostnameNotMatched) {
-		PXCH_IPC_MSGBUF chMessageBuf;
-		PXCH_UINT32 cbMessageSize;
-		PXCH_IPC_MSGBUF chRespMessageBuf;
-		PXCH_UINT32 cbRespMessageSize;
-		PXCH_IP_ADDRESS FakeIps[2];
 		struct hostent* pNewHostentResult;
 		int iIpFamilyAllowed;
-		PXCH_IP_ADDRESS* pFakeIps;
+		// DWORD dw;
+		// BOOL bAnyResolvedIpv4 = FALSE;
+		// BOOL bAnyResolvedIpv6 = FALSE;
 
-		FUNCIPCLOGD(L"Ws2_32.dll gethostbyname(" WPRS L") : 5", name);
+		// for (dw = 0; dw < pLocalData->dwIpNum; dw++) {
+		// 	if (pLocalData->Ips[dw].CommonHeader.wTag == PXCH_HOST_TYPE_IPV4) {
+		// 		bAnyResolvedIpv4 = TRUE;
+		// 	}
+		// 	if (pLocalData->Ips[dw].CommonHeader.wTag == PXCH_HOST_TYPE_IPV6) {
+		// 		bAnyResolvedIpv6 = TRUE;
+		// 	}
+		// }
 
+		if ((dwLastError = HostnameAndIpsToMessage(pLocalData->chMessageBuf, &pLocalData->cbMessageSize, GetCurrentProcessId(), &pLocalData->OriginalHostname, g_pPxchConfig->dwWillMapResolvedIpToHost, pLocalData->dwIpNum, pLocalData->Ips, pLocalData->dwTarget)) != NO_ERROR) goto err;
 
-		if ((dwLastError = HostnameAndIpsToMessage(chMessageBuf, &cbMessageSize, GetCurrentProcessId(), &pLocalData->OriginalHostname, g_pPxchConfig->dwWillMapResolvedIpToHost, pLocalData->dwIpNum, pLocalData->Ips, pLocalData->dwTarget)) != NO_ERROR) goto err;
+		if ((dwLastError = IpcCommunicateWithServer(pLocalData->chMessageBuf, pLocalData->cbMessageSize, pLocalData->chRespMessageBuf, &pLocalData->cbRespMessageSize)) != NO_ERROR) goto err;
 
-		if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) goto err;
-
-		if ((dwLastError = MessageToHostnameAndIps(NULL, NULL, NULL, NULL /*Must be 2*/, FakeIps, NULL, chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) goto err;
+		if ((dwLastError = MessageToHostnameAndIps(NULL, NULL, NULL, NULL /*Must be 2*/, pLocalData->FakeIps, NULL, pLocalData->chRespMessageBuf, pLocalData->cbRespMessageSize)) != NO_ERROR) goto err;
 
 		iIpFamilyAllowed = 0;
-		pFakeIps = FakeIps + 1;
+		pLocalData->pFakeIps = pLocalData->FakeIps + 1;
 
-		if (g_pPxchConfig->dwWillFirstTunnelUseIpv4) {
+		if (g_pPxchConfig->dwWillFirstTunnelUseIpv4 /* && bAnyResolvedIpv4*/) {
 			iIpFamilyAllowed++;
-			pFakeIps--;
+			pLocalData->pFakeIps--;
 		}
-		if (g_pPxchConfig->dwWillFirstTunnelUseIpv6) {
+		if (g_pPxchConfig->dwWillFirstTunnelUseIpv6 /* && bAnyResolvedIpv6*/) {
 			iIpFamilyAllowed++;
 		}
-		HostnameAndIpsToHostent(&pNewHostentResult, TlsGetValue(g_dwTlsIndex), &pLocalData->OriginalHostname, iIpFamilyAllowed, pFakeIps);
+		HostnameAndIpsToHostent(&pNewHostentResult, TlsGetValue(g_dwTlsIndex), &pLocalData->OriginalHostname, iIpFamilyAllowed, pLocalData->pFakeIps);
 		iWSALastError = NO_ERROR;
 		dwLastError = NO_ERROR;
 	
@@ -1325,6 +1335,7 @@ PROXY_FUNC2(Ws2_32, getaddrinfo)
 	iReturn = ProxyWs2_32_GetAddrInfoW(pNodeName ? pLocalData->pNodeNameW : NULL, pServiceName ? pLocalData->pServiceNameW : NULL, pHintsCastW, &pResultCastW);
 	iWSALastError = WSAGetLastError();
 	dwLastError = GetLastError();
+	FUNCIPCLOGD(L"Ws2_32.dll getaddrinfo(%S, %S, AF%#010x, FL%#010x, ST%#010x, PT%#010x): ProxyWs2_32_GetAddrInfoW ret: %d", pNodeName, pServiceName, pHintsCast ? pHintsCast->ai_family : -1, pHintsCast ? pHintsCast->ai_flags : -1, pHintsCast ? pHintsCast->ai_socktype : -1, pHintsCast ? pHintsCast->ai_protocol : -1, iReturn);
 
 	HeapLock(GetProcessHeap());
 	
@@ -1397,12 +1408,12 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 
 	ADDRINFOW* pRequeryAddrInfo;
 
-	DWORD dw;
+	// DWORD dw;
 
-	// Stack size is limited. We need to store big data on heap
+	// Stack size is limited (?????). We need to store big data on heap
 	struct {
 		ADDRINFOW DefaultHints;
-		WCHAR szAddrsBuf[200];
+		WCHAR szAddrsBuf[1024];
 		PXCH_HOST_PORT HostPort;
 		PXCH_HOSTNAME Hostname;
 		ADDRINFOW RequeryAddrInfoHints;
@@ -1431,15 +1442,17 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 	iWSALastError = WSAGetLastError();
 	dwLastError = GetLastError();
 	pOriginalResultCast = *ppResultCast;
+	FUNCIPCLOGD(L"Ws2_32.dll GetAddrInfoW(%ls, %ls, AF%#010x, FL%#010x, ST%#010x, PT%#010x): orig_fpWs2_32_GetAddrInfoW ret: %d", pNodeName, pServiceName, pHintsCast->ai_family, pHintsCast->ai_flags, pHintsCast->ai_socktype, pHintsCast->ai_protocol, iReturn);
 
 	pLocalData->szAddrsBuf[0] = L'\0';
 	pszAddrsBuf = pLocalData->szAddrsBuf;
 
-	for (pResultCast = pOriginalResultCast; pResultCast; pResultCast = pResultCast->ai_next) {
-		StringCchPrintfExW(pszAddrsBuf, _countof(pLocalData->szAddrsBuf) - (pszAddrsBuf - pLocalData->szAddrsBuf), &pszAddrsBuf, NULL, 0, L"%ls%ls", pResultCast == pOriginalResultCast ? L"" : L", ", FormatHostPortToStr(pResultCast->ai_addr, (int)pResultCast->ai_addrlen));
+	if (g_pPxchConfig->dwLogLevel >= PXCH_LOG_LEVEL_DEBUG) {
+		for (pResultCast = pOriginalResultCast; pResultCast; pResultCast = pResultCast->ai_next) {
+			StringCchPrintfExW(pszAddrsBuf, _countof(pLocalData->szAddrsBuf) - (pszAddrsBuf - pLocalData->szAddrsBuf), &pszAddrsBuf, NULL, 0, L"%ls%ls", pResultCast == pOriginalResultCast ? L"" : L", ", FormatHostPortToStr(pResultCast->ai_addr, (int)pResultCast->ai_addrlen));
+		}
+		FUNCIPCLOGD(L"Ws2_32.dll GetAddrInfoW(%ls, %ls, ...) result %p: %ls", pNodeName, pServiceName, pOriginalResultCast, pLocalData->szAddrsBuf);
 	}
-
-	FUNCIPCLOGD(L"Ws2_32.dll GetAddrInfoW(%ls, %ls, ...) result %p: %ls", pNodeName, pServiceName, pOriginalResultCast, pLocalData->szAddrsBuf);
 
 	if (!g_pPxchConfig->dwWillUseFakeIpAsRemoteDns) goto out;
 
@@ -1495,19 +1508,19 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 		ADDRINFOW* pNewAddrInfoWResult;
 		int iIpFamilyAllowed;
 		PXCH_IP_PORT* pFakeIpPorts;
-		BOOL bAnyResolvedIpv4 = FALSE;
-		BOOL bAnyResolvedIpv6 = FALSE;
+		// BOOL bAnyResolvedIpv4 = FALSE;
+		// BOOL bAnyResolvedIpv6 = FALSE;
 
 		AddrInfoToIps(&dwIpNum, pLocalData->Ips, pOriginalResultCast, TRUE);
 
-		for (dw = 0; dw < dwIpNum; dw++) {
-			if (pLocalData->Ips[dw].CommonHeader.wTag == PXCH_HOST_TYPE_IPV4) {
-				bAnyResolvedIpv4 = TRUE;
-			}
-			if (pLocalData->Ips[dw].CommonHeader.wTag == PXCH_HOST_TYPE_IPV6) {
-				bAnyResolvedIpv6 = TRUE;
-			}
-		}
+		// for (dw = 0; dw < dwIpNum; dw++) {
+		// 	if (pLocalData->Ips[dw].CommonHeader.wTag == PXCH_HOST_TYPE_IPV4) {
+		// 		bAnyResolvedIpv4 = TRUE;
+		// 	}
+		// 	if (pLocalData->Ips[dw].CommonHeader.wTag == PXCH_HOST_TYPE_IPV6) {
+		// 		bAnyResolvedIpv6 = TRUE;
+		// 	}
+		// }
 
 		if ((dwLastError = HostnameAndIpsToMessage(pLocalData->chMessageBuf, &cbMessageSize, GetCurrentProcessId(), &pLocalData->Hostname, g_pPxchConfig->dwWillMapResolvedIpToHost, dwIpNum, pLocalData->Ips, dwTarget)) != NO_ERROR) goto err;
 
@@ -1521,11 +1534,11 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 		iIpFamilyAllowed = 0;
 		pFakeIpPorts = pLocalData->FakeIpPorts + 1;
 
-		if (g_pPxchConfig->dwWillFirstTunnelUseIpv4 && bAnyResolvedIpv4) {
+		if (g_pPxchConfig->dwWillFirstTunnelUseIpv4 /* && bAnyResolvedIpv4*/) {
 			iIpFamilyAllowed++;
 			pFakeIpPorts--;
 		}
-		if (g_pPxchConfig->dwWillFirstTunnelUseIpv6 && bAnyResolvedIpv6) {
+		if (g_pPxchConfig->dwWillFirstTunnelUseIpv6 /* && bAnyResolvedIpv6*/) {
 			iIpFamilyAllowed++;
 		}
 		HostnameAndIpPortsToAddrInfo_WillAllocate(&pNewAddrInfoWResult, &pLocalData->Hostname, iIpFamilyAllowed, pFakeIpPorts, !!(pHintsCast->ai_flags & AI_CANONNAME), pOriginalResultCast->ai_socktype, pOriginalResultCast->ai_protocol);
@@ -1534,10 +1547,14 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 		iReturn = 0;
 
 		*ppResultCast = pNewAddrInfoWResult;
+		if (*ppResultCast == NULL) {
+			dwLastError = ERROR_NOT_FOUND;
+			goto err;
+		}
+		if (pOriginalResultCast) orig_fpWs2_32_FreeAddrInfoW(pOriginalResultCast);
 	}
 
 out:
-	if (pOriginalResultCast) orig_fpWs2_32_FreeAddrInfoW(pOriginalResultCast);
 	HeapFree(GetProcessHeap(), 0, pLocalData);
 	WSASetLastError(iWSALastError);
 	SetLastError(dwLastError);
@@ -1546,9 +1563,9 @@ out:
 err:
 	if (pOriginalResultCast) orig_fpWs2_32_FreeAddrInfoW(pOriginalResultCast);
 	HeapFree(GetProcessHeap(), 0, pLocalData);
-	WSASetLastError(WSAENOMORE);
+	WSASetLastError(WSAHOST_NOT_FOUND);
 	SetLastError(dwLastError);
-	return SOCKET_ERROR;
+	return WSAHOST_NOT_FOUND;
 }
 
 // Hook GetAddrInfoExA

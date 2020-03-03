@@ -25,6 +25,8 @@ fi
 
 echo Distributing "$PXCH_VERSION"...
 
+mkdir -p ../dist/
+
 # Build/Install/Dist/Clean for Win32
 cmd /c win32_build.bat
 
@@ -32,17 +34,17 @@ if [ "$1" = "--install" ]; then
 	cmd /c win32_install.bat
 fi
 
-zip -FS -j ../../proxychains_"$PXCH_VERSION"_win32_x64_debug.zip ../COPYING ../README*.md ../proxychains.conf ../win32_output/proxychains_x64d.exe ../win32_output/proxychains_hook_x64d.dll ../win32_output/proxychains_hook_x86d.dll ../win32_output/proxychains_helper_x64d.exe ../win32_output/proxychains_helper_x86d.exe
-zip -FS -j ../../proxychains_"$PXCH_VERSION"_win32_x64.zip ../COPYING ../README*.md ../proxychains.conf ../win32_output/proxychains_x64.exe ../win32_output/proxychains_hook_x64.dll ../win32_output/proxychains_hook_x86.dll ../win32_output/proxychains_helper_x64.exe ../win32_output/proxychains_helper_x86.exe
-zip -FS -j ../../proxychains_"$PXCH_VERSION"_win32_x86_debug.zip ../COPYING ../README*.md ../proxychains.conf ../win32_output/proxychains_x86d.exe ../win32_output/proxychains_hook_x86d.dll ../win32_output/proxychains_helper_x86d.exe
-zip -FS -j ../../proxychains_"$PXCH_VERSION"_win32_x86.zip ../COPYING ../README*.md ../proxychains.conf ../win32_output/proxychains_x86.exe ../win32_output/proxychains_hook_x86.dll ../win32_output/proxychains_helper_x86.exe
+zip -FS -j ../dist/proxychains_"$PXCH_VERSION"_win32_x64_debug.zip ../COPYING ../README*.md ../proxychains.conf ../win32_output/proxychains_x64d.exe ../win32_output/proxychains_hook_x64d.dll ../win32_output/proxychains_hook_x86d.dll ../win32_output/proxychains_helper_x64d.exe ../win32_output/proxychains_helper_x86d.exe
+zip -FS -j ../dist/proxychains_"$PXCH_VERSION"_win32_x64.zip ../COPYING ../README*.md ../proxychains.conf ../win32_output/proxychains_x64.exe ../win32_output/proxychains_hook_x64.dll ../win32_output/proxychains_hook_x86.dll ../win32_output/proxychains_helper_x64.exe ../win32_output/proxychains_helper_x86.exe
+zip -FS -j ../dist/proxychains_"$PXCH_VERSION"_win32_x86_debug.zip ../COPYING ../README*.md ../proxychains.conf ../win32_output/proxychains_x86d.exe ../win32_output/proxychains_hook_x86d.dll ../win32_output/proxychains_helper_x86d.exe
+zip -FS -j ../dist/proxychains_"$PXCH_VERSION"_win32_x86.zip ../COPYING ../README*.md ../proxychains.conf ../win32_output/proxychains_x86.exe ../win32_output/proxychains_hook_x86.dll ../win32_output/proxychains_helper_x86.exe
 
 cmd /c win32_clean.bat
 
 # Some proxychains_helper_x64* is left at this moment
 rm -rf ../win32_output/*
 
-# Build/Install/Dist//Clean for Cygwin
+# Build/Install/Dist/Clean for Cygwin
 make release
 
 if [ "$1" = "--install" ]; then
@@ -52,7 +54,7 @@ if [ "$1" = "--install" ]; then
 	cp proxychains_helper_*.exe /bin/
 fi
 
-zip -FS -j ../../proxychains_"$PXCH_VERSION"_cygwin_x64.zip ../COPYING ../README*.md ../proxychains.conf proxychains_x64.exe cygproxychains_hook_x64.dll proxychains_helper_x64.exe
+zip -FS -j ../dist/proxychains_"$PXCH_VERSION"_cygwin_x64.zip ../COPYING ../README*.md ../proxychains.conf proxychains_x64.exe cygproxychains_hook_x64.dll proxychains_helper_x64.exe
 
 make debug
 
@@ -63,7 +65,7 @@ if [ "$1" = "--install" ]; then
 	cp proxychains_helper_*.exe /bin/
 fi
 
-zip -FS -j ../../proxychains_"$PXCH_VERSION"_cygwin_x64_debug.zip ../COPYING ../README*.md ../proxychains.conf proxychains_x64d.exe cygproxychains_hook_x64d.dll proxychains_helper_x64.exe
+zip -FS -j ../dist/proxychains_"$PXCH_VERSION"_cygwin_x64_debug.zip ../COPYING ../README*.md ../proxychains.conf proxychains_x64d.exe cygproxychains_hook_x64d.dll proxychains_helper_x64.exe
 
 make clean
 rm -rf ../include/remote_func_bin_*.h

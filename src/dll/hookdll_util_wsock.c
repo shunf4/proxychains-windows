@@ -166,7 +166,7 @@ void HostentToHostnameAndIps(PXCH_HOSTNAME* pHostname, PXCH_UINT32* pdwIpNum, PX
 
 	if (pHostent->h_length != sizeof(PXCH_UINT32)) goto err_not_supported;
 
-	for (i = 0; pHostent->h_addr_list[i]; i++) {
+	for (i = 0; pHostent->h_addr_list[i] && i < PXCH_MAX_ARRAY_IP_NUM; i++) {
 		SetHostType(IPV4, *(PXCH_HOST*)&Ips[i]);
 		((struct sockaddr_in*)&(Ips[i]))->sin_addr.s_addr = *(PXCH_UINT32*)pHostent->h_addr_list[i];
 	}
@@ -218,22 +218,32 @@ void AddrInfoToIps(PXCH_UINT32* pdwIpNum, PXCH_IP_ADDRESS* Ips, const void* pAdd
 	const ADDRINFOA* pAddrInfoA = pAddrInfo;
 	const ADDRINFOW* pAddrInfoW = pAddrInfo;
 	PXCH_UINT32 i;
+	PXCH_UINT32 j;
+	PXCH_UINT32 k;
 
 	ZeroMemory(Ips, sizeof(PXCH_IP_ADDRESS) * PXCH_MAX_ARRAY_IP_NUM);
 
-	if (bIsW) {
-		for (i = 0; pAddrInfoW && i < PXCH_MAX_ARRAY_IP_NUM; pAddrInfoW = pAddrInfoW->ai_next, i++) {
-			CopyMemory(&Ips[i], pAddrInfoW->ai_addr, pAddrInfoW->ai_addrlen);
-			Ips[i].CommonHeader.wPort = 0;
-		}
-	} else {
-		for (i = 0; pAddrInfoA && i < PXCH_MAX_ARRAY_IP_NUM; pAddrInfoA = pAddrInfoA->ai_next, i++) {
-			CopyMemory(&Ips[i], pAddrInfoA->ai_addr, pAddrInfoA->ai_addrlen);
-			Ips[i].CommonHeader.wPort = 0;
-		}
+#define ADDRINFOTOIPS_PROCEDURE(pAddrInfo) \
+	for (i = 0, j = 0, k = 0; pAddrInfo && k < PXCH_MAX_ARRAY_IP_NUM; pAddrInfo = pAddrInfo->ai_next) { \
+		if (i < PXCH_MAX_ARRAY_IP_NUM_PER_FAMILY && HostIsType(IPV4, *(PXCH_HOST*)pAddrInfo->ai_addr)) { \
+			CopyMemory(&Ips[k], pAddrInfo->ai_addr, pAddrInfo->ai_addrlen); \
+			Ips[k].CommonHeader.wPort = 0; \
+			i++; k++; \
+		} \
+		if (j < PXCH_MAX_ARRAY_IP_NUM_PER_FAMILY && HostIsType(IPV6, *(PXCH_HOST*)pAddrInfo->ai_addr)) { \
+			CopyMemory(&Ips[k], pAddrInfo->ai_addr, pAddrInfo->ai_addrlen); \
+			Ips[k].CommonHeader.wPort = 0; \
+			j++; k++; \
+		} \
 	}
 
-	*pdwIpNum = i;
+	if (bIsW) {
+		ADDRINFOTOIPS_PROCEDURE(pAddrInfoW);
+	} else {
+		ADDRINFOTOIPS_PROCEDURE(pAddrInfoA);
+	}
+
+	*pdwIpNum = k;
 }
 
 

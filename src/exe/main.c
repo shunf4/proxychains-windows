@@ -366,7 +366,7 @@ void PrintUsage(const WCHAR* szArgv0, BOOL bError)
 	}
 }
 
-void handle_sigint(int sig)
+void KillAllAndExit()
 {
 	// Once hooked, a cygwin program cannot handle Ctrl-C signal.
 	// Thus we have to implement this to kill everything forked
@@ -374,9 +374,6 @@ void handle_sigint(int sig)
 	tab_per_process_t* current;
 	tab_per_process_t* tmp;
 	HANDLE h;
-
-	LOGW(L"[PX:Ctrl-C]");
-	fflush(stderr);
 
 	PXCH_DO_IN_CRITICAL_SECTION_RETURN_VOID{
 		HASH_ITER(hh, g_tabPerProcess, current, tmp) {
@@ -394,6 +391,14 @@ void handle_sigint(int sig)
 		HeapUnlock(GetProcessHeap());	// go out of critical section
 		exit(0);
 	}
+}
+
+void handle_sigint(int sig)
+{
+	LOGW(L"[PX:Ctrl-C]");
+	fflush(stderr);
+
+	KillAllAndExit();
 }
 
 BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
@@ -534,7 +539,7 @@ void handle_sigchld(int sig)
 {
 	while (waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
 	LOGI(L"Cygwin child process exited.");
-	IF_CYGWIN_EXIT(0);
+	KillAllAndExit();
 }
 
 
@@ -631,7 +636,7 @@ int main(int argc, char* const argv[], char* const envp[])
 	LOGD(L"iCommandStart: %d", iCommandStart);
 	ctx[0] = &argv[iCommandStart];
 	ctx[1] = envp;
-	
+
 	CygwinSpawn(ctx);
 
 	if (g_tabPerProcess == NULL) {
@@ -641,6 +646,8 @@ int main(int argc, char* const argv[], char* const envp[])
 
 	signal(SIGINT, handle_sigint);
 	signal(SIGCHLD, handle_sigchld);
+
+	SetConsoleCtrlHandler(CtrlHandler, TRUE);
 
 	while(1) pause();
 
