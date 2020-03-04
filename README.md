@@ -68,6 +68,9 @@ file generated under `win32_output/`.
 
 ## Cygwin/Msys2 Build
 
+*Note: using Cygwin/Msys2 version is no longer encourged.
+See [About Cygwin/Msys2](#about-cygwinmsys2).*
+
 Install Cygwin/Msys2 and various build tool packages (gcc, w32api-headers,
 w32api-runtime etc). Run bash, switch to `cygwin_build` / `msys_build`
 directory and run `make`.
@@ -75,7 +78,7 @@ directory and run `make`.
 # Install
 
 *Note: using Cygwin/Msys2 version is no longer encourged.
-See [About Cygwin/Msys2](about-cygwinmsys2).*
+See [About Cygwin/Msys2](#about-cygwinmsys2).*
 
 Copy `proxychains*.exe`, `[cyg]proxychains_hook*.dll`
  to some directory included in your `PATH`
@@ -141,9 +144,9 @@ is based on an Msys2 environment. Instead, use
 and replace its `busybox.exe` with
 [this version](https://frippery.org/busybox/)
 (the version shipped with MinGit-busybox also act weird in `--forkshell`
-when Hooked by MinHook).
+when Hooked by MinHook).*
 
-Now you have wholly-win32, pure and neat git environment, ready to be
+*Now you have wholly-win32, pure and neat git environment, ready to be
 proxified.*
 
 Both Win32 and Cygwin programs are injected and hooked using Win32 API in a
@@ -156,7 +159,7 @@ programs). See "To-do and Known Issues".
 
 ~~Perhaps solution based on
 `LD_LIBRARY_PATH` is better for Cygwin.~~ Not feasible. Cygwin will not
-follow this kind of instruction of dynamic linking order(???).~~~
+follow this kind of instruction of dynamic linking order(???).
 
 # To-do and Known Issues
 
