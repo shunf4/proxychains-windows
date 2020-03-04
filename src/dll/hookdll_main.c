@@ -143,7 +143,7 @@ DWORD RemoteCopyExecute(HANDLE hProcess, BOOL bIsX86, PXCH_INJECT_REMOTE_DATA* p
 
 	// Validate return value
 	if (dwReturn != pRemoteData->dwLastError) {
-		IPCLOGE(L"Error: Remote thread exit code does not match the error code stored in remote data memory! " WPRDW L" %ls", dwReturn, FormatErrorToStr(pRemoteData->dwLastError));
+		IPCLOGE(L"Error: Remote thread exit code does not match the error code stored in remote data memory! Exit code:" WPRDW L" <=> Data Memory: %ls", dwReturn, FormatErrorToStr(pRemoteData->dwLastError));
 	}
 
 	return 0;
@@ -318,7 +318,8 @@ PXCH_DLL_API DWORD __stdcall InitHook(PXCH_INJECT_REMOTE_DATA* pRemoteData)
 #define PXCH_HOOK_CONDITION (TRUE)
 	if (PXCH_HOOK_CONDITION) {
 		MH_Initialize();
-		// CREATE_HOOK(CreateProcessA);
+
+		CREATE_HOOK(CreateProcessA);
 		CREATE_HOOK(CreateProcessW);
 		// CREATE_HOOK(CreateProcessAsUserW);
 

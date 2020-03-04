@@ -4,7 +4,7 @@
 
 [README](README.md) | [简体中文文档](README_zh-Hans.md)
 
-Proxychains.exe is a proxifier for Win32(Windows) or Cygwin programs.
+Proxychains.exe is a proxifier for Win32(Windows) or Cygwin/Msys2 programs.
 It hijacks most of the Win32 or Cygwin programs' TCP connection, making
 them through one or more SOCKS5 proxy(ies).
 
@@ -66,13 +66,16 @@ Visual Studio 2019) with platform toolset v141_xp on a 64-bit Windows.
 Build the whole solution and you will see DLL file and executable
 file generated under `win32_output/`.
 
-## Cygwin/Msys2 Build (Msys2 is more recommended now)
+## Cygwin/Msys2 Build
 
 Install Cygwin/Msys2 and various build tool packages (gcc, w32api-headers,
 w32api-runtime etc). Run bash, switch to `cygwin_build` / `msys_build`
 directory and run `make`.
 
 # Install
+
+*Note: using Cygwin/Msys2 version is no longer encourged.
+See [About Cygwin/Msys2](about-cygwinmsys2).*
 
 Copy `proxychains*.exe`, `[cyg]proxychains_hook*.dll`
  to some directory included in your `PATH`
@@ -125,14 +128,35 @@ Run `proxychains -h` for more command line argument options.
 - Main program terminates all descendant processes when it receives a SIGINT
   (Ctrl-C).
 
+## About Cygwin/Msys2
+
+*Note: using Cygwin/Msys2 version is no longer encourged due to weird
+behaviour of its shells when `CreateRemoteThread()`'ed by
+proxychains.exe. Cygwin Sucks.*
+
+*If you want to proxify something that calls `git` (like `npm`,
+`go get`, `git` itself, etc), do not use git-for-windows which
+is based on an Msys2 environment. Instead, use
+[MinGit busybox variant](https://github.com/git-for-windows/git/releases/),
+and replace its `busybox.exe` with
+[this version](https://frippery.org/busybox/)
+(the version shipped with MinGit-busybox also act weird in `--forkshell`
+when Hooked by MinHook).
+
+Now you have wholly-win32, pure and neat git environment, ready to be
+proxified.*
+
 Both Win32 and Cygwin programs are injected and hooked using Win32 API in a
 same way, with only a few differences (for example, cygwin programs are run
 by `posix_spawn` instead of `CreateProcessW`).
 However, Cygwin also used lots of hacks inside Win32 API framework
 to achieve a UNIX style of manipulation, which is very possible to conflict
 with proxychains.exe (especially `fork()` and `exec()` called by some
-programs). See "To-do and Known Issues". Perhaps solution based on
-`LD_LIBRARY_PATH` is better for Cygwin.
+programs). See "To-do and Known Issues". 
+
+~~Perhaps solution based on
+`LD_LIBRARY_PATH` is better for Cygwin.~~ Not feasible. Cygwin will not
+follow this kind of instruction of dynamic linking order(???).~~~
 
 # To-do and Known Issues
 

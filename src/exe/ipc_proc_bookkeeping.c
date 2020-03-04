@@ -98,10 +98,11 @@ DWORD ChildProcessExitedCallbackWorker(PVOID lpParameter, BOOLEAN TimerOrWaitFir
 		if (TempEntry) {
 			HASH_DELETE(hh, g_tabPerProcess, Entry);
 		} else {
-			LOGE(L"Error trying to delete entry associated with winpid " WPRDW L": not found", Entry->Data.dwPid);
+			LOGW(L"Error trying to delete entry associated with winpid " WPRDW L": not found", Entry->Data.dwPid);
+			goto straight_end;
 		}
 		if (!GetExitCodeProcess(Entry->hProcess, &dwExitCode)) {
-			LOGE(L"GetExitCodeProcess() error: %ls", FormatErrorToStr(GetLastError()));
+			LOGW(L"GetExitCodeProcess() error: %ls", FormatErrorToStr(GetLastError()));
 		}
 		LOGD(L"Child process winpid " WPRDW L" exited (%#010x).", Entry->Data.dwPid, dwExitCode);
 
@@ -129,6 +130,7 @@ DWORD ChildProcessExitedCallbackWorker(PVOID lpParameter, BOOLEAN TimerOrWaitFir
 
 		HeapFree(GetProcessHeap(), 0, Entry);
 
+	straight_end:
 		PrintTablePerProcess();
 
 		if (g_tabPerProcess == NULL) {

@@ -32,6 +32,7 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 	DBGSTEP('A');
 
 	pRemoteData->dwEverExecuted = 1;
+
 	DBGSTEP('B');
 
 	
@@ -87,7 +88,7 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 
 	pRemoteData->dwLastError = ERROR_FUNCTION_FAILED;
 	pRemoteData->dwLastError = ((DWORD(__stdcall*)(PXCH_INJECT_REMOTE_DATA*))fpInitFunc)(pRemoteData);
-	
+
 	DBGSTEP('I');
 
 	if (pRemoteData->dwLastError != NO_ERROR) goto err_init_func_failed;

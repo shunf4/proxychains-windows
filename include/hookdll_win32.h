@@ -205,8 +205,9 @@ PXCH_DLL_API void UninitHook(void);
 
 
 
+extern FP_ORIGINAL_FUNC(CreateProcessA);
+DECLARE_HOOK_FUNC(CreateProcessA);
 
-//DECLARE_PROXY_FUNC(CreateProcessA);
 extern FP_ORIGINAL_FUNC(CreateProcessW);
 DECLARE_HOOK_FUNC(CreateProcessW);
 

@@ -20,8 +20,8 @@
 #define PXCH_VERSION_MAJOR 0
 #endif
 #ifndef PXCH_VERSION_MINOR
-#define PXCH_VERSION_MINOR 4
+#define PXCH_VERSION_MINOR 5
 #endif
 #ifndef PXCH_VERSION_PATCH
-#define PXCH_VERSION_PATCH 8
+#define PXCH_VERSION_PATCH 0
 #endif

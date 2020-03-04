@@ -29,39 +29,58 @@
 
 PROXY_FUNC(CreateProcessA)
 {
-	BOOL bRet;
+BOOL bRet;
 	DWORD dwLastError;
-	DWORD dwReturn;
+	DWORD dwReturn = 0;
 	PROCESS_INFORMATION processInformation;
+
+	g_bCurrentlyInWinapiCall = TRUE;
+
+	// For cygwin: cygwin fork() will duplicate the data in child process, including pointer g_*.
+	RestoreChildData();
+
+	IPCLOGD(L"(In CreateProcessA) g_pRemoteData->dwDebugDepth = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
 
 	bRet = orig_fpCreateProcessA(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &processInformation);
 	dwLastError = GetLastError();
+
+	IPCLOGD(L"CreateProcessA: %S, %S, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s; Ret: %u Child winpid " WPRDW, lpApplicationName, lpCommandLine, (UINT64)lpProcessAttributes, (UINT64)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory, bRet, processInformation.dwProcessId);
 
 	if (lpProcessInformation) {
 		CopyMemory(lpProcessInformation, &processInformation, sizeof(PROCESS_INFORMATION));
 	}
 
-	LOGD(L"CreateProcessA: " WPRS L", " WPRS, lpApplicationName, lpCommandLine);
-
+	IPCLOGV(L"CreateProcessA: Copied.");
 	if (!bRet) goto err_orig;
+	
+	IPCLOGV(L"CreateProcessA: After jmp to err_orig.");
+	IPCLOGV(L"CreateProcessA: Before InjectTargetProcess.");
 
 	dwReturn = InjectTargetProcess(&processInformation);
+
+	IPCLOGV(L"CreateProcessA: Injected. " WPRDW, dwReturn);
+
 	if (!(dwCreationFlags & CREATE_SUSPENDED)) {
 		ResumeThread(processInformation.hThread);
 	}
-	//if (GetCurrentProcessId() != g_pPxchConfig->dwMasterProcessId) IpcCommunicateWithServer();
+
 	if (dwReturn != 0) goto err_inject;
+	IPCLOGD(L"I've Injected WINPID " WPRDW, processInformation.dwProcessId);
+
+	g_bCurrentlyInWinapiCall = FALSE;
 	return 1;
 
 err_orig:
-	LOGE(L"CreateProcessA Error: " WPRDW L", %ls", bRet, FormatErrorToStr(dwLastError));
+	IPCLOGE(L"CreateProcessA Error: " WPRDW L", %ls", bRet, FormatErrorToStr(dwLastError));
 	SetLastError(dwLastError);
+	g_bCurrentlyInWinapiCall = FALSE;
 	return bRet;
 
 err_inject:
-	// PrintErrorToFile(stderr, dwReturn);
+	IPCLOGE(L"Injecting WINPID " WPRDW L" Error: %ls", processInformation.dwProcessId, FormatErrorToStr(dwReturn));
 	// TODO: remove this line
 	SetLastError(dwReturn);
+	g_bCurrentlyInWinapiCall = FALSE;
 	return 1;
 }
 
