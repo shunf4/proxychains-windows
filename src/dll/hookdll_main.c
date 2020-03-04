@@ -319,7 +319,9 @@ PXCH_DLL_API DWORD __stdcall InitHook(PXCH_INJECT_REMOTE_DATA* pRemoteData)
 	if (PXCH_HOOK_CONDITION) {
 		MH_Initialize();
 
+#ifndef __CYGWIN__	// Hooking CreateProcessA under cygwin causes CreateProcessW WinError 2.
 		CREATE_HOOK(CreateProcessA);
+#endif
 		CREATE_HOOK(CreateProcessW);
 		// CREATE_HOOK(CreateProcessAsUserW);
 

@@ -350,6 +350,7 @@ cygwin_build/**/MAKING_*
 cygwin_build/**/distx*
 cygwin_build/**/*.stackdump
 cygwin_build/**/*.bin
+cygwin_build/**/MADE_REMOTE_FUNC_BIN_HEADER
 
 msys_build/**/*.d
 msys_build/**/*.o
@@ -364,3 +365,4 @@ msys_build/**/*.bin
 
 win32_output/
 dist/
+include/remote_func_bin*.h
