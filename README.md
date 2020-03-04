@@ -166,9 +166,11 @@ follow this kind of instruction of dynamic linking order(???).
 (Development will be suspended for some time)
 
 - [ ] Try to fix hang when executing `git clone https://` and
-      `git submodule update --init --recursive`
-- [ ] Try to fix frequent failure of `proxychains bash` under Cygwin
-      (Or maybe we should focus on Win32 ? Cygwin is quite a mess)
+      `git submodule update --init --recursive` (This is partially
+      resolved by using MinGit-busybox with replaced busybox;
+      see [About Cygwin/Msys2](#about-cygwinmsys2).)
+- [ ] ~~Try to fix frequent failure of `proxychains bash` under Cygwin~~
+      (Won't fix)
 - [ ] Remote DNS resolving based on UDP associate
 - [ ] Hook `sendto()`, coping with applications which do TCP fast open
 - [X] ~~Dynamic selection of 32-bit DLL and 64-bit DLL~~ ~~Fixed in 0.4~~
