@@ -34,7 +34,7 @@
 		MH_STATUS MhStatusReturn; \
 		MhStatusReturn = MH_CreateHook((LPVOID)hooking_func_name, (LPVOID)&Proxy##hooking_func_name, (LPVOID*)&orig_fp##hooking_func_name); \
 		(void)MhStatusReturn; \
-		FUNCIPCLOGD(PXCH_HOOKED_MSG, PREFIX_L(#hooking_func_name), &hooking_func_name, &Proxy##hooking_func_name, MhStatusReturn); \
+		FUNCIPCLOGV(PXCH_HOOKED_MSG, PREFIX_L(#hooking_func_name), &hooking_func_name, &Proxy##hooking_func_name, MhStatusReturn); \
 	} while(0)
 
 #define CREATE_HOOK_ALT(prefix, hooking_func_name) do {MH_CreateHook((LPVOID)hooking_func_name, (LPVOID)&prefix##Proxy##hooking_func_name, (LPVOID*)&orig_fp##hooking_func_name);} while(0)
@@ -51,7 +51,7 @@
 		MH_STATUS MhStatusReturn; \
 		MhStatusReturn = MH_CreateHook((LPVOID)prehook_ptr, (LPVOID)&Proxy##hooked_dll_hint##_##hooking_func_name, (LPVOID*)&orig_fp##hooked_dll_hint##_##hooking_func_name); \
 		(void)MhStatusReturn; \
-		FUNCIPCLOGD(PXCH_HOOKED_MSG, PREFIX_L(#hooking_func_name) L"@" PREFIX_L(#hooked_dll_hint), prehook_ptr, &Proxy##hooked_dll_hint##_##hooking_func_name, MhStatusReturn); \
+		FUNCIPCLOGV(PXCH_HOOKED_MSG, PREFIX_L(#hooking_func_name) L"@" PREFIX_L(#hooked_dll_hint), prehook_ptr, &Proxy##hooked_dll_hint##_##hooking_func_name, MhStatusReturn); \
 	} while(0)
 
 

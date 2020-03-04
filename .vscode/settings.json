@@ -58,6 +58,7 @@
         "hookdll_util_win32.h": "c",
         "hookdll_util_generic.h": "c",
         "ut_helpers.h": "c",
-        "remote_func_bin_x64.h": "c"
+        "remote_func_bin_x64.h": "c",
+        "remote_func_bin_x64d.h": "c"
     }
 }

@@ -134,7 +134,7 @@ DWORD ChildProcessExitedCallbackWorker(PVOID lpParameter, BOOLEAN TimerOrWaitFir
 		if (g_tabPerProcess == NULL) {
 			LOGI(L"All Windows descendant process exited.");
 			HeapUnlock(GetProcessHeap());	// go out of critical section
-			IF_WIN32_EXIT(0);
+			IF_WIN32_STYLE_EXIT(0);
 		}
 	}
 }
@@ -171,7 +171,7 @@ DWORD RegisterNewChildProcess(const REPORTED_CHILD_DATA* pChildData)
 		return dwReturn;
 	}
 after_open_process:
-	LOGD(L"After OpenProcess(" WPRDW L")...", hChildHandle);
+	LOGV(L"After OpenProcess(" WPRDW L")...", hChildHandle);
 
 	if (!RegisterWaitForSingleObject(&hWaitHandle, hChildHandle, &ChildProcessExitedCallback, Entry, INFINITE, WT_EXECUTEINIOTHREAD | WT_EXECUTELONGFUNCTION | WT_EXECUTEONLYONCE)) {
 		dwReturn = GetLastError();
@@ -223,7 +223,7 @@ DWORD NextAvailableFakeIp(PXCH_IP_ADDRESS* pFakeIpv4, PXCH_IP_ADDRESS* pFakeIpv6
 	while (1) {
 		Entry = NULL;
 		IndexToIp(g_pPxchConfig, &AsKey.Ip, iSearchIpv4);
-		LOGD(L"Map index to IPv4: " WPRDW L" -> %ls", iSearchIpv4, FormatHostPortToStr(&AsKey.Ip, sizeof(PXCH_IP_ADDRESS)));
+		LOGV(L"Map index to IPv4: " WPRDW L" -> %ls", iSearchIpv4, FormatHostPortToStr(&AsKey.Ip, sizeof(PXCH_IP_ADDRESS)));
 		HASH_FIND(hh, g_tabFakeIpHostname, &AsKey.Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), Entry);
 		if (!Entry) break;
 		iSearchIpv4++;
@@ -236,7 +236,7 @@ DWORD NextAvailableFakeIp(PXCH_IP_ADDRESS* pFakeIpv4, PXCH_IP_ADDRESS* pFakeIpv6
 		}
 	}
 
-	LOGD(L"Next available IPv4 index: " WPRDW, iSearchIpv4);
+	LOGV(L"Next available IPv4 index: " WPRDW, iSearchIpv4);
 	*pFakeIpv4 = AsKey.Ip;
 
 
@@ -247,7 +247,7 @@ DWORD NextAvailableFakeIp(PXCH_IP_ADDRESS* pFakeIpv4, PXCH_IP_ADDRESS* pFakeIpv6
 	while (1) {
 		Entry = NULL;
 		IndexToIp(g_pPxchConfig, &AsKey.Ip, iSearchIpv6);
-		LOGD(L"Map index to IPv6: " WPRDW L" -> %ls", iSearchIpv6, FormatHostPortToStr(&AsKey.Ip, sizeof(PXCH_IP_ADDRESS)));
+		LOGV(L"Map index to IPv6: " WPRDW L" -> %ls", iSearchIpv6, FormatHostPortToStr(&AsKey.Ip, sizeof(PXCH_IP_ADDRESS)));
 		HASH_FIND(hh, g_tabFakeIpHostname, &AsKey.Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), Entry);
 		if (!Entry) break;
 		iSearchIpv6++;
@@ -260,7 +260,7 @@ DWORD NextAvailableFakeIp(PXCH_IP_ADDRESS* pFakeIpv4, PXCH_IP_ADDRESS* pFakeIpv6
 		}
 	}
 
-	LOGD(L"Next available IPv6 index: " WPRDW, iSearchIpv6);
+	LOGV(L"Next available IPv6 index: " WPRDW, iSearchIpv6);
 	*pFakeIpv6 = AsKey.Ip;
 
 	return NO_ERROR;
@@ -277,7 +277,7 @@ DWORD RegisterHostnameAndGetFakeIp(PXCH_IP_ADDRESS* pFakeIpv4, PXCH_IP_ADDRESS* 
 		IpNode* pIpv4Node;
 		IpNode* pIpv6Node;
 		IpNode* pResolvedIpNode;
-		DWORD dwErrorCode;
+		DWORD dwLastError;
 		DWORD dw;
 
 		CurrentProcessDataEntry = NULL;
@@ -287,8 +287,8 @@ DWORD RegisterHostnameAndGetFakeIp(PXCH_IP_ADDRESS* pFakeIpv4, PXCH_IP_ADDRESS* 
 
 		pIpv4Node = (IpNode*)HeapAlloc(GetProcessHeap(), 0, sizeof(IpNode));
 		pIpv6Node = (IpNode*)HeapAlloc(GetProcessHeap(), 0, sizeof(IpNode));
-		dwErrorCode = NextAvailableFakeIp(&pIpv4Node->Ip, &pIpv6Node->Ip);
-		if (dwErrorCode != NO_ERROR) goto err_no_avail_fake_ip;
+		dwLastError = NextAvailableFakeIp(&pIpv4Node->Ip, &pIpv6Node->Ip);
+		if (dwLastError != NO_ERROR) goto err_no_avail_fake_ip;
 		LL_PREPEND(CurrentProcessDataEntry->Ips, pIpv4Node);
 		LL_PREPEND(CurrentProcessDataEntry->Ips, pIpv6Node);
 	
@@ -349,7 +349,7 @@ DWORD RegisterHostnameAndGetFakeIp(PXCH_IP_ADDRESS* pFakeIpv4, PXCH_IP_ADDRESS* 
 	ret_free:
 		HeapFree(GetProcessHeap(), 0, pIpv4Node);
 		HeapFree(GetProcessHeap(), 0, pIpv6Node);
-		dwReturn = dwErrorCode;
+		dwReturn = dwLastError;
 		goto lock_after_critical_section;
 	}
 }
@@ -359,7 +359,7 @@ DWORD GetMsgHostnameAndResolvedIpsFromMsgIp(PXCH_IPC_MSGBUF chMessageBuf, PXCH_U
 	tab_fake_ip_hostname_t AsKey;
 	tab_fake_ip_hostname_t* Entry;
 	PXCH_HOSTNAME EmptyHostname;
-	DWORD dwErrorCode;
+	DWORD dwLastError;
 
 	EmptyHostname.wTag = PXCH_HOST_TYPE_HOSTNAME;
 	EmptyHostname.wPort = 0;
@@ -375,8 +375,8 @@ DWORD GetMsgHostnameAndResolvedIpsFromMsgIp(PXCH_IPC_MSGBUF chMessageBuf, PXCH_U
 
 		if (Entry) {
 			LOGD(L"ResolvedIp %ls -> Hostname %ls, %ls", FormatHostPortToStr(PXCH_IPC_IP_ARR(pMsgIp), sizeof(PXCH_IP_ADDRESS)), Entry->Hostname.szValue, g_szRuleTargetDesc[Entry->dwTarget]);
-			dwErrorCode = HostnameAndIpsToMessage(chMessageBuf, pcbMessageSize, pMsgIp->dwPid, &Entry->Hostname, FALSE /*ignored*/, Entry->dwResovledIpNum, Entry->ResolvedIps, Entry->dwTarget);
-			if (dwErrorCode != NO_ERROR) goto error;
+			dwLastError = HostnameAndIpsToMessage(chMessageBuf, pcbMessageSize, pMsgIp->dwPid, &Entry->Hostname, FALSE /*ignored*/, Entry->dwResovledIpNum, Entry->ResolvedIps, Entry->dwTarget);
+			if (dwLastError != NO_ERROR) goto error;
 
 			return NO_ERROR;
 		}
@@ -388,8 +388,8 @@ DWORD GetMsgHostnameAndResolvedIpsFromMsgIp(PXCH_IPC_MSGBUF chMessageBuf, PXCH_U
 
 	if (Entry) {
 		LOGD(L"FakeIp %ls -> Hostname %ls, %ls", FormatHostPortToStr(PXCH_IPC_IP_ARR(pMsgIp), sizeof(PXCH_IP_ADDRESS)), Entry->Hostname.szValue, g_szRuleTargetDesc[Entry->dwTarget]);
-		dwErrorCode = HostnameAndIpsToMessage(chMessageBuf, pcbMessageSize, pMsgIp->dwPid, &Entry->Hostname, FALSE /*ignored*/, Entry->dwResovledIpNum, Entry->ResolvedIps, Entry->dwTarget);
-		if (dwErrorCode != NO_ERROR) goto error;
+		dwLastError = HostnameAndIpsToMessage(chMessageBuf, pcbMessageSize, pMsgIp->dwPid, &Entry->Hostname, FALSE /*ignored*/, Entry->dwResovledIpNum, Entry->ResolvedIps, Entry->dwTarget);
+		if (dwLastError != NO_ERROR) goto error;
 
 		return NO_ERROR;
 	}
@@ -398,13 +398,13 @@ DWORD GetMsgHostnameAndResolvedIpsFromMsgIp(PXCH_IPC_MSGBUF chMessageBuf, PXCH_U
 
 	LOGI(L"NotRegisteredIp %ls, return it As-is", FormatHostPortToStr(PXCH_IPC_IP_ARR(pMsgIp), sizeof(PXCH_IP_ADDRESS)));
 	PrintTablePerProcess();
-	dwErrorCode = HostnameAndIpsToMessage(chMessageBuf, pcbMessageSize, pMsgIp->dwPid, &EmptyHostname, FALSE /*ignored*/, 1, &AsKey.Ip, PXCH_RULE_TARGET_DIRECT);
-	if (dwErrorCode != NO_ERROR) goto error;
+	dwLastError = HostnameAndIpsToMessage(chMessageBuf, pcbMessageSize, pMsgIp->dwPid, &EmptyHostname, FALSE /*ignored*/, 1, &AsKey.Ip, PXCH_RULE_TARGET_DIRECT);
+	if (dwLastError != NO_ERROR) goto error;
 
 	return NO_ERROR;
 
 error:
-	return dwErrorCode;
+	return dwLastError;
 }
 
 DWORD HandleMessage(int i, PXCH_IPC_INSTANCE* pipc)

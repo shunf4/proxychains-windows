@@ -350,5 +350,17 @@ cygwin_build/**/MAKING_*
 cygwin_build/**/distx*
 cygwin_build/**/*.stackdump
 cygwin_build/**/*.bin
+
+msys_build/**/*.d
+msys_build/**/*.o
+msys_build/**/*.dll
+msys_build/**/*.exe
+msys_build/**/*.a
+msys_build/**/*.lib
+msys_build/**/MAKING_*
+msys_build/**/distx*
+msys_build/**/*.stackdump
+msys_build/**/*.bin
+
 win32_output/
 dist/

@@ -18,18 +18,24 @@
  */
 #include "hookdll_util_win32.h"
 #include "log_win32.h"
+#include <psapi.h>
 
 #include "hookdll_win32.h"
+
+#ifndef __CYGWIN__
+#define wcscasecmp _wcsicmp
+#pragma comment(lib, "psapi.lib")
+#endif
 
 PROXY_FUNC(CreateProcessA)
 {
 	BOOL bRet;
-	DWORD dwErrorCode;
+	DWORD dwLastError;
 	DWORD dwReturn;
 	PROCESS_INFORMATION processInformation;
 
 	bRet = orig_fpCreateProcessA(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &processInformation);
-	dwErrorCode = GetLastError();
+	dwLastError = GetLastError();
 
 	if (lpProcessInformation) {
 		CopyMemory(lpProcessInformation, &processInformation, sizeof(PROCESS_INFORMATION));
@@ -48,8 +54,8 @@ PROXY_FUNC(CreateProcessA)
 	return 1;
 
 err_orig:
-	LOGE(L"CreateProcessA Error: " WPRDW L", %ls", bRet, FormatErrorToStr(dwErrorCode));
-	SetLastError(dwErrorCode);
+	LOGE(L"CreateProcessA Error: " WPRDW L", %ls", bRet, FormatErrorToStr(dwLastError));
+	SetLastError(dwLastError);
 	return bRet;
 
 err_inject:
@@ -62,7 +68,7 @@ err_inject:
 PROXY_FUNC(CreateProcessW)
 {
 	BOOL bRet;
-	DWORD dwErrorCode;
+	DWORD dwLastError;
 	DWORD dwReturn = 0;
 	PROCESS_INFORMATION processInformation;
 
@@ -73,12 +79,10 @@ PROXY_FUNC(CreateProcessW)
 
 	IPCLOGD(L"(In CreateProcessW) g_pRemoteData->dwDebugDepth = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
 
-	IPCLOGD(L"CreateProcessW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s", lpApplicationName, lpCommandLine, (UINT64)lpProcessAttributes, (UINT64)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory);
-
 	bRet = orig_fpCreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &processInformation);
-	dwErrorCode = GetLastError();
+	dwLastError = GetLastError();
 
-	IPCLOGD(L"CreateProcessW: Created.(%u) Child process id: " WPRDW, bRet, processInformation.dwProcessId);
+	IPCLOGD(L"CreateProcessW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s; Ret: %u Child winpid " WPRDW, lpApplicationName, lpCommandLine, (UINT64)lpProcessAttributes, (UINT64)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory, bRet, processInformation.dwProcessId);
 
 	if (lpProcessInformation) {
 		CopyMemory(lpProcessInformation, &processInformation, sizeof(PROCESS_INFORMATION));
@@ -89,6 +93,7 @@ PROXY_FUNC(CreateProcessW)
 	
 	IPCLOGV(L"CreateProcessW: After jmp to err_orig.");
 	IPCLOGV(L"CreateProcessW: Before InjectTargetProcess.");
+
 	dwReturn = InjectTargetProcess(&processInformation);
 
 	IPCLOGV(L"CreateProcessW: Injected. " WPRDW, dwReturn);
@@ -104,8 +109,8 @@ PROXY_FUNC(CreateProcessW)
 	return 1;
 
 err_orig:
-	IPCLOGE(L"CreateProcessW Error: " WPRDW L", %ls", bRet, FormatErrorToStr(dwErrorCode));
-	SetLastError(dwErrorCode);
+	IPCLOGE(L"CreateProcessW Error: " WPRDW L", %ls", bRet, FormatErrorToStr(dwLastError));
+	SetLastError(dwLastError);
 	g_bCurrentlyInWinapiCall = FALSE;
 	return bRet;
 
@@ -120,7 +125,7 @@ err_inject:
 PROXY_FUNC(CreateProcessAsUserW)
 {
 	BOOL bRet;
-	DWORD dwErrorCode;
+	DWORD dwLastError;
 	DWORD dwReturn = 0;
 	PROCESS_INFORMATION processInformation;
 
@@ -134,7 +139,7 @@ PROXY_FUNC(CreateProcessAsUserW)
 	IPCLOGD(L"CreateProcessAsUserW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s", lpApplicationName, lpCommandLine, (UINT64)lpProcessAttributes, (UINT64)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory);
 
 	bRet = orig_fpCreateProcessAsUserW(hToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &processInformation);
-	dwErrorCode = GetLastError();
+	dwLastError = GetLastError();
 
 	IPCLOGV(L"CreateProcessAsUserW: Created.(%u) Child process id: " WPRDW, bRet, processInformation.dwProcessId);
 
@@ -162,8 +167,8 @@ PROXY_FUNC(CreateProcessAsUserW)
 	return 1;
 
 err_orig:
-	IPCLOGE(L"CreateProcessAsUserW Error: " WPRDW L", %ls", bRet, FormatErrorToStr(dwErrorCode));
-	SetLastError(dwErrorCode);
+	IPCLOGE(L"CreateProcessAsUserW Error: " WPRDW L", %ls", bRet, FormatErrorToStr(dwLastError));
+	SetLastError(dwLastError);
 	g_bCurrentlyInWinapiCall = FALSE;
 	return bRet;
 

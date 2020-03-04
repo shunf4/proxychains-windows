@@ -25,6 +25,7 @@
 #include <Ws2TcpIp.h>
 #include <wchar.h>
 #include <inttypes.h>
+#define STRSAFE_NO_DEPRECATE
 #include <strsafe.h>
 #include <ShlObj.h>
 
@@ -1125,6 +1126,8 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, FreeLibrary        );
 	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, GetLastError       );
 	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, OutputDebugStringA );
+	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, GetCurrentProcessId);
+	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, wsprintfA          );
 
 #if (defined(_M_X64) || defined(__x86_64__)) && !defined(__CYGWIN__)
 	{
@@ -1136,8 +1139,9 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 		} else {
 			unsigned long long tmp;
 			int i;
+			BOOL bStop = FALSE;
 
-			for (i = 0; i < 6; i++) {
+			for (i = 0; !bStop; i++) {
 				if (fscanf(fHelperProcOut, "%llX", &tmp) != 1) {
 #ifndef __CYGWIN__
 					LOGW(L"Warning: Output from X86 Helper executable is in a wrong format. In this case proxychains.exe will not inject X86 descendant processes.");
@@ -1150,6 +1154,8 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 					ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, FreeLibrary        , NULL, X86);
 					ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, GetLastError       , NULL, X86);
 					ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, OutputDebugStringA , NULL, X86);
+					ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, GetCurrentProcessId, NULL, X86);
+					ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, wsprintfA          , NULL, X86);
 					break;
 				}
 				switch (i) {
@@ -1159,6 +1165,9 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 				case 3: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, FreeLibrary        , tmp, X86); break;
 				case 4: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, GetLastError       , tmp, X86); break;
 				case 5: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, OutputDebugStringA , tmp, X86); break;
+				case 6: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, GetCurrentProcessId, tmp, X86); break;
+				case 7: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, wsprintfA          , tmp, X86); break;
+				default: bStop = TRUE; break;
 				}
 			}
 		}
@@ -1171,6 +1180,8 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 	PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, FreeLibrary        );
 	PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, GetLastError       );
 	PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, OutputDebugStringA );
+	PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, GetCurrentProcessId);
+	PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, wsprintfA          );
 
 	return NO_ERROR;
 
@@ -1209,7 +1220,7 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 	BOOL bOptionHasValue;
 	BOOL bOptionsEnd = FALSE;
 	BOOL bForceQuote = FALSE;
-	DWORD dwErrorCode;
+	DWORD dwLastError;
 	WCHAR* pWchar;
 	WCHAR* pCommandLine;
 
@@ -1301,7 +1312,7 @@ DWORD ParseArgs(PROXYCHAINS_CONFIG* pConfig, int argc, WCHAR* argv[], int* piCom
 		}
 		// else
 		// Option Ends, Command starts
-#ifdef __CYGWIN__
+#if defined(__CYGWIN__) && !defined(PXCH_MSYS_USE_WIN32_STYLE)
 		*piCommandStart = i;
 		return 0;
 #endif
@@ -1430,12 +1441,12 @@ err_insuf_buf:
 	return ERROR_INSUFFICIENT_BUFFER;
 
 err_get_exec_path:
-	dwErrorCode = GetLastError();
+	dwLastError = GetLastError();
 	LOGE(L"Error when parsing args: SearchPath() Failed. Command not found.");
-	return dwErrorCode;
+	return dwLastError;
 
 err_cmdline:
-	dwErrorCode = GetLastError();
+	dwLastError = GetLastError();
 	LOGE(L"Error when parsing args: No command line provided");
 	return ERROR_INVALID_COMMAND_LINE;
 }

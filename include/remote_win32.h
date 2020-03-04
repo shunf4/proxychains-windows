@@ -18,6 +18,7 @@
  */
 #pragma once
 
+#define STRSAFE_NO_DEPRECATE
 #include "includes_win32.h"
 
 #if defined(_M_X64) || defined(__x86_64__)
@@ -34,13 +35,20 @@
 #define PXCHDEBUG_ODS
 
 #if defined(PXCHDEBUG_ODS) && defined(_DEBUG)
-#define DBGCHR(ch) do { CAST_FUNC_ADDR(OutputDebugStringA)(pRemoteData->chDebugOutput + ((ch) - 'A') * 2); } while(0)
-#define DBGCHR_GP(ch) do { if (g_pRemoteData) CAST_FUNC_ADDR_WITH_PTR(g_pRemoteData, OutputDebugStringA)(g_pRemoteData->chDebugOutput + ((ch) - 'A') * 2); } while(0)
+#define DBGCHR(ch) do { CAST_FUNC_ADDR(OutputDebugStringA)(pRemoteData->chDebugOutputStepData + ((ch) - 'A') * 2); } while(0)
+#define DBGCHR_GP(ch) do { if (g_pRemoteData) CAST_FUNC_ADDR_WITH_PTR(g_pRemoteData, OutputDebugStringA)(g_pRemoteData->chDebugOutputStepData + ((ch) - 'A') * 2); } while(0)
 #define DBGSTR_GP(str) do { if (g_pRemoteData) CAST_FUNC_ADDR_WITH_PTR(g_pRemoteData, OutputDebugStringA)(str); } while(0)
+#define DBGSTEPX(ch) do { \
+    pRemoteData->chDebugOutputBuf[pRemoteData->cbDebugOutputCharOffset] = ch; \
+    CAST_FUNC_ADDR(OutputDebugStringA)(pRemoteData->chDebugOutputBuf); \
+} while(0)
+#define DBGSTEP(ch) DBGSTEPX(ch)
+// #define DBGSTEP(ch) do {  } while(0)
 #else
 #define DBGCHR(ch) do { } while(0)
 #define DBGCHR_GP(ch) do {  } while(0)
 #define DBGSTR_GP(str) do {  } while(0)
+#define DBGSTEP(ch) do {  } while(0)
 #endif
 
 // MSVC arranges these functions in alphabetical order

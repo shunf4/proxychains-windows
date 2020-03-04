@@ -56,6 +56,8 @@ typedef FARPROC(WINAPI* FpGetProcAddress)(HMODULE, LPCSTR);
 typedef BOOL (WINAPI* FpFreeLibrary)(HMODULE);
 typedef DWORD(WINAPI* FpGetLastError)(VOID);
 typedef VOID (WINAPI* FpOutputDebugStringA)(LPCSTR);
+typedef DWORD (WINAPI* FpGetCurrentProcessId)(VOID);
+typedef int (__cdecl* FpwsprintfA)(char* const _Buffer, char const* const _Format,...);
 
 #pragma pack(push, 1)
 typedef struct _PXCH_INJECT_REMOTE_DATA {
@@ -68,12 +70,16 @@ typedef struct _PXCH_INJECT_REMOTE_DATA {
 	CHAR szInitFuncName[PXCH_MAX_DLL_FUNC_NAME_BUFSIZE];
 	CHAR szCIWCVarName[PXCH_MAX_DLL_FUNC_NAME_BUFSIZE];
 
-	char chDebugOutput[40];
+	PXCH_UINT32 cbDebugOutputCharOffset;
+
+	char chDebugOutputStepData[40];
+	char chDebugOutputBuf[100];
 
 	WCHAR szCygwin1ModuleName[PXCH_MAX_DLL_FILE_NAME_BUFSIZE];
+	WCHAR szMsys2ModuleName[PXCH_MAX_DLL_FILE_NAME_BUFSIZE];
 	WCHAR szHookDllModuleName[PXCH_MAX_DLL_FILE_NAME_BUFSIZE];
 
-	PXCH_UINT32 dwErrorCode;
+	PXCH_UINT32 dwLastError;
 	PROXYCHAINS_CONFIG pxchConfig;
 
 } PXCH_INJECT_REMOTE_DATA;

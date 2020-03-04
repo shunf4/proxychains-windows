@@ -66,11 +66,11 @@ Visual Studio 2019) with platform toolset v141_xp on a 64-bit Windows.
 Build the whole solution and you will see DLL file and executable
 file generated under `win32_output/`.
 
-## Cygwin Build
+## Cygwin/Msys2 Build (Msys2 is more recommended now)
 
-Install Cygwin and various build tool packages (gcc, w32api-headers,
-w32api-runtime etc). Run Cygwin bash, switch to `cygwin_build` directory and
-run `make`.
+Install Cygwin/Msys2 and various build tool packages (gcc, w32api-headers,
+w32api-runtime etc). Run bash, switch to `cygwin_build` / `msys_build`
+directory and run `make`.
 
 # Install
 

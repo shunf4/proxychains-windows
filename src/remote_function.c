@@ -16,6 +16,8 @@
  *   version 2 along with this program. If not, see
  *   <http://www.gnu.org/licenses/>.
  */
+
+#define STRSAFE_NO_DEPRECATE
 #include "defines_win32.h"
 #include "remote_win32.h"
 
@@ -24,77 +26,78 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 	// Arrays are not allowed here
 	PXCH_INJECT_REMOTE_DATA* pRemoteData = (PXCH_INJECT_REMOTE_DATA*)pArg;
 	HMODULE hHookDllModule;
-	HMODULE hMinHookDllModule = NULL;
 	FARPROC fpInitFunc;
 	LPVOID pbCurrentlyInWinapiCall;
 
-	DBGCHR('A');
-
-	if (pRemoteData->dwSize != sizeof(PXCH_INJECT_REMOTE_DATA) + PXCH_CONFIG_EXTRA_SIZE(&pRemoteData->pxchConfig)) {
-		return ERROR_INCORRECT_SIZE;
-	}
+	DBGSTEP('A');
 
 	pRemoteData->dwEverExecuted = 1;
-	DBGCHR('B');
+	DBGSTEP('B');
 
 	
-	DBGCHR('C');
+	DBGSTEP('C');
 
-	if (pRemoteData->pxchConfig.szMinHookDllPath[0] != L'\0') {
-		hMinHookDllModule = CAST_FUNC_ADDR(LoadLibraryW)(pRemoteData->pxchConfig.szMinHookDllPath);
-		if (!hMinHookDllModule) {
-			// pRemoteData->dwErrorCode = pRemoteData->fpGetLastError();
-			// return pRemoteData->dwErrorCode;
+#ifdef PXCH_MINHOOK_USE_DYNAMIC
+	{
+		HMODULE hMinHookDllModule = NULL;
+
+		if (pRemoteData->pxchConfig.szMinHookDllPath[0] != L'\0') {
+			hMinHookDllModule = CAST_FUNC_ADDR(LoadLibraryW)(pRemoteData->pxchConfig.szMinHookDllPath);
+			if (!hMinHookDllModule) {
+				pRemoteData->dwLastError = CAST_FUNC_ADDR(GetLastError)();
+				return pRemoteData->dwLastError;
+			}
 		}
 	}
+#endif
 	
-	DBGCHR('D');
+	DBGSTEP('D');
 
 	// ???
 	// hHookDllModule = CAST_FUNC_ADDR(GetModuleHandleW)(pRemoteData->szHookDllModuleName);
 	// if (hHookDllModule) {
-	// 	pRemoteData->dwErrorCode = ERROR_ALREADY_REGISTERED;
+	// 	pRemoteData->dwLastError = ERROR_ALREADY_REGISTERED;
 	// 	return ERROR_ALREADY_REGISTERED;
 	// }
 
-	DBGCHR('E');
+	DBGSTEP('E');
 
-	pRemoteData->dwErrorCode = ERROR_DLL_INIT_FAILED;
+	pRemoteData->dwLastError = ERROR_DLL_INIT_FAILED;
 
 	hHookDllModule = CAST_FUNC_ADDR(LoadLibraryW)(pRemoteData->pxchConfig.szHookDllPath);
 	if (!hHookDllModule) {
-		pRemoteData->dwErrorCode = CAST_FUNC_ADDR(GetLastError)();
-		return pRemoteData->dwErrorCode;
+		pRemoteData->dwLastError = CAST_FUNC_ADDR(GetLastError)();
+		return pRemoteData->dwLastError;
 	}
 
-	DBGCHR('F');
+	DBGSTEP('F');
 
-	pRemoteData->dwErrorCode = ERROR_PROC_NOT_FOUND;
+	pRemoteData->dwLastError = ERROR_PROC_NOT_FOUND;
 	pbCurrentlyInWinapiCall = CAST_FUNC_ADDR(GetProcAddress)(hHookDllModule, pRemoteData->szCIWCVarName);
 	if (!pbCurrentlyInWinapiCall) goto err_getprocaddress;
 	*(BOOL*)pbCurrentlyInWinapiCall = TRUE;
 
-	DBGCHR('G');
+	DBGSTEP('G');
 
-	pRemoteData->dwErrorCode = ERROR_PROC_NOT_FOUND;
+	pRemoteData->dwLastError = ERROR_PROC_NOT_FOUND;
 	fpInitFunc = CAST_FUNC_ADDR(GetProcAddress)(hHookDllModule, pRemoteData->szInitFuncName);
 	if (!fpInitFunc) goto err_getprocaddress;
 
-	DBGCHR('H');
+	DBGSTEP('H');
 
-	pRemoteData->dwErrorCode = ERROR_FUNCTION_FAILED;
-	pRemoteData->dwErrorCode = ((DWORD(__stdcall*)(PXCH_INJECT_REMOTE_DATA*))fpInitFunc)(pRemoteData);
+	pRemoteData->dwLastError = ERROR_FUNCTION_FAILED;
+	pRemoteData->dwLastError = ((DWORD(__stdcall*)(PXCH_INJECT_REMOTE_DATA*))fpInitFunc)(pRemoteData);
 	
-	DBGCHR('I');
+	DBGSTEP('I');
 
-	if (pRemoteData->dwErrorCode != NO_ERROR) goto err_init_func_failed;
+	if (pRemoteData->dwLastError != NO_ERROR) goto err_init_func_failed;
 
-	DBGCHR('J');
+	DBGSTEP('J');
 
-	pRemoteData->dwErrorCode = 0;
+	pRemoteData->dwLastError = 0;
 	*(BOOL*)pbCurrentlyInWinapiCall = FALSE;
 
-	DBGCHR('K');
+	DBGSTEP('K');
 
 	return 0;
 
@@ -102,12 +105,12 @@ err_init_func_failed:
 	goto err_after_load_dll;
 
 err_getprocaddress:
-	pRemoteData->dwErrorCode = CAST_FUNC_ADDR(GetLastError)();
+	pRemoteData->dwLastError = CAST_FUNC_ADDR(GetLastError)();
 	goto err_after_load_dll;
 
 err_after_load_dll:
 	CAST_FUNC_ADDR(FreeLibrary)(hHookDllModule);
-	return pRemoteData->dwErrorCode;
+	return pRemoteData->dwLastError;
 }
 
 

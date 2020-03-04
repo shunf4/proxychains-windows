@@ -21,6 +21,8 @@
 #include "hookdll_util_win32.h"
 #include "hookdll_win32.h"
 
+BOOL g_bSystemInfoInitialized;
+SYSTEM_INFO g_SystemInfo;
 
 PXCH_UINT32 IpcCommunicateWithServer(const PXCH_IPC_MSGBUF sendMessage, PXCH_UINT32 cbSendMessageSize, PXCH_IPC_MSGBUF responseMessage, PXCH_UINT32* pcbResponseMessageSize)
 {
@@ -28,7 +30,7 @@ PXCH_UINT32 IpcCommunicateWithServer(const PXCH_IPC_MSGBUF sendMessage, PXCH_UIN
 	DWORD cbToWrite;
 	DWORD cbWritten;
 	DWORD dwMode;
-	DWORD dwErrorCode;
+	DWORD dwLastError;
 	BOOL bReturn;
 
 	if (!g_pPxchConfig) return ERROR_INVALID_STATE;
@@ -36,71 +38,71 @@ PXCH_UINT32 IpcCommunicateWithServer(const PXCH_IPC_MSGBUF sendMessage, PXCH_UIN
 	*pcbResponseMessageSize = 0;
 	SetMsgInvalid(responseMessage);
 
-	ODBGSTRLOG(L"before createfile");
+	ODBGSTRLOGV(L"before createfile");
 
 	// Try to open a named pipe; wait for it if necessary
 	while (1)
 	{
 		hPipe = CreateFileW(g_pPxchConfig->szIpcPipeName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 		if (hPipe != INVALID_HANDLE_VALUE) break;
-		if ((dwErrorCode = GetLastError()) != ERROR_PIPE_BUSY) goto err_open_pipe;
+		if ((dwLastError = GetLastError()) != ERROR_PIPE_BUSY) goto err_open_pipe;
 
 		// Wait needed
 		if (!WaitNamedPipeW(g_pPxchConfig->szIpcPipeName, 2000)) goto err_wait_pipe;
 	}
 
-	ODBGSTRLOG(L"after createfile");
+	ODBGSTRLOGV(L"after createfile");
 
 	dwMode = PIPE_READMODE_MESSAGE;
 	bReturn = SetNamedPipeHandleState(hPipe, &dwMode, NULL, NULL);
 	if (!bReturn) goto err_set_handle_state;
 
-	ODBGSTRLOG(L"after SetNamedPipeHandleState");
+	ODBGSTRLOGV(L"after SetNamedPipeHandleState");
 
 	// Request
 	cbToWrite = (DWORD)cbSendMessageSize;
 	bReturn = WriteFile(hPipe, sendMessage, cbToWrite, &cbWritten, NULL);
 	if (!bReturn || cbToWrite != cbWritten) goto err_write;
 
-	ODBGSTRLOG(L"after WriteFile");
+	ODBGSTRLOGV(L"after WriteFile");
 
 	// Read response
 	bReturn = ReadFile(hPipe, responseMessage, PXCH_IPC_BUFSIZE, pcbResponseMessageSize, NULL);
 	if (!bReturn) goto err_read;
 
-	ODBGSTRLOG(L"after ReadFile");
+	ODBGSTRLOGV(L"after ReadFile");
 
 	CloseHandle(hPipe);
 	return 0;
 
 err_open_pipe:
 	// Opening pipe using CreateFileW error
-	return dwErrorCode;
+	return dwLastError;
 
 err_wait_pipe:
-	dwErrorCode = GetLastError();
+	dwLastError = GetLastError();
 	// Waiting pipe using WaitNamedPipeW error
 	goto close_ret;
 
 err_set_handle_state:
-	dwErrorCode = GetLastError();
+	dwLastError = GetLastError();
 	// SetNamedPipeHandleState() error
 	goto close_ret;
 
 err_write:
-	dwErrorCode = GetLastError();
+	dwLastError = GetLastError();
 	// WriteFile() error
-	dwErrorCode = (dwErrorCode == NO_ERROR ? ERROR_WRITE_FAULT : dwErrorCode);
+	dwLastError = (dwLastError == NO_ERROR ? ERROR_WRITE_FAULT : dwLastError);
 	goto close_ret;
 
 err_read:
-	dwErrorCode = GetLastError();
+	dwLastError = GetLastError();
 	// ReadFile() error
 	goto close_ret;
 
 close_ret:
 	CloseHandle(hPipe);
-	return dwErrorCode;
+	return dwLastError;
 }
 
 
@@ -111,18 +113,18 @@ DWORD IpcClientRegisterChildProcess()
 	PXCH_IPC_MSGBUF chRespMessageBuf;
 	DWORD cbMessageSize;
 	DWORD cbRespMessageSize;
-	DWORD dwErrorCode;
+	DWORD dwLastError;
 
 	ChildData.dwPid = GetCurrentProcessId();
 	ChildData.pSavedPxchConfig = g_pPxchConfig;
 	ChildData.pSavedRemoteData = g_pRemoteData;
 
-	if ((dwErrorCode = ChildDataToMessage(chMessageBuf, &cbMessageSize, &ChildData)) != NO_ERROR) return dwErrorCode;
-	if ((dwErrorCode = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) return dwErrorCode;
+	if ((dwLastError = ChildDataToMessage(chMessageBuf, &cbMessageSize, &ChildData)) != NO_ERROR) return dwLastError;
+	if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) return dwLastError;
 
 	return 0;*/
 
-	DWORD dwErrorCode;
+	DWORD dwLastError;
 
 	HANDLE hMapFile;
 	WCHAR szFileMappingName[PXCH_MAX_FILEMAPPING_BUFSIZE];
@@ -151,8 +153,8 @@ DWORD IpcClientRegisterChildProcess()
 	pChildData->dwSavedTlsIndex = g_dwTlsIndex;
 	pChildData->pSavedHeapAllocatedPointers = g_arrHeapAllocatedPointers;
 
-	if ((dwErrorCode = ChildDataToMessage(chMessageBuf, &cbMessageSize, pChildData)) != NO_ERROR) return dwErrorCode;
-	if ((dwErrorCode = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) return dwErrorCode;
+	if ((dwLastError = ChildDataToMessage(chMessageBuf, &cbMessageSize, pChildData)) != NO_ERROR) return dwLastError;
+	if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) return dwLastError;
 
 	IPCLOGV(L"Saved child data, g_pPxchConfig = %p", g_pPxchConfig);
 
@@ -163,15 +165,15 @@ err_sprintf:
 	return ERROR_INVALID_DATA;
 
 err_filemapping:
-	dwErrorCode = GetLastError();
-	IPCLOGE(L"CreateFileMappingW failed: %ls", FormatErrorToStr(dwErrorCode));
-	return dwErrorCode;
+	dwLastError = GetLastError();
+	IPCLOGE(L"CreateFileMappingW failed: %ls", FormatErrorToStr(dwLastError));
+	return dwLastError;
 
 err_mapviewoffile:
-	dwErrorCode = GetLastError();
+	dwLastError = GetLastError();
 	IPCLOGE(L"MapViewOfFile failed");
 	CloseHandle(hMapFile);
-	return dwErrorCode;
+	return dwLastError;
 }
 
 
@@ -189,11 +191,11 @@ PXCH_UINT32 RestoreChildData()
 
 	if (ChildData.dwPid == g_pPxchConfig->dwMasterProcessId) return 0;
 
-	if ((dwErrorCode = QueryStorageToMessage(chMessageBuf, &cbMessageSize, ChildData.dwPid)) != NO_ERROR) return dwErrorCode;
-	if ((dwErrorCode = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) return dwErrorCode;
-	if ((dwErrorCode = MessageToChildData(&ChildData, chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) return dwErrorCode;*/
+	if ((dwLastError = QueryStorageToMessage(chMessageBuf, &cbMessageSize, ChildData.dwPid)) != NO_ERROR) return dwLastError;
+	if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) return dwLastError;
+	if ((dwLastError = MessageToChildData(&ChildData, chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) return dwLastError;*/
 
-	PXCH_UINT32 dwErrorCode;
+	PXCH_UINT32 dwLastError;
 
 	HANDLE hMapFile;
 	HANDLE hMapFileWhenCreated;
@@ -204,9 +206,12 @@ PXCH_UINT32 RestoreChildData()
 
 	if ((dwRealCurrentProcessId = GetCurrentProcessId()) == g_dwCurrentProcessIdForVerify) return 0;
 
+	ODBGSTRLOGD_FORCE_WITH_EARLY_BUF(L"winpid " WPRDW L" data was rewritten, now restoring", dwRealCurrentProcessId);
+
 	// Overwritten, now restoring
 	g_pPxchConfig = NULL;
 	g_pRemoteData = NULL;
+	g_bSystemInfoInitialized = FALSE;
 
 	if (FAILED(StringCchPrintfW(szFileMappingName, _countof(szFileMappingName), L"%ls" WPRDW, g_szChildDataSavingFileMappingPrefix, dwRealCurrentProcessId))) goto err_sprintf;
 	// hMapFile = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READONLY, 0, sizeof(REPORTED_CHILD_DATA), szFileMappingName);
@@ -238,7 +243,7 @@ PXCH_UINT32 RestoreChildData()
 
 err_data_invalid:
 	IPCLOGE(L"Saved CHILDDATA invalid");
-	ODBGSTRLOG(L"Saved CHILDDATA invalid");
+	ODBGSTRLOGD(L"Saved CHILDDATA invalid");
 	return ERROR_INVALID_DATA;
 
 err_sprintf:
@@ -247,15 +252,15 @@ err_sprintf:
 	return ERROR_INVALID_DATA;
 
 err_filemapping:
-	dwErrorCode = GetLastError();
-	ODBGSTRLOG(L"OpenFileMappingW failed: %ls", FormatErrorToStr(dwErrorCode));
+	dwLastError = GetLastError();
+	ODBGSTRLOGD(L"OpenFileMappingW failed: %ls", FormatErrorToStr(dwLastError));
 	IPCLOGE(L"OpenFileMappingW failed");
-	return dwErrorCode;
+	return dwLastError;
 
 err_mapviewoffile:
-	dwErrorCode = GetLastError();
-	ODBGSTRLOG(L"MapViewOfFile failed: %ls", FormatErrorToStr(dwErrorCode));
+	dwLastError = GetLastError();
+	ODBGSTRLOGD(L"MapViewOfFile failed: %ls", FormatErrorToStr(dwLastError));
 	IPCLOGE(L"MapViewOfFile failed");
 	CloseHandle(hMapFile);
-	return dwErrorCode;
+	return dwLastError;
 }

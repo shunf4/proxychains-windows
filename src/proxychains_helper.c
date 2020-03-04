@@ -17,6 +17,8 @@
  *   <http://www.gnu.org/licenses/>.
  */
 
+#define STRSAFE_NO_DEPRECATE
+#define _CRT_SECURE_NO_WARNINGS
 #include "defines_win32.h"
 #include "remote_win32.h"
 
@@ -44,6 +46,8 @@ int main(int argc, const char* const* argv)
         wprintf(L"%llX\n", 0ULL);
         wprintf(L"%llX\n", 0ULL);
         wprintf(L"%llX\n", 0ULL);
+        wprintf(L"%llX\n", 0ULL);
+        wprintf(L"%llX\n", 0ULL);
 #else
         wprintf(L"%llX\n", (unsigned long long)&GetModuleHandleW);
         wprintf(L"%llX\n", (unsigned long long)&LoadLibraryW);
@@ -51,6 +55,8 @@ int main(int argc, const char* const* argv)
         wprintf(L"%llX\n", (unsigned long long)&FreeLibrary);
         wprintf(L"%llX\n", (unsigned long long)&GetLastError);
         wprintf(L"%llX\n", (unsigned long long)&OutputDebugStringA);
+        wprintf(L"%llX\n", (unsigned long long)&GetCurrentProcessId);
+        wprintf(L"%llX\n", (unsigned long long)&wsprintfA);
 #endif
         return 0;
     }

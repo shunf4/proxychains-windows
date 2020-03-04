@@ -24,7 +24,7 @@
 
 /* #define LOCKED(proc) do { \
 	DWORD dwWaitResult; \
-	DWORD dwErrorCode; \
+	DWORD dwLastError; \
 	DWORD dwReturn = 0; \
 	 \
 	dwWaitResult = WaitForSingleObject(g_hDataMutex, INFINITE); \
@@ -36,9 +36,9 @@
 		proc \
 	after_proc: \
 		if (!ReleaseMutex(g_hDataMutex)) { \
-			dwErrorCode = GetLastError(); \
-			LOGC(L"Release mutex error: %ls", FormatErrorToStr(dwErrorCode)); \
-			exit(dwErrorCode); \
+			dwLastError = GetLastError(); \
+			LOGC(L"Release mutex error: %ls", FormatErrorToStr(dwLastError)); \
+			exit(dwLastError); \
 		} \
 		LOGD(L"Mutex freed."); \
 		return dwReturn; \
@@ -50,9 +50,9 @@
 		break; \
 	 \
 	default: \
-		dwErrorCode = GetLastError(); \
-		LOGW(L"Wait for mutex error: " WPRDW L", %ls", dwWaitResult, FormatErrorToStr(dwErrorCode)); \
-		return dwErrorCode; \
+		dwLastError = GetLastError(); \
+		LOGW(L"Wait for mutex error: " WPRDW L", %ls", dwWaitResult, FormatErrorToStr(dwLastError)); \
+		return dwLastError; \
 	} \
 } while(0) */
 

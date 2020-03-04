@@ -42,18 +42,31 @@ else
 ARCHITECT = x86
 endif
 
-EXEC_PATH_DEBUG = ./proxychains_$(ARCHITECT)d.exe
-EXEC_PATH_RELEASE = ./proxychains_$(ARCHITECT).exe
-HELPER_PATH_DEBUG = ./proxychains_helper_$(ARCHITECT)d.exe
-HELPER_PATH_RELEASE = ./proxychains_helper_$(ARCHITECT).exe
+ifeq ($(shell uname -o),Cygwin)
+CYGWIN_LIB = cygwin
+CYGWIN_DLL_PREFIX = cyg
+CYGWIN_EXEC_OS_DESC = cygwin
+else
+CYGWIN_LIB = msys-2.0
+#CFLAGS += -DPXCH_MSYS_USE_WIN32_STYLE
+CFLAGS += -DPXCH_IS_MSYS
+DLL_CFLAGS += -DPXCH_IS_MSYS
+CYGWIN_DLL_PREFIX = msys-
+CYGWIN_EXEC_OS_DESC = msys
+endif
+
+EXEC_PATH_DEBUG = ./proxychains_$(CYGWIN_EXEC_OS_DESC)_$(ARCHITECT)d.exe
+EXEC_PATH_RELEASE = ./proxychains_$(CYGWIN_EXEC_OS_DESC)_$(ARCHITECT).exe
+HELPER_PATH_DEBUG = ./proxychains_helper_$(CYGWIN_EXEC_OS_DESC)_$(ARCHITECT)d.exe
+HELPER_PATH_RELEASE = ./proxychains_helper_$(CYGWIN_EXEC_OS_DESC)_$(ARCHITECT).exe
 REMOTE_FUNC_BIN_HEADER_DEBUG = ../include/remote_func_bin_$(ARCHITECT)d.h
 REMOTE_FUNC_BIN_HEADER_RELEASE = ../include/remote_func_bin_$(ARCHITECT).h
 
 DLL_MODULE_NAME_DEBUG = proxychains_hook_$(ARCHITECT)d
 DLL_MODULE_NAME_RELEASE = proxychains_hook_$(ARCHITECT)
 
-DLL_NAME_DEBUG = cyg$(DLL_MODULE_NAME_DEBUG)
-DLL_NAME_RELEASE = cyg$(DLL_MODULE_NAME_RELEASE)
+DLL_NAME_DEBUG = $(CYGWIN_DLL_PREFIX)$(DLL_MODULE_NAME_DEBUG)
+DLL_NAME_RELEASE = $(CYGWIN_DLL_PREFIX)$(DLL_MODULE_NAME_RELEASE)
 DLL_PATH_DEBUG = ./$(DLL_NAME_DEBUG).dll
 DLL_PATH_RELEASE = ./$(DLL_NAME_RELEASE).dll
 DLL_IMPLIB_PATH_DEBUG = ./lib$(DLL_MODULE_NAME_DEBUG).a
@@ -70,6 +83,9 @@ ALL_EXECS_RELEASE = $(EXEC_PATH_RELEASE)
 MAKE_DIR_1 := $(shell [ -d dll ] || mkdir -p dll)
 MAKE_DIR_2 := $(shell [ -d exe ] || mkdir -p exe)
 MAKE_DIR_3 := $(shell [ -d cygwin_strsafe ] || mkdir -p cygwin_strsafe)
+
+MAKEFILE_PATH = $(abspath $(firstword $(MAKEFILE_LIST)))
+MAKEFILE_DIR = $(dir $(MAKEFILE_PATH))
 
 ifeq ($(DEBUG),0)
 
@@ -105,11 +121,11 @@ pre_release : MAKING_RELEASE $(REMOTE_FUNC_BIN_HEADER_RELEASE)
 	$(eval REMOTE_FUNC_BIN_HEADER := $(REMOTE_FUNC_BIN_HEADER_RELEASE))
 
 MAKING_DEBUG :
-	$(MAKE) clean
+	$(MAKE) -f $(MAKEFILE_PATH) clean
 	touch MAKING_DEBUG
 	
 MAKING_RELEASE :
-	$(MAKE) clean
+	$(MAKE) -f $(MAKEFILE_PATH) clean
 	touch MAKING_RELEASE
 
 $(NONDLL_OBJS) : %.o : $(SRC_PREFIX)%.c %.d
@@ -121,10 +137,10 @@ $(DLL_OBJS) : %.o : $(SRC_PREFIX)%.c %.d
 $(DEPS) : 
 	
 $(HELPER_PATH_DEBUG) : proxychains_helper.o remote_function.o
-	$(CC) -o$@ $(filter %.c %.o %.a %.lib,$^) -Wl,-Bdynamic -lntdllcrt -lkernel32 -lcygwin
+	$(CC) -o$@ $(filter %.c %.o %.a %.lib,$^) -Wl,-Bdynamic -lntdllcrt -lkernel32 -l$(CYGWIN_LIB)
 
 $(HELPER_PATH_RELEASE) : proxychains_helper.o remote_function.o
-	$(CC) -o$@ $(filter %.c %.o %.a %.lib,$^) -Wl,-Bdynamic -lntdllcrt -lkernel32 -lcygwin
+	$(CC) -o$@ $(filter %.c %.o %.a %.lib,$^) -Wl,-Bdynamic -lntdllcrt -lkernel32 -l$(CYGWIN_LIB)
 
 $(REMOTE_FUNC_BIN_HEADER_DEBUG) : $(HELPER_PATH_DEBUG)
 	$(HELPER_PATH_DEBUG) --dump-remote-function > $@
@@ -135,7 +151,7 @@ $(REMOTE_FUNC_BIN_HEADER_RELEASE) : $(HELPER_PATH_RELEASE)
 dll/hookdll_main.o : MADE_REMOTE_FUNC_BIN_HEADER
 
 MADE_REMOTE_FUNC_BIN_HEADER : proxychains_helper.o remote_function.o
-	$(MAKE) $(REMOTE_FUNC_BIN_HEADER)
+	$(MAKE) -f $(MAKEFILE_PATH) $(REMOTE_FUNC_BIN_HEADER)
 	touch MADE_REMOTE_FUNC_BIN_HEADER
 	
 $(DLL_PATH_DEBUG) : ../minhook/libMinHook.a dll/hookdll_main.o dll/hook_connect_win32.o dll/hook_connect_win32.o dll/hook_connect_cygwin.o dll/hook_createprocess_win32.o dll/hook_installer.o dll/ipc_client_and_child_data.o dll/hookdll_util.o dll/hookdll_util_wsock.o dll/hookdll_util_ipc_message.o cygwin_strsafe/strsafe.o
@@ -151,10 +167,10 @@ $(DLL_IMPLIB_PATH_DEBUG) : $(DLL_PATH_DEBUG)
 $(DLL_IMPLIB_PATH_RELEASE) : $(DLL_PATH_RELEASE)
 
 $(EXEC_PATH_DEBUG) : ../minhook/libMinHook.a exe/main.o exe/args_and_config.o exe/ipc_proc_bookkeeping.o stdlib_config_reader.o cygwin_strsafe/strsafe.o $(DLL_IMPLIB_PATH_DEBUG)
-	$(CC) -o$@ $(filter %.c %.o %.a %.lib,$^) $(LIB_DIR_LDFLAGS) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lkernel32 -lshlwapi -ladvapi32 -lcygwin -lws2_32
+	$(CC) -o$@ $(filter %.c %.o %.a %.lib,$^) $(LIB_DIR_LDFLAGS) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lkernel32 -lshlwapi -ladvapi32 -l$(CYGWIN_LIB) -lws2_32
 	
 $(EXEC_PATH_RELEASE) : ../minhook/libMinHook.a exe/main.o exe/args_and_config.o exe/ipc_proc_bookkeeping.o stdlib_config_reader.o cygwin_strsafe/strsafe.o $(DLL_IMPLIB_PATH_RELEASE)
-	$(CC) -o$@ $(filter %.c %.o %.a %.lib,$^) $(LIB_DIR_LDFLAGS) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lkernel32 -lshlwapi -ladvapi32 -lcygwin -lws2_32
+	$(CC) -o$@ $(filter %.c %.o %.a %.lib,$^) $(LIB_DIR_LDFLAGS) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lkernel32 -lshlwapi -ladvapi32 -l$(CYGWIN_LIB) -lws2_32
 
 .PHONY : clean dist pre_debug pre_release
 
@@ -172,20 +188,32 @@ clean :
 ../minhook/libMinHook.a :
 	$(MAKE) -C ../minhook -f ../minhook/build/MinGW/Makefile
 
+install : release
+	cp $(EXEC_PATH_RELEASE) $(PREFIX)/bin/proxychains.exe
+	cp $(EXEC_PATH_RELEASE) $(PREFIX)/bin/px.exe
+	cp $(DLL_PATH_RELEASE) $(PREFIX)/bin/
+	cp $(HELPER_PATH_RELEASE) $(PREFIX)/bin/
+
+installd : debug
+	cp $(EXEC_PATH_DEBUG) $(PREFIX)/bin/proxychainsd.exe
+	cp $(EXEC_PATH_DEBUG) $(PREFIX)/bin/pxd.exe
+	cp $(DLL_PATH_DEBUG) $(PREFIX)/bin/
+	cp $(HELPER_PATH_DEBUG) $(PREFIX)/bin/
+
 dist :
-	PXCH_VERSION=$$(gcc -dM -E - < ../include/version.h | grep PXCH_VERSION | sort | awk '{print $$3}' | head -c -1 | tr '\n' '.') ./dist.sh
+	PXCH_VERSION=$$(gcc -dM -E - < ../include/version.h | grep PXCH_VERSION | sort | awk '{print $$3}' | head -c -1 | tr '\n' '.') $(MAKEFILE_DIR)dist.sh
 	
 distinstall :
-	PXCH_VERSION=$$(gcc -dM -E - < ../include/version.h | grep PXCH_VERSION | sort | awk '{print $$3}' | head -c -1 | tr '\n' '.') ./dist.sh --install
+	PXCH_VERSION=$$(gcc -dM -E - < ../include/version.h | grep PXCH_VERSION | sort | awk '{print $$3}' | head -c -1 | tr '\n' '.') $(MAKEFILE_DIR)dist.sh --install
 	
 distinstall_legacy:
-	make release
+	$(MAKE) -f $(MAKEFILE_PATH) release
 	cp $(EXEC_PATH_RELEASE) $(PREFIX)/bin/proxychains.exe
 	cp $(EXEC_PATH_RELEASE) $(PREFIX)/bin/px.exe
 	cp $(DLL_PATH_RELEASE) $(PREFIX)/bin/
 	cp $(HELPER_PATH_RELEASE) $(PREFIX)/bin/
 	
-	make debug
+	$(MAKE) -f $(MAKEFILE_PATH) debug
 	cp $(EXEC_PATH_DEBUG) $(PREFIX)/bin/proxychainsd.exe
 	cp $(EXEC_PATH_DEBUG) $(PREFIX)/bin/pxd.exe
 	cp $(DLL_PATH_DEBUG) $(PREFIX)/bin/

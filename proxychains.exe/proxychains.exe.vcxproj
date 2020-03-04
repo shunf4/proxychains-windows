@@ -81,7 +81,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(SolutionDir)uthash\src;$(SolutionDir)minhook\include;$(SolutionDir)include;$(IncludePath)</IncludePath>
-    <TargetName>proxychains_x64d</TargetName>
+    <TargetName>proxychains_win32_x64d</TargetName>
     <OutDir>$(SolutionDir)win32_output\</OutDir>
     <CustomBuildAfterTargets>
     </CustomBuildAfterTargets>
@@ -89,7 +89,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(SolutionDir)uthash\src;$(SolutionDir)minhook\include;$(SolutionDir)include;$(IncludePath)</IncludePath>
-    <TargetName>proxychains_x86d</TargetName>
+    <TargetName>proxychains_win32_x86d</TargetName>
     <OutDir>$(SolutionDir)win32_output\</OutDir>
     <CustomBuildAfterTargets>
     </CustomBuildAfterTargets>
@@ -97,7 +97,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(SolutionDir)uthash\src;$(SolutionDir)minhook\include;$(SolutionDir)include;$(IncludePath)</IncludePath>
-    <TargetName>proxychains_x86</TargetName>
+    <TargetName>proxychains_win32_x86</TargetName>
     <OutDir>$(SolutionDir)win32_output\</OutDir>
     <CustomBuildAfterTargets>
     </CustomBuildAfterTargets>
@@ -105,7 +105,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(SolutionDir)uthash\src;$(SolutionDir)minhook\include;$(SolutionDir)include;$(IncludePath)</IncludePath>
-    <TargetName>proxychains_x64</TargetName>
+    <TargetName>proxychains_win32_x64</TargetName>
     <OutDir>$(SolutionDir)win32_output\</OutDir>
     <CustomBuildAfterTargets>
     </CustomBuildAfterTargets>
@@ -133,8 +133,8 @@
     </PostBuildEvent>
     <CustomBuildStep>
       <Command>cd /d $(SolutionDir)win32_output
-.\proxychains_helper_x86d.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x86d.h
-.\proxychains_helper_x64d.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x64d.h</Command>
+.\proxychains_helper_win32_x86d.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x86d.h
+.\proxychains_helper_win32_x64d.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x64d.h</Command>
       <Outputs>something_not_exists;%(Outputs)</Outputs>
     </CustomBuildStep>
     <PreBuildEvent>
@@ -165,8 +165,8 @@
     </PostBuildEvent>
     <CustomBuildStep>
       <Command>cd /d $(SolutionDir)win32_output
-.\proxychains_helper_x86d.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x86d.h
-.\proxychains_helper_x64d.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x64d.h</Command>
+.\proxychains_helper_win32_x86d.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x86d.h
+.\proxychains_helper_win32_x64d.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x64d.h</Command>
       <Outputs>something_not_exists;%(Outputs)</Outputs>
     </CustomBuildStep>
     <PreBuildEvent>
@@ -200,8 +200,8 @@
     </PostBuildEvent>
     <CustomBuildStep>
       <Command>cd /d $(SolutionDir)win32_output
-.\proxychains_helper_x86.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x86.h
-.\proxychains_helper_x64.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x64.h</Command>
+.\proxychains_helper_win32_x86.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x86.h
+.\proxychains_helper_win32_x64.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x64.h</Command>
       <Outputs>something_not_exists;%(Outputs)</Outputs>
     </CustomBuildStep>
     <PreBuildEvent>
@@ -235,8 +235,8 @@
     </PostBuildEvent>
     <CustomBuildStep>
       <Command>cd /d $(SolutionDir)win32_output
-.\proxychains_helper_x86.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x86.h
-.\proxychains_helper_x64.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x64.h</Command>
+.\proxychains_helper_win32_x86.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x86.h
+.\proxychains_helper_win32_x64.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x64.h</Command>
       <Outputs>something_not_exists;%(Outputs)</Outputs>
     </CustomBuildStep>
     <PreBuildEvent>

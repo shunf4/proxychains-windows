@@ -446,7 +446,7 @@ int Ws2_32_LoopSend(void* pTempData, PXCH_UINT_PTR s, const char* SendBuf, int i
 			FUNCIPCLOGD(L"send() only sent %d/%d bytes", iReturn, iLength);
 		}
 		else if (iReturn == iLength) {
-			FUNCIPCLOGD(L"send() sent %d/%d bytes", iReturn, iLength);
+			FUNCIPCLOGV(L"send() sent %d/%d bytes", iReturn, iLength);
 		}
 		else goto err_send_unexpected;
 
@@ -513,7 +513,7 @@ int Ws2_32_LoopRecv(void* pTempData, PXCH_UINT_PTR s, char* RecvBuf, int iLength
 			FUNCIPCLOGD(L"recv() only received %d/%d bytes", iReturn, iLength);
 		}
 		else if (iReturn == iLength) {
-			FUNCIPCLOGD(L"recv() received %d/%d bytes", iReturn, iLength);
+			FUNCIPCLOGV(L"recv() received %d/%d bytes", iReturn, iLength);
 		}
 		else goto err_recv_unexpected;
 
@@ -561,13 +561,14 @@ PXCH_DLL_API int Ws2_32_DirectConnect(void* pTempData, PXCH_UINT_PTR s, const PX
 {
 	int iReturn;
 
-	ODBGSTRLOG(L"Ws2_32_DirectConnect 0 %p", pHostPort);
+	FUNCIPCLOGD(L"XXXX");
+	ODBGSTRLOGD(L"Ws2_32_DirectConnect 0 %p", pHostPort);
 	if (HostIsType(INVALID, *pHostPort)) {
 		FUNCIPCLOGW(L"Error connecting directly: address is invalid (%#06hx).", *(const PXCH_UINT16*)pHostPort);
 		WSASetLastError(WSAEAFNOSUPPORT);
 		return SOCKET_ERROR;
 	}
-	ODBGSTRLOG(L"Ws2_32_DirectConnect 1");
+	ODBGSTRLOGD(L"Ws2_32_DirectConnect 1");
 
 	if (HostIsType(HOSTNAME, *pHostPort)) {
 		PXCH_HOSTNAME_PORT* pHostnamePort = (PXCH_HOSTNAME_PORT*)pHostPort;

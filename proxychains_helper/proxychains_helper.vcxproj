@@ -120,25 +120,25 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)win32_output\</OutDir>
-    <TargetName>$(ProjectName)_x86d</TargetName>
+    <TargetName>$(ProjectName)_win32_x86d</TargetName>
     <IncludePath>$(SolutionDir)uthash\src;$(SolutionDir)minhook\include;$(SolutionDir)include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)win32_output\</OutDir>
-    <TargetName>$(ProjectName)_x64d</TargetName>
+    <TargetName>$(ProjectName)_win32_x64d</TargetName>
     <IncludePath>$(SolutionDir)uthash\src;$(SolutionDir)minhook\include;$(SolutionDir)include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)win32_output\</OutDir>
-    <TargetName>$(ProjectName)_x86</TargetName>
+    <TargetName>$(ProjectName)_win32_x86</TargetName>
     <IncludePath>$(SolutionDir)uthash\src;$(SolutionDir)minhook\include;$(SolutionDir)include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)win32_output\</OutDir>
-    <TargetName>$(ProjectName)_x64</TargetName>
+    <TargetName>$(ProjectName)_win32_x64</TargetName>
     <IncludePath>$(SolutionDir)uthash\src;$(SolutionDir)minhook\include;$(SolutionDir)include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

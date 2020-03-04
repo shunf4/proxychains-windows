@@ -182,6 +182,11 @@ typedef unsigned int PXCH_UINT_PTR;
 #define IF_WIN32_EXIT(code) do { LOGI(L"Master exiting"); exit(code); } while(0)
 #endif
 
+#if !defined(__CYGWIN__) || defined(PXCH_MSYS_USE_WIN32_STYLE)
+#define IF_WIN32_STYLE_EXIT(code) do { LOGI(L"Master exiting"); exit(code); } while(0)
+#else
+#define IF_WIN32_STYLE_EXIT(code) do {} while(0)
+#endif
 
 // Consistent with sockaddr
 #pragma pack(push, 1)
@@ -328,6 +333,8 @@ typedef struct _PROXYCHAINS_CONFIG {
 		PXCH_UINT64 fpFreeLibraryX64;
 		PXCH_UINT64 fpGetLastErrorX64;
 		PXCH_UINT64 fpOutputDebugStringAX64;
+		PXCH_UINT64 fpGetCurrentProcessIdX64;
+		PXCH_UINT64 fpwsprintfAX64;
 
 		PXCH_UINT64 fpGetModuleHandleWX86;
 		PXCH_UINT64 fpLoadLibraryWX86;
@@ -335,6 +342,8 @@ typedef struct _PROXYCHAINS_CONFIG {
 		PXCH_UINT64 fpFreeLibraryX86;
 		PXCH_UINT64 fpGetLastErrorX86;
 		PXCH_UINT64 fpOutputDebugStringAX86;
+		PXCH_UINT64 fpGetCurrentProcessIdX86;
+		PXCH_UINT64 fpwsprintfAX86;
 	} FunctionPointers;
 	
 	PXCH_UINT32 cbProxyListOffset;
@@ -396,8 +405,28 @@ static const wchar_t g_szChildDataSavingFileMappingPrefix[] = L"Local\\proxychai
 #define PXCH_REDIRECT_NULL_FILE "nul"
 #endif
 
-#define PXCH_HELPER_X64_COMMANDLINE_SUFFIX "proxychains_helper_x64" PXCH_HOOKDLL_DEBUG_SUFFIX_NARROW ".exe --get-winapi-func-addr 2> " PXCH_REDIRECT_NULL_FILE
-#define PXCH_HELPER_X86_COMMANDLINE_SUFFIX "proxychains_helper_x86" PXCH_HOOKDLL_DEBUG_SUFFIX_NARROW ".exe --get-winapi-func-addr 2> " PXCH_REDIRECT_NULL_FILE
+#ifdef __CYGWIN__
+#ifdef PXCH_IS_MSYS
+#define PXCH_HOOKDLL_CYGWIN_PREFIX L"msys-"
+#else
+#define PXCH_HOOKDLL_CYGWIN_PREFIX L"cyg"
+#endif
+#else
+#define PXCH_HOOKDLL_CYGWIN_PREFIX L""
+#endif
+
+#ifdef __CYGWIN__
+#ifdef PXCH_IS_MSYS
+#define PXCH_HELPER_OS_DESC "msys"
+#else
+#define PXCH_HELPER_OS_DESC "cygwin"
+#endif
+#else
+#define PXCH_HELPER_OS_DESC "win32"
+#endif
+
+#define PXCH_HELPER_X64_COMMANDLINE_SUFFIX "proxychains_helper_" PXCH_HELPER_OS_DESC "_x64" PXCH_HOOKDLL_DEBUG_SUFFIX_NARROW ".exe --get-winapi-func-addr 2> " PXCH_REDIRECT_NULL_FILE
+#define PXCH_HELPER_X86_COMMANDLINE_SUFFIX "proxychains_helper_" PXCH_HELPER_OS_DESC "_x86" PXCH_HOOKDLL_DEBUG_SUFFIX_NARROW ".exe --get-winapi-func-addr 2> " PXCH_REDIRECT_NULL_FILE
 
 
 #if defined(_M_X64) || defined(__x86_64__)
@@ -410,12 +439,6 @@ static const wchar_t g_szChildDataSavingFileMappingPrefix[] = L"Local\\proxychai
 #define szMinHookDllPath szMinHookDllPathX86
 #define szHookDllPath szHookDllPathX86
 #define PXCH_DUMP_REMOTE_FUNCTION_PATH PXCH_DUMP_REMOTE_FUNCTION_X86_PATH
-#endif
-
-#ifdef __CYGWIN__
-#define PXCH_HOOKDLL_CYGWIN_PREFIX L"cyg"
-#else
-#define PXCH_HOOKDLL_CYGWIN_PREFIX L""
 #endif
 
 static const wchar_t g_szHookDllFileName[] = PXCH_HOOKDLL_CYGWIN_PREFIX L"proxychains_hook" PXCH_HOOKDLL_ARCHITECT_SUFFIX PXCH_HOOKDLL_DEBUG_SUFFIX L".dll";

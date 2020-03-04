@@ -93,16 +93,16 @@ void StdFlush_NotImported(DWORD dwStdHandle)
 DWORD ConnectToNewClient(HANDLE hPipe, LPOVERLAPPED lpo)
 {
 	BOOL bConnected;
-	DWORD dwErrorCode;
+	DWORD dwLastError;
 
 	bConnected = ConnectNamedPipe(hPipe, lpo);
-	dwErrorCode = GetLastError();
+	dwLastError = GetLastError();
 
 	// Should return zero because it's overlapped
 	if (bConnected != 0) goto err_connected_not_zero;
 
 
-	switch (dwErrorCode) {
+	switch (dwLastError) {
 	case ERROR_IO_PENDING:
 		return ERROR_IO_PENDING;
 
@@ -115,28 +115,28 @@ DWORD ConnectToNewClient(HANDLE hPipe, LPOVERLAPPED lpo)
 	}
 
 err_set_event:
-	LOGE(L"Error signaling event: %ls", FormatErrorToStr(dwErrorCode));
-	return dwErrorCode;
+	LOGE(L"Error signaling event: %ls", FormatErrorToStr(dwLastError));
+	return dwLastError;
 
 err_other_codes:
 err_connected_not_zero:
-	LOGE(L"Error connecting pipe: %ls", FormatErrorToStr(dwErrorCode));
-	return dwErrorCode;
+	LOGE(L"Error connecting pipe: %ls", FormatErrorToStr(dwLastError));
+	return dwLastError;
 }
 
 DWORD DisconnectAndReconnect(PXCH_IPC_INSTANCE* ipc, int i)
 {
-	DWORD dwErrorCode;
+	DWORD dwLastError;
 
 	if (!DisconnectNamedPipe(ipc[i].hPipe)) {
 		LOGE(L"[IPC%03d] disconnect failed: %ls.", i, FormatErrorToStr(GetLastError()));
 	}
 
-	dwErrorCode = ConnectToNewClient(ipc[i].hPipe, &ipc[i].oOverlap);
-	if (dwErrorCode != ERROR_IO_PENDING && dwErrorCode != ERROR_PIPE_CONNECTED) return dwErrorCode;
+	dwLastError = ConnectToNewClient(ipc[i].hPipe, &ipc[i].oOverlap);
+	if (dwLastError != ERROR_IO_PENDING && dwLastError != ERROR_PIPE_CONNECTED) return dwLastError;
 
-	ipc[i].bPending = (dwErrorCode == ERROR_IO_PENDING);
-	ipc[i].dwState = (dwErrorCode == ERROR_PIPE_CONNECTED) ? PXCH_IPC_STATE_READING : PXCH_IPC_STATE_CONNECTING;
+	ipc[i].bPending = (dwLastError == ERROR_IO_PENDING);
+	ipc[i].dwState = (dwLastError == ERROR_PIPE_CONNECTED) ? PXCH_IPC_STATE_READING : PXCH_IPC_STATE_CONNECTING;
 	return 0;
 }
 
@@ -145,7 +145,7 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 	static PXCH_IPC_INSTANCE ipc[PXCH_IPC_INSTANCE_NUM];
 	static HANDLE hEvents[PXCH_IPC_INSTANCE_NUM];
 	PROXYCHAINS_CONFIG* pPxchConfig = (PROXYCHAINS_CONFIG*)lpVoid;
-	DWORD dwErrorCode;
+	DWORD dwLastError;
 	DWORD dwWait;
 	DWORD cbReturn;
 	BOOL bReturn;
@@ -159,9 +159,9 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 	// https://stackoverflow.com/questions/9589141/low-integrity-to-medium-high-integrity-pipe-security-descriptor
 	if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(L"D:(A;;0x12019f;;;WD)S:(ML;;NW;;;LW)", SDDL_REVISION_1, &pSecDesc, NULL)) {
 		if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(L"D:(A;;0x12019f;;;WD)", SDDL_REVISION_1, &pSecDesc, NULL)) {
-			dwErrorCode = GetLastError();
-			LOGE(L"Initializing Security Descriptor error: %ls", FormatErrorToStr(dwErrorCode));
-			return dwErrorCode;
+			dwLastError = GetLastError();
+			LOGE(L"Initializing Security Descriptor error: %ls", FormatErrorToStr(dwLastError));
+			return dwLastError;
 		}
 	}
 
@@ -182,12 +182,12 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 
 		if (ipc[i].hPipe == INVALID_HANDLE_VALUE) goto err_create_pipe;
 
-		dwErrorCode = ConnectToNewClient(ipc[i].hPipe, &ipc[i].oOverlap);
-		if (dwErrorCode != ERROR_IO_PENDING && dwErrorCode != ERROR_PIPE_CONNECTED) return dwErrorCode;
+		dwLastError = ConnectToNewClient(ipc[i].hPipe, &ipc[i].oOverlap);
+		if (dwLastError != ERROR_IO_PENDING && dwLastError != ERROR_PIPE_CONNECTED) return dwLastError;
 
-		ipc[i].bPending = (dwErrorCode == ERROR_IO_PENDING);
+		ipc[i].bPending = (dwLastError == ERROR_IO_PENDING);
 
-		ipc[i].dwState = (dwErrorCode == ERROR_PIPE_CONNECTED) ? PXCH_IPC_STATE_READING : PXCH_IPC_STATE_CONNECTING;
+		ipc[i].dwState = (dwLastError == ERROR_PIPE_CONNECTED) ? PXCH_IPC_STATE_READING : PXCH_IPC_STATE_CONNECTING;
 	}
 
 	LocalFree(pSecDesc);
@@ -195,9 +195,9 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 	LOGD(L"[IPCALL] Waiting for clients...");
 	LOGV(L"ServerLoop: Signaling semaphore...");
 	if (!ReleaseSemaphore(g_hIpcServerSemaphore, 1, NULL)) {
-		dwErrorCode = GetLastError();
-		LOGC(L"Release semaphore error: %ls", FormatErrorToStr(dwErrorCode));
-		exit(dwErrorCode);
+		dwLastError = GetLastError();
+		LOGC(L"Release semaphore error: %ls", FormatErrorToStr(dwLastError));
+		exit(dwLastError);
 	}
 	// CloseHandle(g_hIpcServerSemaphore);
 	LOGV(L"ServerLoop: Signaled semaphore.");
@@ -234,11 +234,11 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 
 			case PXCH_IPC_STATE_READING:
 				if (!bReturn || cbReturn == 0) {
-					dwErrorCode = GetLastError();
-					if (dwErrorCode != ERROR_BROKEN_PIPE) {
-						LOGE(L"[IPC%03d] GetOverlappedResult() error(" WPRDW L") or read 0 bytes(" WPRDW L"), disconnect and reconnecting", i, dwErrorCode, cbReturn);
+					dwLastError = GetLastError();
+					if (dwLastError != ERROR_BROKEN_PIPE) {
+						LOGE(L"[IPC%03d] GetOverlappedResult() error(" WPRDW L") or read 0 bytes(" WPRDW L"), disconnect and reconnecting", i, dwLastError, cbReturn);
 					}
-					if ((dwErrorCode = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwErrorCode;
+					if ((dwLastError = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwLastError;
 					continue;
 				}
 				LOGV(L"[IPC%03d] ReadFile() received msglen = " WPRDW L"", i, cbReturn);
@@ -248,11 +248,11 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 
 			case PXCH_IPC_STATE_WRITING:
 				if (!bReturn || cbReturn != ipc[i].cbToWrite) {
-					dwErrorCode = GetLastError();
-					if (dwErrorCode != ERROR_BROKEN_PIPE) {
-						LOGE(L"[IPC%03d] GetOverlappedResult() error(" WPRDW L") or wrote " WPRDW L" bytes (!= " WPRDW L" as expected), disconnect and reconnecting", i, dwErrorCode, cbReturn, ipc[i].cbToWrite);
+					dwLastError = GetLastError();
+					if (dwLastError != ERROR_BROKEN_PIPE) {
+						LOGE(L"[IPC%03d] GetOverlappedResult() error(" WPRDW L") or wrote " WPRDW L" bytes (!= " WPRDW L" as expected), disconnect and reconnecting", i, dwLastError, cbReturn, ipc[i].cbToWrite);
 					}
-					if ((dwErrorCode = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwErrorCode;
+					if ((dwLastError = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwLastError;
 					continue;
 				}
 				LOGV(L"[IPC%03d] WriteFile() sent msglen = " WPRDW L"", i, cbReturn);
@@ -279,25 +279,25 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 			}
 
 			// Pending
-			dwErrorCode = GetLastError();
-			if (!bReturn && (dwErrorCode == ERROR_IO_PENDING)) {
+			dwLastError = GetLastError();
+			if (!bReturn && (dwLastError == ERROR_IO_PENDING)) {
 				ipc[i].bPending = TRUE;
 				continue;
 			}
 
-			if (dwErrorCode != ERROR_BROKEN_PIPE) {
-				LOGE(L"[IPC%03d] ReadFile() error: %ls or has read 0 bytes; disconnecting and reconnecting", i, FormatErrorToStr(dwErrorCode));
+			if (dwLastError != ERROR_BROKEN_PIPE) {
+				LOGE(L"[IPC%03d] ReadFile() error: %ls or has read 0 bytes; disconnecting and reconnecting", i, FormatErrorToStr(dwLastError));
 			}
-			if ((dwErrorCode = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwErrorCode;
+			if ((dwLastError = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwLastError;
 			break;
 
 		case PXCH_IPC_STATE_WRITING:
-			dwErrorCode = HandleMessage(i, &ipc[i]);
+			dwLastError = HandleMessage(i, &ipc[i]);
 			LOGV(L"HandleMessage done.");
 
-			if (dwErrorCode != NO_ERROR) {
-				LOGE(L"[IPC%03d] Handle message error: %ls; disconnecting and reconnecting", i, FormatErrorToStr(dwErrorCode));
-				if ((dwErrorCode = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwErrorCode;
+			if (dwLastError != NO_ERROR) {
+				LOGE(L"[IPC%03d] Handle message error: %ls; disconnecting and reconnecting", i, FormatErrorToStr(dwLastError));
+				if ((dwLastError = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwLastError;
 				break;
 			}
 
@@ -314,16 +314,16 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 			}
 
 			// Pending
-			dwErrorCode = GetLastError();
-			if (!bReturn && (dwErrorCode == ERROR_IO_PENDING)) {
+			dwLastError = GetLastError();
+			if (!bReturn && (dwLastError == ERROR_IO_PENDING)) {
 				ipc[i].bPending = TRUE;
 				continue;
 			}
 
-			if (dwErrorCode != ERROR_BROKEN_PIPE) {
-				LOGE(L"[IPC%03d] Write() error: %ls or wrote unexpected bytes(" WPRDW L", different from " WPRDW L" as expected); disconnecting and reconnecting", i, FormatErrorToStr(dwErrorCode), cbReturn, ipc[i].cbToWrite);
+			if (dwLastError != ERROR_BROKEN_PIPE) {
+				LOGE(L"[IPC%03d] Write() error: %ls or wrote unexpected bytes(" WPRDW L", different from " WPRDW L" as expected); disconnecting and reconnecting", i, FormatErrorToStr(dwLastError), cbReturn, ipc[i].cbToWrite);
 			}
-			if ((dwErrorCode = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwErrorCode;
+			if ((dwLastError = DisconnectAndReconnect(ipc, i)) != NO_ERROR) return dwLastError;
 			break;
 
 		default:
@@ -334,24 +334,24 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 	return 0;
 
 err_create_event:
-	dwErrorCode = GetLastError();
-	LOGE(L"Error creating event: %ls", FormatErrorToStr(dwErrorCode));
-	return dwErrorCode;
+	dwLastError = GetLastError();
+	LOGE(L"Error creating event: %ls", FormatErrorToStr(dwLastError));
+	return dwLastError;
 
 err_create_pipe:
-	dwErrorCode = GetLastError();
-	LOGE(L"Error creating pipe: %ls", FormatErrorToStr(dwErrorCode));
-	return dwErrorCode;
+	dwLastError = GetLastError();
+	LOGE(L"Error creating pipe: %ls", FormatErrorToStr(dwLastError));
+	return dwLastError;
 
 err_wait_out_of_range:
-	dwErrorCode = GetLastError();
-	LOGE(L"WaitForMultipleObjects() out of range: %d, last error: %ls", i, FormatErrorToStr(dwErrorCode));
+	dwLastError = GetLastError();
+	LOGE(L"WaitForMultipleObjects() out of range: %d, last error: %ls", i, FormatErrorToStr(dwLastError));
 	return ERROR_DS_RANGE_CONSTRAINT;
 
 err_connect_overlapped_error:
-	dwErrorCode = GetLastError();
-	LOGE(L"[IPC%03d] GetOverlappedResult() error: %ls", i, FormatErrorToStr(dwErrorCode));
-	return dwErrorCode;
+	dwLastError = GetLastError();
+	LOGE(L"[IPC%03d] GetOverlappedResult() error: %ls", i, FormatErrorToStr(dwLastError));
+	return dwLastError;
 
 }
 
@@ -499,9 +499,12 @@ DWORD Init(void)
 
 DWORD InitProcessBookkeeping(void);
 
-#ifndef __CYGWIN__
-
-int wmain(int argc, WCHAR* argv[])
+#if !defined(__CYGWIN__) || defined(PXCH_MSYS_USE_WIN32_STYLE)
+#if defined(PXCH_MSYS_USE_WIN32_STYLE)
+int main(int argc, char* argv[])
+#else
+int wmain(int argc, WCHAR* wargv[])
+#endif
 {
 	DWORD dwError;
 	DWORD dwTid;
@@ -510,6 +513,22 @@ int wmain(int argc, WCHAR* argv[])
 	PROXYCHAINS_CONFIG TempProxychainsConfig;
 	int iCommandStart;
 	const char* szLocale;
+#if defined(PXCH_MSYS_USE_WIN32_STYLE)
+	WCHAR** wargv;
+#endif
+
+#if defined(PXCH_MSYS_USE_WIN32_STYLE)
+	{
+		int i;
+		wargv = malloc(argc * sizeof(WCHAR*));
+
+		for (i = 0; i < argc; i++) {
+			int iNeededChars = MultiByteToWideChar(CP_UTF8, 0, argv[i], -1, NULL, 0);
+			wargv[i] = malloc(iNeededChars * sizeof(WCHAR));
+			MultiByteToWideChar(CP_UTF8, 0, argv[i], -1, wargv[i], iNeededChars);
+		}
+	}
+#endif
 
 	setvbuf(stderr, NULL, _IOFBF, 65536);
 	szLocale = setlocale(LC_ALL, "");
@@ -517,7 +536,7 @@ int wmain(int argc, WCHAR* argv[])
 
 	if ((dwError = Init()) != NOERROR) goto err;
 	if ((dwError = InitProcessBookkeeping()) != NOERROR) goto err;
-	if ((dwError = ParseArgs(&TempProxychainsConfig, argc, argv, &iCommandStart)) != NOERROR) goto err_args;
+	if ((dwError = ParseArgs(&TempProxychainsConfig, argc, wargv, &iCommandStart)) != NOERROR) goto err_args;
 	if ((dwError = LoadConfiguration(&g_pPxchConfig, &TempProxychainsConfig)) != NOERROR) goto err;
 	if (g_pPxchConfig->dwLogLevel >= PXCH_LOG_LEVEL_DEBUG) PrintConfiguration(g_pPxchConfig);
 
@@ -529,7 +548,7 @@ int wmain(int argc, WCHAR* argv[])
 
 	if (g_hIpcServerSemaphore != NULL) {
 		DWORD dwWaitResult;
-		DWORD dwErrorCode;
+		DWORD dwLastError;
 
 		LOGV(L"Waiting for g_hIpcServerSemaphore.");
 
@@ -538,9 +557,9 @@ int wmain(int argc, WCHAR* argv[])
 		{
 		case WAIT_OBJECT_0:
 			if (!ReleaseSemaphore(g_hIpcServerSemaphore, 1, NULL)) {
-				dwErrorCode = GetLastError();
-				LOGC(L"Release semaphore error: %ls", FormatErrorToStr(dwErrorCode));
-				exit(dwErrorCode);
+				dwLastError = GetLastError();
+				LOGC(L"Release semaphore error: %ls", FormatErrorToStr(dwLastError));
+				exit(dwLastError);
 			}
 			CloseHandle(g_hIpcServerSemaphore);
 			g_hIpcServerSemaphore = NULL;
@@ -553,21 +572,23 @@ int wmain(int argc, WCHAR* argv[])
 			break;
 
 		default:
-			dwErrorCode = GetLastError();
-			LOGW(L"Wait for semaphore error: " WPRDW L", %ls", dwWaitResult, FormatErrorToStr(dwErrorCode));
-			exit(dwErrorCode);
+			dwLastError = GetLastError();
+			LOGW(L"Wait for semaphore error: " WPRDW L", %ls", dwWaitResult, FormatErrorToStr(dwLastError));
+			exit(dwLastError);
 		}
 	}
 
+	LOGD(L"szCommandLine: %ls", g_pPxchConfig->szCommandLine);
 	if (!ProxyCreateProcessW(NULL, g_pPxchConfig->szCommandLine, 0, 0, 0, 0, 0, 0, &startupInfo, &processInformation)) goto err_get;
 
 	if (g_tabPerProcess == NULL) {
 		LOGI(L"No child process registered. Injection might not have succeeded.");
+		WaitForSingleObject(processInformation.hProcess, INFINITE);
 		IF_WIN32_EXIT(1);
+	} else {
+		SetConsoleCtrlHandler(CtrlHandler, TRUE);
+		Sleep(INFINITE);
 	}
-
-	SetConsoleCtrlHandler(CtrlHandler, TRUE);
-	Sleep(INFINITE);
 	return 0;
 
 err_get:
@@ -578,7 +599,7 @@ err:
 	return dwError;
 
 err_args:
-	PrintUsage(argv[0], dwError != ERROR_CANCELLED);
+	PrintUsage(wargv[0], dwError != ERROR_CANCELLED);
 	return dwError == ERROR_CANCELLED ? 0 : dwError;
 }
 
@@ -652,7 +673,7 @@ int main(int argc, char* const argv[], char* const envp[])
 
 	if (g_hIpcServerSemaphore != NULL) {
 		DWORD dwWaitResult;
-		DWORD dwErrorCode;
+		DWORD dwLastError;
 
 		LOGV(L"Waiting for g_hIpcServerSemaphore.");
 
@@ -661,9 +682,9 @@ int main(int argc, char* const argv[], char* const envp[])
 		{
 		case WAIT_OBJECT_0:
 			if (!ReleaseSemaphore(g_hIpcServerSemaphore, 1, NULL)) {
-				dwErrorCode = GetLastError();
-				LOGC(L"Release semaphore error: %ls", FormatErrorToStr(dwErrorCode));
-				exit(dwErrorCode);
+				dwLastError = GetLastError();
+				LOGC(L"Release semaphore error: %ls", FormatErrorToStr(dwLastError));
+				exit(dwLastError);
 			}
 			CloseHandle(g_hIpcServerSemaphore);
 			g_hIpcServerSemaphore = NULL;
@@ -676,9 +697,9 @@ int main(int argc, char* const argv[], char* const envp[])
 			break;
 
 		default:
-			dwErrorCode = GetLastError();
-			LOGW(L"Wait for semaphore error: " WPRDW L", %ls", dwWaitResult, FormatErrorToStr(dwErrorCode));
-			exit(dwErrorCode);
+			dwLastError = GetLastError();
+			LOGW(L"Wait for semaphore error: " WPRDW L", %ls", dwWaitResult, FormatErrorToStr(dwLastError));
+			exit(dwLastError);
 		}
 	}
 
@@ -690,7 +711,7 @@ int main(int argc, char* const argv[], char* const envp[])
 
 	if (g_tabPerProcess == NULL) {
 		LOGI(L"No child process registered. Injection might not have succeeded.");
-		IF_CYGWIN_EXIT(1);
+		// IF_CYGWIN_EXIT(1);
 	}
 
 	signal(SIGINT, handle_sigint);
