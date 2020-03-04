@@ -1166,7 +1166,7 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 				case 4: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, GetLastError       , tmp, X86); break;
 				case 5: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, OutputDebugStringA , tmp, X86); break;
 				case 6: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, GetCurrentProcessId, tmp, X86); break;
-				case 7: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, wsprintfA          , tmp, X86); break;
+				case 7: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, wsprintfA          , tmp, X86);
 				default: bStop = TRUE; break;
 				}
 			}
