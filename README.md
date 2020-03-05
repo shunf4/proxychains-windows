@@ -142,7 +142,7 @@ proxychains.exe. Cygwin Sucks.*
 is based on an Msys2 environment. Instead, use
 [MinGit busybox variant](https://github.com/git-for-windows/git/releases/),
 and replace its `busybox.exe` with
-~~~[this version](https://frippery.org/busybox/)~~~
+~~[this version](https://frippery.org/busybox/)~~
 [this version modified by me](https://github.com/shunf4/busybox-w32)
 (the git-for-windows fork of busybox-w32 shipped with MinGit-busybox
 also hangs when executing a shell script with pipe "|" creation, when
