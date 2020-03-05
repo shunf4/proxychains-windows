@@ -145,7 +145,7 @@ and replace its `busybox.exe` with
 ~~[this version](https://frippery.org/busybox/)~~
 [this version modified by me](https://github.com/shunf4/busybox-w32).*
 
- > (the git-for-windows fork of busybox-w32 shipped with MinGit-busybox
+ > The git-for-windows fork of busybox-w32 shipped with MinGit-busybox
  > also hangs when executing a shell script with pipe "|" creation, when
  > its `CreateProcessW()` is hooked. The reason is, its `win32/process.c`
  > is heavily modified compared to original version; it has a flaw in the
@@ -154,7 +154,7 @@ and replace its `busybox.exe` with
  > calls `cull_exited_processes()`, which closes all handles related to
  > currently known exited process. However `shell/ash.c` still USES these
  > handles to do child process waiting in `waitpid_child`. This brings
- > about erroneous results, finally leading to an infinite waiting loop.).
+ > about erroneous results, finally leading to an infinite waiting loop.
  > My fork fixes this flaw.
 
 *Now you have wholly-win32, pure and neat git environment, ready to be
@@ -176,6 +176,8 @@ follow this kind of instruction of dynamic linking order(???).
 
 (Development will be suspended for some time)
 
+- [ ] Get rid of Offending&Matching host key confirmation when
+      proxifying git/SSH, probably using a FQDN hash function
 - [ ] Try to fix hang when executing `git clone https://` and
       `git submodule update --init --recursive` (This is partially
       resolved by using MinGit-busybox with replaced busybox;
