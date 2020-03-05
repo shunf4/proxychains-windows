@@ -134,7 +134,7 @@ Run `proxychains -h` for more command line argument options.
 ## About Cygwin/Msys2
 
 *Note: using Cygwin/Msys2 version is no longer encourged due to weird
-behaviour of its shells when `CreateRemoteThread()`'ed by
+behaviour(hang) of its shells when `CreateRemoteThread()`'ed by
 proxychains.exe. Cygwin Sucks.*
 
 *If you want to proxify something that calls `git` (like `npm`,
@@ -142,9 +142,19 @@ proxychains.exe. Cygwin Sucks.*
 is based on an Msys2 environment. Instead, use
 [MinGit busybox variant](https://github.com/git-for-windows/git/releases/),
 and replace its `busybox.exe` with
-[this version](https://frippery.org/busybox/)
-(the version shipped with MinGit-busybox also act weird in `--forkshell`
-when Hooked by MinHook).*
+~~~[this version](https://frippery.org/busybox/)~~~
+[this version modified by me](https://github.com/shunf4/busybox-w32)
+(the git-for-windows fork of busybox-w32 shipped with MinGit-busybox
+also hangs when executing a shell script with pipe "|" creation, when
+its `CreateProcessW()` is hooked. The reason is, its `win32/process.c`
+is heavily modified compared to original version; it has a flaw in the
+process creating function `mingw_spawnve()`, in which
+`exit_process_on_signal()` is called. Then `exit_process_on_signal()`
+calls `cull_exited_processes()`, which closes all handles related to
+currently known exited process. However `shell/ash.c` still USES these
+handles to do child process waiting in `waitpid_child`. This brings
+about erroneous results, finally leading to an infinite waiting loop.).
+My fork fixes this flaw.*
 
 *Now you have wholly-win32, pure and neat git environment, ready to be
 proxified.*
