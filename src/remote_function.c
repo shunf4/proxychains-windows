@@ -43,7 +43,7 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 	);
 #endif
 
-	if (((PXCH_INJECT_REMOTE_DATA*)pArg)->dwDebugDepth >= 2) { ((FpExitThread)(((PXCH_INJECT_REMOTE_DATA*)pArg)->pxchConfig.FunctionPointers.fpExitThreadX64))(-3); return -1; }
+	// if (((PXCH_INJECT_REMOTE_DATA*)pArg)->dwDebugDepth >= 2) { ((FpExitThread)(((PXCH_INJECT_REMOTE_DATA*)pArg)->pxchConfig.FunctionPointers.fpExitThreadX64))(-3); return -1; }
 
 	pRemoteData = (PXCH_INJECT_REMOTE_DATA*)pArg;
 
@@ -141,12 +141,13 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 	DBGSTEP('H');
 
 	pRemoteData->dwLastError = ERROR_FUNCTION_FAILED;
-	pRemoteData->dwLastError = ((DWORD(__stdcall*)(PXCH_INJECT_REMOTE_DATA*))fpInitFunc)(pRemoteData);
+	if (!(((PXCH_INJECT_REMOTE_DATA*)pArg)->dwDebugDepth >= 2) || TRUE) {pRemoteData->dwLastError = ((DWORD(__stdcall*)(PXCH_INJECT_REMOTE_DATA*))fpInitFunc)(pRemoteData);}
 
 	DBGSTEP('I');
 
 	if (pRemoteData->dwLastError != NO_ERROR) goto err_init_func_failed;
 
+	if (((PXCH_INJECT_REMOTE_DATA*)pArg)->dwDebugDepth >= 2) { ((FpExitThread)(((PXCH_INJECT_REMOTE_DATA*)pArg)->pxchConfig.FunctionPointers.fpExitThreadX64))(-3); return -1; }
 	DBGSTEP('J');
 
 	pRemoteData->dwLastError = 0;

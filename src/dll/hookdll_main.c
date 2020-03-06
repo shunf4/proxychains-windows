@@ -91,10 +91,12 @@ DWORD RemoteCopyExecute(HANDLE hProcess, BOOL bIsX86, PXCH_INJECT_REMOTE_DATA* p
 	IPCLOGV(L"CreateProcessW: Before VirtualAllocEx. %lld", (long long)cbCodeSize);
 
 	// Allocate memory (code + data) in remote process
-	pTargetBuf = VirtualAllocEx(hProcess, NULL, cbCodeSize + dwRemoteDataSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+	pTargetBuf = NULL;
+	// pTargetBuf = (void*)0x40000000;
+	pTargetBuf = VirtualAllocEx(hProcess, pTargetBuf, cbCodeSize + dwRemoteDataSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 	if (!pTargetBuf) goto err_alloc;
 
-	IPCLOGV(L"CreateProcessW: After VirtualAllocEx. %p", pTargetBuf);
+	IPCLOGI(L"CreateProcessW: After VirtualAllocEx. %p", pTargetBuf);
 
 	// Write code
 	pTargetCode = pTargetBuf;
@@ -113,7 +115,7 @@ DWORD RemoteCopyExecute(HANDLE hProcess, BOOL bIsX86, PXCH_INJECT_REMOTE_DATA* p
 
 	IPCLOGV(L"CreateProcessW: Before CreateRemoteThread(ReadProcessMemory finished). " WPRDW, 0);
 
-	if ((g_pRemoteData ? g_pRemoteData->dwDebugDepth : 0) >= 1 && FALSE) return 0;
+	// if ((g_pRemoteData ? g_pRemoteData->dwDebugDepth : 0) >= 1) return 0;
 
 	// Create remote thread in target process to execute the code
 	hRemoteThread = CreateRemoteThread(hProcess, NULL, 0, pTargetCode, pTargetData, 0, &dwRemoteTid);
@@ -318,7 +320,7 @@ PXCH_DLL_API DWORD __stdcall InitHook(PXCH_INJECT_REMOTE_DATA* pRemoteData)
 	ODBGSTRLOGD(L"InitHook: start");
 
 // #define PXCH_HOOK_CONDITION (g_pRemoteData->dwDebugDepth <= 3)
-#define PXCH_HOOK_CONDITION (TRUE)
+#define PXCH_HOOK_CONDITION (!(pRemoteData->dwDebugDepth >= 2))
 	if (PXCH_HOOK_CONDITION) {
 		MH_Initialize();
 
@@ -334,7 +336,7 @@ PXCH_DLL_API DWORD __stdcall InitHook(PXCH_INJECT_REMOTE_DATA* pRemoteData)
 
 		// ALL HOOKS MUST BE DONE HERE
 		// AFTER fork() RESTORES DATA SEGMENT, MINHOOK IS IN UNCERTAIN STATE
-		Win32HookWs2_32();
+		// Win32HookWs2_32();
 		//CygwinHook();
 
 		ODBGSTRLOGD(L"InitHook: before MH_EnableHook");
