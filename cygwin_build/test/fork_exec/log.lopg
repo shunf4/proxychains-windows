@@ -1,0 +1,724 @@
+--- Process 18488 created
+--- Process 18488 loaded C:\Windows\System32\ntdll.dll at 00007ffbe9380000
+--- Process 18488 loaded C:\Windows\System32\kernel32.dll at 00007ffbe8280000
+--- Process 18488 loaded C:\Windows\System32\KernelBase.dll at 00007ffbe66d0000
+--- Process 18488 thread 17096 created
+--- Process 18488 loaded C:\cygwin64\bin\cygwin1.dll at 0000000180040000
+    0       0 [main] _test (18488) **********************************************
+  110     110 [main] _test (18488) Program name: D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\_test.exe (windows pid 18488)
+   31     141 [main] _test (18488) OS version:   Windows NT-10.0
+  143     284 [main] _test (18488) **********************************************
+--- Process 18488 loaded C:\Windows\System32\advapi32.dll at 00007ffbe9080000
+--- Process 18488 loaded C:\Windows\System32\msvcrt.dll at 00007ffbe7460000
+--- Process 18488 loaded C:\Windows\System32\sechost.dll at 00007ffbe7710000
+--- Process 18488 loaded C:\Windows\System32\rpcrt4.dll at 00007ffbe8f30000
+--- Process 18488 thread 19060 created
+--- Process 18488 loaded C:\Windows\System32\cryptbase.dll at 00007ffbe5c30000
+--- Process 18488 loaded C:\Windows\System32\bcryptprimitives.dll at 00007ffbe6650000
+ 1512    1796 [main] _test (18488) sigprocmask: 0 = sigprocmask (0, 0x0, 0x180320DD0)
+  180    1976 [main] _test (18488) open_shared: name shared.5, n 5, shared 0x180030000 (wanted 0x180030000), h 0xE4, *m 6
+   23    1999 [main] _test (18488) user_heap_info::init: heap base 0x800000000, heap top 0x800000000, heap size 0x20000000 (536870912)
+   33    2032 [main] _test (18488) open_shared: name S-1-5-21-3855849159-2658103565-453892836-1001.1, n 1, shared 0x180020000 (wanted 0x180020000), h 0xE0, *m 6
+   18    2050 [main] _test (18488) user_info::create: opening user shared for 'S-1-5-21-3855849159-2658103565-453892836-1001' at 0x180020000
+   19    2069 [main] _test (18488) user_info::create: user shared version AB1FCCE8
+   32    2101 [main] _test (18488) fhandler_pipe::create: name \\.\pipe\cygwin-e022582115c10879-18488-sigwait, size 11440, mode PIPE_TYPE_MESSAGE
+   41    2142 [main] _test (18488) fhandler_pipe::create: pipe read handle 0xFC
+   18    2160 [main] _test (18488) fhandler_pipe::create: CreateFile: name \\.\pipe\cygwin-e022582115c10879-18488-sigwait
+   36    2196 [main] _test (18488) fhandler_pipe::create: pipe write handle 0x100
+   26    2222 [main] _test (18488) dll_crt0_0: finished dll_crt0_0 initialization
+--- Process 18488 thread 14932 created
+  231    2453 [sig] _test (18488) wait_sig: entering ReadFile loop, my_readsig 0xFC, my_sendsig 0x100
+   80    2533 [main] _test (18488) time: 1583460889 = time(0x0)
+   88    2621 [main] _test (18488) mount_info::conv_to_posix_path: conv_to_posix_path (D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec, 0x0, no-add-slash)
+   39    2660 [main] _test (18488) normalize_win32_path: D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec = normalize_win32_path (D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec)
+   24    2684 [main] _test (18488) mount_info::conv_to_posix_path: /cygdrive/d/work/Proxychains.exe/proxychains.exe/cygwin_build/test/fork_exec = conv_to_posix_path (D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec)
+   38    2722 [main] _test (18488) sigprocmask: 0 = sigprocmask (0, 0x0, 0x800018130)
+  109    2831 [main] _test (18488) _cygwin_istext_for_stdio: fd 0: not open
+   24    2855 [main] _test (18488) _cygwin_istext_for_stdio: fd 1: not open
+   73    2928 [main] _test (18488) _cygwin_istext_for_stdio: fd 2: not open
+   74    3002 [main] _test (18488) open_shared: name cygpid.1009, n 1009, shared 0x180010000 (wanted 0x180010000), h 0x128, *m 2
+   20    3022 [main] _test (18488) time: 1583460889 = time(0x0)
+   27    3049 [main] _test 1009 pinfo::thisproc: myself dwProcessId 18488
+   34    3083 [main] _test 1009 environ_init: GetEnvironmentStrings returned 0x106690
+   66    3149 [main] _test 1009 win32env_to_cygenv: 0x8000284F0: !::=::\
+   36    3185 [main] _test 1009 win32env_to_cygenv: 0x800028510: #envTSLOGsss7316=49017104
+   75    3260 [main] _test 1009 win32env_to_cygenv: 0x800028540: ALLUSERSPROFILE=C:\ProgramData
+   33    3293 [main] _test 1009 win32env_to_cygenv: 0x800028570: AMDRMPATH=C:\Program Files\AMD\RyzenMaster\
+   32    3325 [main] _test 1009 win32env_to_cygenv: 0x8000285B0: AMDRMSDKPATH=C:\Program Files\AMD\RyzenMasterSDK\
+   33    3358 [main] _test 1009 win32env_to_cygenv: 0x8000285F0: APPDATA=C:\Users\shunf4\AppData\Roaming
+   32    3390 [main] _test 1009 win32env_to_cygenv: 0x800028620: CLINK_DIR=C:\Program Files (x86)\clink\0.4.9
+   33    3423 [main] _test 1009 win32env_to_cygenv: 0x800028660: COMMONPROGRAMFILES=C:\Program Files\Common Files
+   33    3456 [main] _test 1009 win32env_to_cygenv: 0x8000286A0: COMPUTERNAME=SHUN-ITX
+   32    3488 [main] _test 1009 win32env_to_cygenv: 0x8000286C0: COMSPEC=C:\Windows\system32\cmd.exe
+   32    3520 [main] _test 1009 win32env_to_cygenv: 0x8000286F0: CUDA_PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1
+   33    3553 [main] _test 1009 win32env_to_cygenv: 0x800028740: CUDA_PATH_V10_1=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1
+   38    3591 [main] _test 1009 parse_options: glob (called func)
+   36    3627 [main] _test 1009 parse_options: returning
+   19    3646 [main] _test 1009 win32env_to_cygenv: 0x8000287A0: CYGWIN=noglob
+   36    3682 [main] _test 1009 win32env_to_cygenv: 0x8000287E0: CYG_SSH_AGENT_PID=1902
+   33    3715 [main] _test 1009 win32env_to_cygenv: 0x800028800: CYG_SSH_AUTH_SOCK=/tmp/.ssh-pageant-shunf4
+   33    3748 [main] _test 1009 win32env_to_cygenv: 0x800028840: CYG_SSH_PAGEANT_PID=815
+   34    3782 [main] _test 1009 win32env_to_cygenv: 0x800028860: ChocolateyInstall=C:\ProgramData\chocolatey
+   32    3814 [main] _test 1009 win32env_to_cygenv: 0x8000288A0: ChocolateyLastPathUpdate=132180359591308303
+   33    3847 [main] _test 1009 win32env_to_cygenv: 0x8000288E0: CommonProgramFiles(x86)=C:\Program Files (x86)\Common Files
+   33    3880 [main] _test 1009 win32env_to_cygenv: 0x800028930: CommonProgramW6432=C:\Program Files\Common Files
+   33    3913 [main] _test 1009 win32env_to_cygenv: 0x800028970: DriverData=C:\Windows\System32\Drivers\DriverData
+   33    3946 [main] _test 1009 win32env_to_cygenv: 0x8000289B0: EXECIGNORE=*.dll
+   33    3979 [main] _test 1009 win32env_to_cygenv: 0x8000289D0: FPS_BROWSER_APP_PROFILE_STRING=Internet Explorer
+   33    4012 [main] _test 1009 win32env_to_cygenv: 0x800028A10: FPS_BROWSER_USER_PROFILE_STRING=Default
+   33    4045 [main] _test 1009 win32env_to_cygenv: 0x800028A40: GOPATH=C:\Users\shunf4\go
+   34    4079 [main] _test 1009 getwinenv: can't set native for HOME= since no environ yet
+   21    4100 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\cygwin64\home\shunf4, 0x10000000, no-add-slash)
+   18    4118 [main] _test 1009 normalize_win32_path: C:\cygwin64\home\shunf4 = normalize_win32_path (C:\cygwin64\home\shunf4)
+   18    4136 [main] _test 1009 mount_info::conv_to_posix_path: /home/shunf4 = conv_to_posix_path (C:\cygwin64\home\shunf4)
+   57    4193 [main] _test 1009 win_env::add_cache: posix /home/shunf4
+   19    4212 [main] _test 1009 win_env::add_cache: native HOME=C:\cygwin64\home\shunf4
+   18    4230 [main] _test 1009 posify_maybe: env var converted to HOME=/home/shunf4
+   47    4277 [main] _test 1009 win32env_to_cygenv: 0x800028AF0: HOME=/home/shunf4
+   34    4311 [main] _test 1009 win32env_to_cygenv: 0x800028A70: HOMEDRIVE=C:
+   32    4343 [main] _test 1009 win32env_to_cygenv: 0x800028B10: HOMEPATH=\Users\shunf4
+   32    4375 [main] _test 1009 win32env_to_cygenv: 0x800028B30: HOSTNAME=SHUN-ITX
+   32    4407 [main] _test 1009 win32env_to_cygenv: 0x800028B50: INFOPATH=/usr/local/info:/usr/share/info:/usr/info
+   33    4440 [main] _test 1009 win32env_to_cygenv: 0x800028B90: LANG=en_US.UTF-8
+   32    4472 [main] _test 1009 win32env_to_cygenv: 0x800028BB0: LOCALAPPDATA=C:\Users\shunf4\AppData\Local
+   31    4503 [main] _test 1009 win32env_to_cygenv: 0x800028BF0: LOGONSERVER=\\SHUN-ITX
+   32    4535 [main] _test 1009 win32env_to_cygenv: 0x800028C10: NUMBER_OF_PROCESSORS=16
+   60    4595 [main] _test 1009 win32env_to_cygenv: 0x800028C30: NVCUDASAMPLES10_1_ROOT=C:\ProgramData\NVIDIA Corporation\CUDA Samples\v10.1
+   35    4630 [main] _test 1009 win32env_to_cygenv: 0x800028C90: NVCUDASAMPLES_ROOT=C:\ProgramData\NVIDIA Corporation\CUDA Samples\v10.1
+   32    4662 [main] _test 1009 win32env_to_cygenv: 0x800028CE0: NVTOOLSEXT_PATH=C:\Program Files\NVIDIA Corporation\NvToolsExt\
+   34    4696 [main] _test 1009 win32env_to_cygenv: 0x800028D30: OLDPWD=/cygdrive/d/work/Proxychains.exe/proxychains.exe/cygwin_build/test/fork_exec
+   48    4744 [main] _test 1009 win32env_to_cygenv: 0x800028D90: ORIGINAL_PATH=/cygdrive/c/Program Files/Python37x/Scripts:/cygdrive/c/Program Files/Python37:/cygdrive/c/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.1/bin:/cygdrive/c/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.1/libnvvp:/cygdrive/c/Program Files (x86)/PC Connectivity Solution:/cygdrive/c/Program Files/Python38/Scripts:/cygdrive/c/Program Files/Python38:/cygdrive/c/Program Files (x86)/Common Files/Oracle/Java/javapath:/cygdrive/c/Python27:/cygdrive/c/Python27/Scripts:/cygdrive/c/Windows/system32:/cygdrive/c/Windows:/cygdrive/c/Windows/System32/Wbem:/cygdrive/c/Windows/System32/WindowsPowerShell/v1.0:/cygdrive/c/Windows/System32/OpenSSH:/cygdrive/c/Program Files/Microsoft SQL Server/130/Tools/Binn:/cygdrive/c/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn:/cygdrive/c/Program Files/NVIDIA Corporation/NVIDIA NvDLISR:/cygdrive/c/Program Files/Intel/WiFi/bin:/cygdrive/c/Program Files/Common Files/Intel/WirelessCommon:/cygdrive/c/Go/bin:/cygdrive/c/ProgramData/chocolatey/bin:/cygdrive/c/Program Files/nodejs:/cygdrive/c/Program Files (x86)/Bitvise SSH Client:/cygdrive/c/Program Files/PuTTY:/cygdrive/c/Users/shunf4/bin:/cygdrive/c/Program Files (x86)/Wolfram Research/WolframScript:/cygdrive/c/Program Files/NVIDIA Corporation/Nsight Compute 2019.1:/cygdrive/c/Program Files (x86)/NVIDIA Corporation/PhysX/Common:/cygdrive/c/Program Files (x86)/ZeroTier/One:/cygdrive/c/Program Files/CMake/bin:/cygdrive/d/Program Files/Polyspace/R2019b/runtime/win64:/cygdrive/d/Program Files/Polyspace/R2019b/bin:/cygdrive/d/Program Files/Polyspace/R2019b/polyspace/bin:/cygdrive/c/Program Files/Git/cmdxxxx:/cygdrive/c/Program Files/dotnet:/cygdrive/c/mingit-busybox/cmd:/cygdrive/c/Users/shunf4/.cargo/bin:/cygdrive/c/Users/shunf4/AppData/Local/Microsoft/WindowsApps:/cygdrive/c/Users/shunf4/AppData/Local/Programs/Microsoft VS Code/bin:/cygdrive/c/Users/shunf4/AppData/Local/Programs/Fiddler:/cygdrive/c/Program Files/Intel/WiFi/bin:/cygdrive/c/Program Files/Common Files/Intel/WirelessCommon:/cygdrive/c/Users/shunf4/go/bin:/cygdrive/c/Users/shunf4/Portable/wsl-terminal:/cygdrive/c/Users/shunf4/AppData/Roaming/npm:/cygdrive/c/Users/shunf4/AppData/Local/hyper/app-3.0.2/resources/bin:/cygdrive/c/Program Files/Bandizip
+   40    4784 [main] _test 1009 win32env_to_cygenv: 0x800029670: OS=Windows_NT
+   32    4816 [main] _test 1009 win32env_to_cygenv: 0x800029690: OneDrive=C:\Users\shunf4\OneDrive
+   44    4860 [main] _test 1009 getwinenv: can't set native for PATH= since no environ yet
+   37    4897 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\cygwin64\usr\local\bin, 0x10000100, no-add-slash)
+   19    4916 [main] _test 1009 normalize_win32_path: C:\cygwin64\usr\local\bin = normalize_win32_path (C:\cygwin64\usr\local\bin)
+   18    4934 [main] _test 1009 mount_info::conv_to_posix_path: /usr/local/bin = conv_to_posix_path (C:\cygwin64\usr\local\bin)
+   19    4953 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\cygwin64\bin, 0x10000100, no-add-slash)
+   18    4971 [main] _test 1009 normalize_win32_path: C:\cygwin64\bin = normalize_win32_path (C:\cygwin64\bin)
+   17    4988 [main] _test 1009 mount_info::conv_to_posix_path: /usr/bin = conv_to_posix_path (C:\cygwin64\bin)
+   19    5007 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files\Python37x\Scripts, 0x10000100, no-add-slash)
+   20    5027 [main] _test 1009 normalize_win32_path: C:\Program Files\Python37x\Scripts = normalize_win32_path (C:\Program Files\Python37x\Scripts)
+   19    5046 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files/Python37x/Scripts = conv_to_posix_path (C:\Program Files\Python37x\Scripts)
+   18    5064 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files\Python37, 0x10000100, no-add-slash)
+   18    5082 [main] _test 1009 normalize_win32_path: C:\Program Files\Python37 = normalize_win32_path (C:\Program Files\Python37)
+   17    5099 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files/Python37 = conv_to_posix_path (C:\Program Files\Python37)
+   17    5116 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\bin, 0x10000100, no-add-slash)
+   18    5134 [main] _test 1009 normalize_win32_path: C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\bin = normalize_win32_path (C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\bin)
+   20    5154 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.1/bin = conv_to_posix_path (C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\bin)
+   20    5174 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\libnvvp, 0x10000100, no-add-slash)
+   18    5192 [main] _test 1009 normalize_win32_path: C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\libnvvp = normalize_win32_path (C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\libnvvp)
+   23    5215 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.1/libnvvp = conv_to_posix_path (C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\libnvvp)
+   25    5240 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files (x86)\PC Connectivity Solution, 0x10000100, no-add-slash)
+   21    5261 [main] _test 1009 normalize_win32_path: C:\Program Files (x86)\PC Connectivity Solution = normalize_win32_path (C:\Program Files (x86)\PC Connectivity Solution)
+   18    5279 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files (x86)/PC Connectivity Solution = conv_to_posix_path (C:\Program Files (x86)\PC Connectivity Solution)
+   17    5296 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files\Python38\Scripts, 0x10000100, no-add-slash)
+   18    5314 [main] _test 1009 normalize_win32_path: C:\Program Files\Python38\Scripts = normalize_win32_path (C:\Program Files\Python38\Scripts)
+   18    5332 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files/Python38/Scripts = conv_to_posix_path (C:\Program Files\Python38\Scripts)
+   17    5349 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files\Python38, 0x10000100, no-add-slash)
+   18    5367 [main] _test 1009 normalize_win32_path: C:\Program Files\Python38 = normalize_win32_path (C:\Program Files\Python38)
+   18    5385 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files/Python38 = conv_to_posix_path (C:\Program Files\Python38)
+   17    5402 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files (x86)\Common Files\Oracle\Java\javapath, 0x10000100, no-add-slash)
+   19    5421 [main] _test 1009 normalize_win32_path: C:\Program Files (x86)\Common Files\Oracle\Java\javapath = normalize_win32_path (C:\Program Files (x86)\Common Files\Oracle\Java\javapath)
+   19    5440 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files (x86)/Common Files/Oracle/Java/javapath = conv_to_posix_path (C:\Program Files (x86)\Common Files\Oracle\Java\javapath)
+   18    5458 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Python27, 0x10000100, no-add-slash)
+   18    5476 [main] _test 1009 normalize_win32_path: C:\Python27 = normalize_win32_path (C:\Python27)
+   49    5525 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Python27 = conv_to_posix_path (C:\Python27)
+   20    5545 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Python27\Scripts, 0x10000100, no-add-slash)
+   18    5563 [main] _test 1009 normalize_win32_path: C:\Python27\Scripts = normalize_win32_path (C:\Python27\Scripts)
+   18    5581 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Python27/Scripts = conv_to_posix_path (C:\Python27\Scripts)
+   18    5599 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Windows\system32, 0x10000100, no-add-slash)
+   17    5616 [main] _test 1009 normalize_win32_path: C:\Windows\system32 = normalize_win32_path (C:\Windows\system32)
+   19    5635 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Windows/system32 = conv_to_posix_path (C:\Windows\system32)
+   17    5652 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Windows, 0x10000100, no-add-slash)
+   17    5669 [main] _test 1009 normalize_win32_path: C:\Windows = normalize_win32_path (C:\Windows)
+   18    5687 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Windows = conv_to_posix_path (C:\Windows)
+   17    5704 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Windows\System32\Wbem, 0x10000100, no-add-slash)
+   17    5721 [main] _test 1009 normalize_win32_path: C:\Windows\System32\Wbem = normalize_win32_path (C:\Windows\System32\Wbem)
+   17    5738 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Windows/System32/Wbem = conv_to_posix_path (C:\Windows\System32\Wbem)
+   18    5756 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Windows\System32\WindowsPowerShell\v1.0, 0x10000100, no-add-slash)
+   18    5774 [main] _test 1009 normalize_win32_path: C:\Windows\System32\WindowsPowerShell\v1.0 = normalize_win32_path (C:\Windows\System32\WindowsPowerShell\v1.0)
+   17    5791 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Windows/System32/WindowsPowerShell/v1.0 = conv_to_posix_path (C:\Windows\System32\WindowsPowerShell\v1.0)
+   18    5809 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Windows\System32\OpenSSH, 0x10000100, no-add-slash)
+   17    5826 [main] _test 1009 normalize_win32_path: C:\Windows\System32\OpenSSH = normalize_win32_path (C:\Windows\System32\OpenSSH)
+   18    5844 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Windows/System32/OpenSSH = conv_to_posix_path (C:\Windows\System32\OpenSSH)
+   17    5861 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files\Microsoft SQL Server\130\Tools\Binn, 0x10000100, no-add-slash)
+   18    5879 [main] _test 1009 normalize_win32_path: C:\Program Files\Microsoft SQL Server\130\Tools\Binn = normalize_win32_path (C:\Program Files\Microsoft SQL Server\130\Tools\Binn)
+   17    5896 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files/Microsoft SQL Server/130/Tools/Binn = conv_to_posix_path (C:\Program Files\Microsoft SQL Server\130\Tools\Binn)
+   18    5914 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn, 0x10000100, no-add-slash)
+   19    5933 [main] _test 1009 normalize_win32_path: C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn = normalize_win32_path (C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn)
+   18    5951 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn = conv_to_posix_path (C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn)
+   19    5970 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR, 0x10000100, no-add-slash)
+   18    5988 [main] _test 1009 normalize_win32_path: C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR = normalize_win32_path (C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR)
+   20    6008 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files/NVIDIA Corporation/NVIDIA NvDLISR = conv_to_posix_path (C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR)
+   19    6027 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files\Intel\WiFi\bin, 0x10000100, no-add-slash)
+   17    6044 [main] _test 1009 normalize_win32_path: C:\Program Files\Intel\WiFi\bin = normalize_win32_path (C:\Program Files\Intel\WiFi\bin)
+   17    6061 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files/Intel/WiFi/bin = conv_to_posix_path (C:\Program Files\Intel\WiFi\bin)
+   18    6079 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files\Common Files\Intel\WirelessCommon, 0x10000100, no-add-slash)
+   17    6096 [main] _test 1009 normalize_win32_path: C:\Program Files\Common Files\Intel\WirelessCommon = normalize_win32_path (C:\Program Files\Common Files\Intel\WirelessCommon)
+   18    6114 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files/Common Files/Intel/WirelessCommon = conv_to_posix_path (C:\Program Files\Common Files\Intel\WirelessCommon)
+   17    6131 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Go\bin, 0x10000100, no-add-slash)
+   18    6149 [main] _test 1009 normalize_win32_path: C:\Go\bin = normalize_win32_path (C:\Go\bin)
+   17    6166 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Go/bin = conv_to_posix_path (C:\Go\bin)
+   24    6190 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\ProgramData\chocolatey\bin, 0x10000100, no-add-slash)
+   22    6212 [main] _test 1009 normalize_win32_path: C:\ProgramData\chocolatey\bin = normalize_win32_path (C:\ProgramData\chocolatey\bin)
+   23    6235 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/ProgramData/chocolatey/bin = conv_to_posix_path (C:\ProgramData\chocolatey\bin)
+   18    6253 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files\nodejs, 0x10000100, no-add-slash)
+   19    6272 [main] _test 1009 normalize_win32_path: C:\Program Files\nodejs = normalize_win32_path (C:\Program Files\nodejs)
+   18    6290 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files/nodejs = conv_to_posix_path (C:\Program Files\nodejs)
+   17    6307 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files (x86)\Bitvise SSH Client, 0x10000100, no-add-slash)
+   18    6325 [main] _test 1009 normalize_win32_path: C:\Program Files (x86)\Bitvise SSH Client = normalize_win32_path (C:\Program Files (x86)\Bitvise SSH Client)
+   17    6342 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files (x86)/Bitvise SSH Client = conv_to_posix_path (C:\Program Files (x86)\Bitvise SSH Client)
+   18    6360 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files\PuTTY, 0x10000100, no-add-slash)
+   18    6378 [main] _test 1009 normalize_win32_path: C:\Program Files\PuTTY = normalize_win32_path (C:\Program Files\PuTTY)
+   18    6396 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files/PuTTY = conv_to_posix_path (C:\Program Files\PuTTY)
+   18    6414 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Users\shunf4\bin, 0x10000100, no-add-slash)
+   18    6432 [main] _test 1009 normalize_win32_path: C:\Users\shunf4\bin = normalize_win32_path (C:\Users\shunf4\bin)
+   17    6449 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Users/shunf4/bin = conv_to_posix_path (C:\Users\shunf4\bin)
+   19    6468 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files (x86)\Wolfram Research\WolframScript, 0x10000100, no-add-slash)
+   18    6486 [main] _test 1009 normalize_win32_path: C:\Program Files (x86)\Wolfram Research\WolframScript = normalize_win32_path (C:\Program Files (x86)\Wolfram Research\WolframScript)
+   17    6503 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files (x86)/Wolfram Research/WolframScript = conv_to_posix_path (C:\Program Files (x86)\Wolfram Research\WolframScript)
+   21    6524 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files\NVIDIA Corporation\Nsight Compute 2019.1, 0x10000100, no-add-slash)
+   19    6543 [main] _test 1009 normalize_win32_path: C:\Program Files\NVIDIA Corporation\Nsight Compute 2019.1 = normalize_win32_path (C:\Program Files\NVIDIA Corporation\Nsight Compute 2019.1)
+   18    6561 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files/NVIDIA Corporation/Nsight Compute 2019.1 = conv_to_posix_path (C:\Program Files\NVIDIA Corporation\Nsight Compute 2019.1)
+   18    6579 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common, 0x10000100, no-add-slash)
+   19    6598 [main] _test 1009 normalize_win32_path: C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common = normalize_win32_path (C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common)
+   18    6616 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files (x86)/NVIDIA Corporation/PhysX/Common = conv_to_posix_path (C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common)
+   18    6634 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files (x86)\ZeroTier\One, 0x10000100, no-add-slash)
+   18    6652 [main] _test 1009 normalize_win32_path: C:\Program Files (x86)\ZeroTier\One = normalize_win32_path (C:\Program Files (x86)\ZeroTier\One)
+   17    6669 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files (x86)/ZeroTier/One = conv_to_posix_path (C:\Program Files (x86)\ZeroTier\One)
+   19    6688 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files\CMake\bin, 0x10000100, no-add-slash)
+   18    6706 [main] _test 1009 normalize_win32_path: C:\Program Files\CMake\bin = normalize_win32_path (C:\Program Files\CMake\bin)
+   19    6725 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files/CMake/bin = conv_to_posix_path (C:\Program Files\CMake\bin)
+   18    6743 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (D:\Program Files\Polyspace\R2019b\runtime\win64, 0x10000100, no-add-slash)
+   18    6761 [main] _test 1009 normalize_win32_path: D:\Program Files\Polyspace\R2019b\runtime\win64 = normalize_win32_path (D:\Program Files\Polyspace\R2019b\runtime\win64)
+   19    6780 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/d/Program Files/Polyspace/R2019b/runtime/win64 = conv_to_posix_path (D:\Program Files\Polyspace\R2019b\runtime\win64)
+   18    6798 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (D:\Program Files\Polyspace\R2019b\bin, 0x10000100, no-add-slash)
+   18    6816 [main] _test 1009 normalize_win32_path: D:\Program Files\Polyspace\R2019b\bin = normalize_win32_path (D:\Program Files\Polyspace\R2019b\bin)
+   18    6834 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/d/Program Files/Polyspace/R2019b/bin = conv_to_posix_path (D:\Program Files\Polyspace\R2019b\bin)
+   18    6852 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (D:\Program Files\Polyspace\R2019b\polyspace\bin, 0x10000100, no-add-slash)
+   18    6870 [main] _test 1009 normalize_win32_path: D:\Program Files\Polyspace\R2019b\polyspace\bin = normalize_win32_path (D:\Program Files\Polyspace\R2019b\polyspace\bin)
+   18    6888 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/d/Program Files/Polyspace/R2019b/polyspace/bin = conv_to_posix_path (D:\Program Files\Polyspace\R2019b\polyspace\bin)
+   17    6905 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files\Git\cmdxxxx, 0x10000100, no-add-slash)
+   18    6923 [main] _test 1009 normalize_win32_path: C:\Program Files\Git\cmdxxxx = normalize_win32_path (C:\Program Files\Git\cmdxxxx)
+   17    6940 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files/Git/cmdxxxx = conv_to_posix_path (C:\Program Files\Git\cmdxxxx)
+   19    6959 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files\dotnet, 0x10000100, no-add-slash)
+   18    6977 [main] _test 1009 normalize_win32_path: C:\Program Files\dotnet = normalize_win32_path (C:\Program Files\dotnet)
+   17    6994 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files/dotnet = conv_to_posix_path (C:\Program Files\dotnet)
+   20    7014 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\mingit-busybox\cmd, 0x10000100, no-add-slash)
+   17    7031 [main] _test 1009 normalize_win32_path: C:\mingit-busybox\cmd = normalize_win32_path (C:\mingit-busybox\cmd)
+   17    7048 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/mingit-busybox/cmd = conv_to_posix_path (C:\mingit-busybox\cmd)
+   18    7066 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Users\shunf4\.cargo\bin, 0x10000100, no-add-slash)
+   17    7083 [main] _test 1009 normalize_win32_path: C:\Users\shunf4\.cargo\bin = normalize_win32_path (C:\Users\shunf4\.cargo\bin)
+   17    7100 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Users/shunf4/.cargo/bin = conv_to_posix_path (C:\Users\shunf4\.cargo\bin)
+   18    7118 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Users\shunf4\AppData\Local\Microsoft\WindowsApps, 0x10000100, no-add-slash)
+   17    7135 [main] _test 1009 normalize_win32_path: C:\Users\shunf4\AppData\Local\Microsoft\WindowsApps = normalize_win32_path (C:\Users\shunf4\AppData\Local\Microsoft\WindowsApps)
+   17    7152 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Users/shunf4/AppData/Local/Microsoft/WindowsApps = conv_to_posix_path (C:\Users\shunf4\AppData\Local\Microsoft\WindowsApps)
+   18    7170 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Users\shunf4\AppData\Local\Programs\Microsoft VS Code\bin, 0x10000100, no-add-slash)
+   26    7196 [main] _test 1009 normalize_win32_path: C:\Users\shunf4\AppData\Local\Programs\Microsoft VS Code\bin = normalize_win32_path (C:\Users\shunf4\AppData\Local\Programs\Microsoft VS Code\bin)
+   34    7230 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Users/shunf4/AppData/Local/Programs/Microsoft VS Code/bin = conv_to_posix_path (C:\Users\shunf4\AppData\Local\Programs\Microsoft VS Code\bin)
+   21    7251 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Users\shunf4\AppData\Local\Programs\Fiddler, 0x10000100, no-add-slash)
+   24    7275 [main] _test 1009 normalize_win32_path: C:\Users\shunf4\AppData\Local\Programs\Fiddler = normalize_win32_path (C:\Users\shunf4\AppData\Local\Programs\Fiddler)
+   23    7298 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Users/shunf4/AppData/Local/Programs/Fiddler = conv_to_posix_path (C:\Users\shunf4\AppData\Local\Programs\Fiddler)
+   28    7326 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files\Intel\WiFi\bin, 0x10000100, no-add-slash)
+   23    7349 [main] _test 1009 normalize_win32_path: C:\Program Files\Intel\WiFi\bin = normalize_win32_path (C:\Program Files\Intel\WiFi\bin)
+   21    7370 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files/Intel/WiFi/bin = conv_to_posix_path (C:\Program Files\Intel\WiFi\bin)
+   21    7391 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files\Common Files\Intel\WirelessCommon, 0x10000100, no-add-slash)
+   26    7417 [main] _test 1009 normalize_win32_path: C:\Program Files\Common Files\Intel\WirelessCommon = normalize_win32_path (C:\Program Files\Common Files\Intel\WirelessCommon)
+   26    7443 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files/Common Files/Intel/WirelessCommon = conv_to_posix_path (C:\Program Files\Common Files\Intel\WirelessCommon)
+   23    7466 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Users\shunf4\go\bin, 0x10000100, no-add-slash)
+   24    7490 [main] _test 1009 normalize_win32_path: C:\Users\shunf4\go\bin = normalize_win32_path (C:\Users\shunf4\go\bin)
+   47    7537 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Users/shunf4/go/bin = conv_to_posix_path (C:\Users\shunf4\go\bin)
+   20    7557 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Users\shunf4\Portable\wsl-terminal, 0x10000100, no-add-slash)
+   17    7574 [main] _test 1009 normalize_win32_path: C:\Users\shunf4\Portable\wsl-terminal = normalize_win32_path (C:\Users\shunf4\Portable\wsl-terminal)
+   20    7594 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Users/shunf4/Portable/wsl-terminal = conv_to_posix_path (C:\Users\shunf4\Portable\wsl-terminal)
+   19    7613 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Users\shunf4\AppData\Roaming\npm, 0x10000100, no-add-slash)
+   18    7631 [main] _test 1009 normalize_win32_path: C:\Users\shunf4\AppData\Roaming\npm = normalize_win32_path (C:\Users\shunf4\AppData\Roaming\npm)
+   18    7649 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Users/shunf4/AppData/Roaming/npm = conv_to_posix_path (C:\Users\shunf4\AppData\Roaming\npm)
+   18    7667 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Users\shunf4\AppData\Local\hyper\app-3.0.2\resources\bin, 0x10000100, no-add-slash)
+   18    7685 [main] _test 1009 normalize_win32_path: C:\Users\shunf4\AppData\Local\hyper\app-3.0.2\resources\bin = normalize_win32_path (C:\Users\shunf4\AppData\Local\hyper\app-3.0.2\resources\bin)
+   18    7703 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Users/shunf4/AppData/Local/hyper/app-3.0.2/resources/bin = conv_to_posix_path (C:\Users\shunf4\AppData\Local\hyper\app-3.0.2\resources\bin)
+   17    7720 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\Program Files\Bandizip, 0x10000100, no-add-slash)
+   18    7738 [main] _test 1009 normalize_win32_path: C:\Program Files\Bandizip = normalize_win32_path (C:\Program Files\Bandizip)
+   17    7755 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/c/Program Files/Bandizip = conv_to_posix_path (C:\Program Files\Bandizip)
+   18    7773 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\cygwin64\lib\lapack, 0x10000100, no-add-slash)
+   18    7791 [main] _test 1009 normalize_win32_path: C:\cygwin64\lib\lapack = normalize_win32_path (C:\cygwin64\lib\lapack)
+   17    7808 [main] _test 1009 mount_info::conv_to_posix_path: /usr/lib/lapack = conv_to_posix_path (C:\cygwin64\lib\lapack)
+   52    7860 [main] _test 1009 win_env::add_cache: posix /usr/local/bin:/usr/bin:/cygdrive/c/Program Files/Python37x/Scripts:/cygdrive/c/Program Files/Python37:/cygdrive/c/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.1/bin:/cygdrive/c/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.1/libnvvp:/cygdrive/c/Program Files (x86)/PC Connectivity Solution:/cygdrive/c/Program Files/Python38/Scripts:/cygdrive/c/Program Files/Python38:/cygdrive/c/Program Files (x86)/Common Files/Oracle/Java/javapath:/cygdrive/c/Python27:/cygdrive/c/Python27/Scripts:/cygdrive/c/Windows/system32:/cygdrive/c/Windows:/cygdrive/c/Windows/System32/Wbem:/cygdrive/c/Windows/System32/WindowsPowerShell/v1.0:/cygdrive/c/Windows/System32/OpenSSH:/cygdrive/c/Program Files/Microsoft SQL Server/130/Tools/Binn:/cygdrive/c/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn:/cygdrive/c/Program Files/NVIDIA Corporation/NVIDIA NvDLISR:/cygdrive/c/Program Files/Intel/WiFi/bin:/cygdrive/c/Program Files/Common Files/Intel/WirelessCommon:/cygdrive/c/Go/bin:/cygdrive/c/ProgramData/chocolatey/bin:/cygdrive/c/Program Files/nodejs:/cygdrive/c/Program Files (x86)/Bitvise SSH Client:/cygdrive/c/Program Files/PuTTY:/cygdrive/c/Users/shunf4/bin:/cygdrive/c/Program Files (x86)/Wolfram Research/WolframScript:/cygdrive/c/Program Files/NVIDIA Corporation/Nsight Compute 2019.1:/cygdrive/c/Program Files (x86)/NVIDIA Corporation/PhysX/Common:/cygdrive/c/Program Files (x86)/ZeroTier/One:/cygdrive/c/Program Files/CMake/bin:/cygdrive/d/Program Files/Polyspace/R2019b/runtime/win64:/cygdrive/d/Program Files/Polyspace/R2019b/bin:/cygdrive/d/Program Files/Polyspace/R2019b/polyspace/bin:/cygdrive/c/Program Files/Git/cmdxxxx:/cygdrive/c/Program Files/dotnet:/cygdrive/c/mingit-busybox/cmd:/cygdrive/c/Users/shunf4/.cargo/bin:/cygdrive/c/Users/shunf4/AppData/Local/Microsoft/WindowsApps:/cygdrive/c/Users/shunf4/AppData/Local/Programs/Microsoft VS Code/bin:/cygdrive/c/Users/shunf4/AppData/Local/Programs/Fiddler:/cygdrive/c/Program Files/Intel/WiFi/bin:/cygdrive/c/Program Files/Common Files/Intel/WirelessCommon:/cygdrive/c/Users/shunf4/go/bin:/cygdrive/c/Users/shunf4/Portable/wsl-terminal:/cygdrive/c/Users/shunf4/AppData/Roaming/npm:/cygdrive/c/Users/shunf4/AppData/Local/hyper/app-3.0.2/resources/bin:/cygdrive/c/Program Files/Bandizip:/usr/lib/lapack
+   27    7887 [main] _test 1009 win_env::add_cache: native PATH=C:\cygwin64\usr\local\bin;C:\cygwin64\bin;C:\Program Files\Python37x\Scripts;C:\Program Files\Python37;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\bin;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\libnvvp;C:\Program Files (x86)\PC Connectivity Solution;C:\Program Files\Python38\Scripts;C:\Program Files\Python38;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Python27;C:\Python27\Scripts;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0;C:\Windows\System32\OpenSSH;C:\Program Files\Microsoft SQL Server\130\Tools\Binn;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn;C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR;C:\Program Files\Intel\WiFi\bin;C:\Program Files\Common Files\Intel\WirelessCommon;C:\Go\bin;C:\ProgramData\chocolatey\bin;C:\Program Files\nodejs;C:\Program Files (x86)\Bitvise SSH Client;C:\Program Files\PuTTY;C:\Users\shunf4\bin;C:\Program Files (x86)\Wolfram Research\WolframScript;C:\Program Files\NVIDIA Corporation\Nsight Compute 2019.1;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files (x86)\ZeroTier\One;C:\Program Files\CMake\bin;D:\Program Files\Polyspace\R2019b\runtime\win64;D:\Program Files\Polyspace\R2019b\bin;D:\Program Files\Polyspace\R2019b\polyspace\bin;C:\Program Files\Git\cmdxxxx;C:\Program Files\dotnet;C:\mingit-busybox\cmd;C:\Users\shunf4\.cargo\bin;C:\Users\shunf4\AppData\Local\Microsoft\WindowsApps;C:\Users\shunf4\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\shunf4\AppData\Local\Programs\Fiddler;C:\Program Files\Intel\WiFi\bin;C:\Program Files\Common Files\Intel\WirelessCommon;C:\Users\shunf4\go\bin;C:\Users\shunf4\Portable\wsl-terminal;C:\Users\shunf4\AppData\Roaming\npm;C:\Users\shunf4\AppData\Local\hyper\app-3.0.2\resources\bin;C:\Program Files\Bandizip;C:\cygwin64\lib\lapack
+   26    7913 [main] _test 1009 posify_maybe: env var converted to PATH=/usr/local/bin:/usr/bin:/cygdrive/c/Program Files/Python37x/Scripts:/cygdrive/c/Program Files/Python37:/cygdrive/c/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.1/bin:/cygdrive/c/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.1/libnvvp:/cygdrive/c/Program Files (x86)/PC Connectivity Solution:/cygdrive/c/Program Files/Python38/Scripts:/cygdrive/c/Program Files/Python38:/cygdrive/c/Program Files (x86)/Common Files/Oracle/Java/javapath:/cygdrive/c/Python27:/cygdrive/c/Python27/Scripts:/cygdrive/c/Windows/system32:/cygdrive/c/Windows:/cygdrive/c/Windows/System32/Wbem:/cygdrive/c/Windows/System32/WindowsPowerShell/v1.0:/cygdrive/c/Windows/System32/OpenSSH:/cygdrive/c/Program Files/Microsoft SQL Server/130/Tools/Binn:/cygdrive/c/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn:/cygdrive/c/Program Files/NVIDIA Corporation/NVIDIA NvDLISR:/cygdrive/c/Program Files/Intel/WiFi/bin:/cygdrive/c/Program Files/Common Files/Intel/WirelessCommon:/cygdrive/c/Go/bin:/cygdrive/c/ProgramData/chocolatey/bin:/cygdrive/c/Program Files/nodejs:/cygdrive/c/Program Files (x86)/Bitvise SSH Client:/cygdrive/c/Program Files/PuTTY:/cygdrive/c/Users/shunf4/bin:/cygdrive/c/Program Files (x86)/Wolfram Research/WolframScript:/cygdrive/c/Program Files/NVIDIA Corporation/Nsight Compute 2019.1:/cygdrive/c/Program Files (x86)/NVIDIA Corporation/PhysX/Common:/cygdrive/c/Program Files (x86)/ZeroTier/One:/cygdrive/c/Program Files/CMake/bin:/cygdrive/d/Program Files/Polyspace/R2019b/runtime/win64:/cygdrive/d/Program Files/Polyspace/R2019b/bin:/cygdrive/d/Program Files/Polyspace/R2019b/polyspace/bin:/cygdrive/c/Program Files/Git/cmdxxxx:/cygdrive/c/Program Files/dotnet:/cygdrive/c/mingit-busybox/cmd:/cygdrive/c/Users/shunf4/.cargo/bin:/cygdrive/c/Users/shunf4/AppData/Local/Microsoft/WindowsApps:/cygdrive/c/Users/shunf4/AppData/Local/Programs/Microsoft VS Code/bin:/cygdrive/c/Users/shunf4/AppData/Local/Programs/Fiddler:/cygdrive/c/Program Files/Intel/WiFi/bin:/cygdrive/c/Program Files/Common Files/Intel/WirelessCommon:/cygdrive/c/Users/shunf4/go/bin:/cygdrive/c/Users/shunf4/Portable/wsl-terminal:/cygdrive/c/Users/shunf4/AppData/Roaming/npm:/cygdrive/c/Users/shunf4/AppData/Local/hyper/app-3.0.2/resources/bin:/cygdrive/c/Program Files/Bandizip:/usr/lib/lapack
+   58    7971 [main] _test 1009 win32env_to_cygenv: 0x80003AE80: PATH=/usr/local/bin:/usr/bin:/cygdrive/c/Program Files/Python37x/Scripts:/cygdrive/c/Program Files/Python37:/cygdrive/c/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.1/bin:/cygdrive/c/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.1/libnvvp:/cygdrive/c/Program Files (x86)/PC Connectivity Solution:/cygdrive/c/Program Files/Python38/Scripts:/cygdrive/c/Program Files/Python38:/cygdrive/c/Program Files (x86)/Common Files/Oracle/Java/javapath:/cygdrive/c/Python27:/cygdrive/c/Python27/Scripts:/cygdrive/c/Windows/system32:/cygdrive/c/Windows:/cygdrive/c/Windows/System32/Wbem:/cygdrive/c/Windows/System32/WindowsPowerShell/v1.0:/cygdrive/c/Windows/System32/OpenSSH:/cygdrive/c/Program Files/Microsoft SQL Server/130/Tools/Binn:/cygdrive/c/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn:/cygdrive/c/Program Files/NVIDIA Corporation/NVIDIA NvDLISR:/cygdrive/c/Program Files/Intel/WiFi/bin:/cygdrive/c/Program Files/Common Files/Intel/WirelessCommon:/cygdrive/c/Go/bin:/cygdrive/c/ProgramData/chocolatey/bin:/cygdrive/c/Program Files/nodejs:/cygdrive/c/Program Files (x86)/Bitvise SSH Client:/cygdrive/c/Program Files/PuTTY:/cygdrive/c/Users/shunf4/bin:/cygdrive/c/Program Files (x86)/Wolfram Research/WolframScript:/cygdrive/c/Program Files/NVIDIA Corporation/Nsight Compute 2019.1:/cygdrive/c/Program Files (x86)/NVIDIA Corporation/PhysX/Common:/cygdrive/c/Program Files (x86)/ZeroTier/One:/cygdrive/c/Program Files/CMake/bin:/cygdrive/d/Program Files/Polyspace/R2019b/runtime/win64:/cygdrive/d/Program Files/Polyspace/R2019b/bin:/cygdrive/d/Program Files/Polyspace/R2019b/polyspace/bin:/cygdrive/c/Program Files/Git/cmdxxxx:/cygdrive/c/Program Files/dotnet:/cygdrive/c/mingit-busybox/cmd:/cygdrive/c/Users/shunf4/.cargo/bin:/cygdrive/c/Users/shunf4/AppData/Local/Microsoft/WindowsApps:/cygdrive/c/Users/shunf4/AppData/Local/Programs/Microsoft VS Code/bin:/cygdrive/c/Users/shunf4/AppData/Local/Programs/Fiddler:/cygdrive/c/Program Files/Intel/WiFi/bin:/cygdrive/c/Program Files/Common Files/Intel/WirelessCommon:/cygdrive/c/Users/shunf4/go/bin:/cygdrive/c/Users/shunf4/Portable/wsl-terminal:/cygdrive/c/Users/shunf4/AppData/Roaming/npm:/cygdrive/c/Users/shunf4/AppData/Local/hyper/app-3.0.2/resources/bin:/cygdrive/c/Program Files/Bandizip:/usr/lib/lapack
+   40    8011 [main] _test 1009 win32env_to_cygenv: 0x8000296C0: PATHEXT=.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.PY;.PYW
+   33    8044 [main] _test 1009 win32env_to_cygenv: 0x800029710: PRINTER=Brother MFC-7420 USB Printer
+   32    8076 [main] _test 1009 win32env_to_cygenv: 0x800029740: PROCESSOR_ARCHITECTURE=AMD64
+   32    8108 [main] _test 1009 win32env_to_cygenv: 0x800029770: PROCESSOR_IDENTIFIER=AMD64 Family 23 Model 113 Stepping 0, AuthenticAMD
+   33    8141 [main] _test 1009 win32env_to_cygenv: 0x8000297C0: PROCESSOR_LEVEL=23
+   36    8177 [main] _test 1009 win32env_to_cygenv: 0x8000297E0: PROCESSOR_REVISION=7100
+   41    8218 [main] _test 1009 win32env_to_cygenv: 0x800029800: PROFILEREAD=true
+   41    8259 [main] _test 1009 win32env_to_cygenv: 0x800029820: PROGRAMFILES=C:\Program Files
+   42    8301 [main] _test 1009 win32env_to_cygenv: 0x800029850: PS1=\[\e]0;\w\a\]\n\[\e[32m\]\u@\h \[\e[33m\]\w\[\e[0m\]\n\$ 
+   35    8336 [main] _test 1009 win32env_to_cygenv: 0x8000298A0: PSModulePath=C:\Program Files\WindowsPowerShell\Modules;C:\Windows\system32\WindowsPowerShell\v1.0\Modules
+   35    8371 [main] _test 1009 win32env_to_cygenv: 0x800029920: PUBLIC=C:\Users\Public
+   33    8404 [main] _test 1009 win32env_to_cygenv: 0x800029940: PWD=/cygdrive/d/work/Proxychains.exe/proxychains.exe/cygwin_build/test/fork_exec
+   33    8437 [main] _test 1009 win32env_to_cygenv: 0x8000299A0: ProgramData=C:\ProgramData
+   33    8470 [main] _test 1009 win32env_to_cygenv: 0x8000299D0: ProgramFiles(x86)=C:\Program Files (x86)
+   32    8502 [main] _test 1009 win32env_to_cygenv: 0x800029A10: ProgramW6432=C:\Program Files
+   34    8536 [main] _test 1009 win32env_to_cygenv: 0x800029A40: SESSIONNAME=Console
+   32    8568 [main] _test 1009 win32env_to_cygenv: 0x800029A60: SHELL=/bin/bash
+   31    8599 [main] _test 1009 win32env_to_cygenv: 0x800029A80: SHLVL=1
+   32    8631 [main] _test 1009 win32env_to_cygenv: 0x800029AA0: SSH_AUTH_SOCK=/tmp/.ssh-pageant-shunf4
+   31    8662 [main] _test 1009 win32env_to_cygenv: 0x800029AD0: SSH_PAGEANT_PID=815
+   32    8694 [main] _test 1009 win32env_to_cygenv: 0x800029AF0: SYSTEMDRIVE=C:
+   32    8726 [main] _test 1009 win32env_to_cygenv: 0x800029B10: SYSTEMROOT=C:\Windows
+   32    8758 [main] _test 1009 getwinenv: can't set native for TEMP= since no environ yet
+   17    8775 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\cygwin64\tmp, 0x10000000, no-add-slash)
+   17    8792 [main] _test 1009 normalize_win32_path: C:\cygwin64\tmp = normalize_win32_path (C:\cygwin64\tmp)
+   19    8811 [main] _test 1009 mount_info::conv_to_posix_path: /tmp = conv_to_posix_path (C:\cygwin64\tmp)
+   47    8858 [main] _test 1009 win_env::add_cache: posix /tmp
+   17    8875 [main] _test 1009 win_env::add_cache: native TEMP=C:\cygwin64\tmp
+   16    8891 [main] _test 1009 posify_maybe: env var converted to TEMP=/tmp
+   45    8936 [main] _test 1009 win32env_to_cygenv: 0x800029B90: TEMP=/tmp
+   33    8969 [main] _test 1009 win32env_to_cygenv: 0x800029B30: TERM=xterm
+   34    9003 [main] _test 1009 getwinenv: can't set native for TMP= since no environ yet
+   17    9020 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (C:\cygwin64\tmp, 0x10000000, no-add-slash)
+   17    9037 [main] _test 1009 normalize_win32_path: C:\cygwin64\tmp = normalize_win32_path (C:\cygwin64\tmp)
+   18    9055 [main] _test 1009 mount_info::conv_to_posix_path: /tmp = conv_to_posix_path (C:\cygwin64\tmp)
+   47    9102 [main] _test 1009 win_env::add_cache: posix /tmp
+   17    9119 [main] _test 1009 win_env::add_cache: native TMP=C:\cygwin64\tmp
+   18    9137 [main] _test 1009 posify_maybe: env var converted to TMP=/tmp
+   52    9189 [main] _test 1009 win32env_to_cygenv: 0x800029C10: TMP=/tmp
+   37    9226 [main] _test 1009 win32env_to_cygenv: 0x800029BB0: TZ=Asia/Hong_Kong
+   35    9261 [main] _test 1009 win32env_to_cygenv: 0x800029C30: USER=shunf4
+   32    9293 [main] _test 1009 win32env_to_cygenv: 0x800029C50: USERDOMAIN=SHUN-ITX
+   33    9326 [main] _test 1009 win32env_to_cygenv: 0x800029C70: USERDOMAIN_ROAMINGPROFILE=SHUN-ITX
+   31    9357 [main] _test 1009 win32env_to_cygenv: 0x800029CA0: USERNAME=shunf4
+   32    9389 [main] _test 1009 win32env_to_cygenv: 0x800029CC0: USERPROFILE=C:\Users\shunf4
+   32    9421 [main] _test 1009 win32env_to_cygenv: 0x800029CF0: VBOX_MSI_INSTALL_PATH=C:\Program Files\Oracle\VirtualBox\
+   32    9453 [main] _test 1009 win32env_to_cygenv: 0x800029D40: VS140COMNTOOLS=C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\Tools\
+   33    9486 [main] _test 1009 win32env_to_cygenv: 0x800029DA0: WINDIR=C:\Windows
+   33    9519 [main] _test 1009 win32env_to_cygenv: 0x800029DC0: _=/usr/bin/strace
+   21    9540 [main] _test 1009 pinfo_init: Set nice to 0
+   18    9558 [main] _test 1009 pinfo_init: pid 1009, pgid 1009, process_state 0x41
+   18    9576 [main] _test 1009 App version:  3001.4, api: 0.340
+   18    9594 [main] _test 1009 DLL version:  3001.4, api: 0.340
+   19    9613 [main] _test 1009 DLL build:    2020-02-19 08:49
+   22    9635 [main] _test 1009 dtable::extend: size 32, fds 0x180349F20
+   35    9670 [main] _test 1009 __get_lcid_from_locale: LCID=0x0409
+  180    9850 [main] _test 1009 transport_layer_pipes::connect: Try to connect to named pipe: \\.\pipe\cygwin-e022582115c10879-lpc
+   30    9880 [main] _test 1009 transport_layer_pipes::connect: Error opening the pipe (2)
+   32    9912 [main] _test 1009 client_request::make_request: cygserver un-available
+--- Process 18488 (pid: 1009) loaded C:\Windows\System32\netapi32.dll at 00007ffbdd0d0000
+--- Process 18488 (pid: 1009) loaded C:\Windows\System32\samcli.dll at 00007ffbe1070000
+--- Process 18488 (pid: 1009) loaded C:\Windows\System32\ucrtbase.dll at 00007ffbe7330000
+--- Process 18488 (pid: 1009) loaded C:\Windows\System32\samlib.dll at 00007ffbe2d00000
+--- Process 18488 (pid: 1009) loaded C:\Windows\System32\netutils.dll at 00007ffbe5880000
+ 2609   12521 [main] _test 1009 pwdgrp::fetch_account_from_windows: line: <shunf4:*:197609:197609:U-SHUN-ITX\shunf4,S-1-5-21-3855849159-2658103565-453892836-1001:/home/shunf4:/bin/bash>
+ 1085   13606 [main] _test 1009 pwdgrp::fetch_account_from_windows: line: <shunf4:S-1-5-21-3855849159-2658103565-453892836-1001:197609:>
+  246   13852 [main] _test 1009 pwdgrp::fetch_account_from_windows: line: <Medium Mandatory Level:S-1-16-8192:401408:>
+  483   14335 [main] _test 1009 pwdgrp::fetch_account_from_windows: line: <docker-users:S-1-5-21-3855849159-2658103565-453892836-1004:197612:>
+  309   14644 [main] _test 1009 pwdgrp::fetch_account_from_windows: line: <Performance Log Users:S-1-5-32-559:559:>
+  300   14944 [main] _test 1009 pwdgrp::fetch_account_from_windows: line: <Users:S-1-5-32-545:545:>
+   24   14968 [main] _test 1009 pwdgrp::fetch_account_from_windows: line: <INTERACTIVE:S-1-5-4:4:>
+   19   14987 [main] _test 1009 pwdgrp::fetch_account_from_windows: line: <CONSOLE LOGON:S-1-2-1:66049:>
+   19   15006 [main] _test 1009 pwdgrp::fetch_account_from_windows: line: <Authenticated Users:S-1-5-11:11:>
+   18   15024 [main] _test 1009 pwdgrp::fetch_account_from_windows: line: <This Organization:S-1-5-15:15:>
+   19   15043 [main] _test 1009 pwdgrp::fetch_account_from_windows: line: <MicrosoftAccount+shunf4@live.cn:S-1-11-96-3623454863-58364-18864-2661722203-1597581903-3398042813-2583915950-4084756220-1602180960-1901070504:68520:>
+   19   15062 [main] _test 1009 pwdgrp::fetch_account_from_windows: line: <本地帐户:S-1-5-113:113:>
+   51   15113 [main] _test 1009 pwdgrp::fetch_account_from_windows: line: <CurrentSession:S-1-5-5-0-1011955:4095:>
+   18   15131 [main] _test 1009 pwdgrp::fetch_account_from_windows: line: <LOCAL:S-1-2-0:66048:>
+   18   15149 [main] _test 1009 pwdgrp::fetch_account_from_windows: line: <云帐户身份验证:S-1-5-64-36:262180:>
+   19   15168 [main] _test 1009 cygheap_user::ontherange: what 2, pw 0x18034A230
+   27   15195 [main] _test 1009 cygheap_user::ontherange: HOME is already in the environment /home/shunf4
+   68   15263 [main] _test 1009 build_argv: argv[0] = 'D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\_test'
+   24   15287 [main] _test 1009 build_argv: argv[1] = './_test2'
+   27   15314 [main] _test 1009 build_argv: argc 2
+   39   15353 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\_test, 0x10000100, no-add-slash)
+   19   15372 [main] _test 1009 normalize_win32_path: D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\_test = normalize_win32_path (D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\_test)
+   18   15390 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/d/work/Proxychains.exe/proxychains.exe/cygwin_build/test/fork_exec/_test = conv_to_posix_path (D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\_test)
+  106   15496 [main] _test 1009 open_shared: name e022582115c10879-cons0x10074A.0, n 0, shared 0x180000000 (wanted 0x180000000), h 0x454, *m 3
+--- Process 18488 (pid: 1009) loaded C:\Windows\System32\user32.dll at 00007ffbe83b0000
+--- Process 18488 (pid: 1009) loaded C:\Windows\System32\win32u.dll at 00007ffbe6980000
+--- Process 18488 (pid: 1009) loaded C:\Windows\System32\gdi32.dll at 00007ffbe8f00000
+--- Process 18488 (pid: 1009) loaded C:\Windows\System32\gdi32full.dll at 00007ffbe6360000
+--- Process 18488 (pid: 1009) loaded C:\Windows\System32\msvcp_win.dll at 00007ffbe65b0000
+--- Process 18488 (pid: 1009) thread 22604 created
+--- Process 18488 (pid: 1009) loaded C:\Windows\System32\imm32.dll at 00007ffbe9050000
+ 2343   17839 [main] _test 1009 build_fh_pc: created an archetype (0x18034C380) for /dev/cons0(3/0)
+   32   17871 [main] _test 1009 build_fh_pc: fh 0x18034C000, dev 00030000
+  868   18739 [main] _test 1009 fhandler_console::open: opened conin$ 0x180, conout$ 0x184
+   27   18766 [main] _test 1009 fhandler_base::open_with_arch: line 470:  /dev/cons0<0x18034C380> usecount + 1 = 1
+   24   18790 [main] _test 1009 fhandler_base::set_flags: flags 0x10002, supplied_bin 0x0
+   18   18808 [main] _test 1009 fhandler_base::set_flags: O_TEXT/O_BINARY set in flags 0x10000
+   19   18827 [main] _test 1009 fhandler_base::set_flags: filemode set to binary
+   18   18845 [main] _test 1009 _pinfo::set_ctty: old no ctty, ctty device number 0xFFFFFFFF, tc.ntty device number 0x30000 flags & O_NOCTTY 0x0
+   18   18863 [main] _test 1009 _pinfo::set_ctty: cygheap->ctty 0x0, archetype 0x18034C380
+   17   18880 [main] _test 1009 _pinfo::set_ctty: ctty was NULL
+   17   18897 [main] _test 1009 _pinfo::set_ctty: line 541:  /dev/cons0<0x18034C380> usecount + 1 = 2
+   19   18916 [main] _test 1009 _pinfo::set_ctty: /dev/cons0 ctty, usecount 2
+   18   18934 [main] _test 1009 _pinfo::set_ctty: attaching ctty /dev/cons0 sid 1009, pid 1009, pgid 1009, tty->pgid 1009, tty->sid 0
+   21   18955 [main] _test 1009 _pinfo::set_ctty: cygheap->ctty now 0x18034C380, archetype 0x18034C380
+   34   18989 [main] _test 1009 fhandler_console::output_tcsetattr: 0 = tcsetattr(,0x180000024) (ENABLE FLAGS 0x3) (lflag 0x107 oflag 0x9)
+   34   19023 [main] _test 1009 fhandler_console::input_tcsetattr: this 0x18034C000, get_ttyp () 0x180000000, t 0x180000024
+   22   19045 [main] _test 1009 fhandler_base::set_flags: flags 0x10002, supplied_bin 0x0
+   19   19064 [main] _test 1009 fhandler_base::set_flags: O_TEXT/O_BINARY set in flags 0x10000
+   25   19089 [main] _test 1009 fhandler_base::set_flags: filemode set to binary
+   25   19114 [main] _test 1009 _pinfo::set_ctty: old ctty /dev/cons0, ctty device number 0x30000, tc.ntty device number 0x30000 flags & O_NOCTTY 0x0
+   28   19142 [main] _test 1009 _pinfo::set_ctty: attaching ctty /dev/cons0 sid 1009, pid 1009, pgid 1009, tty->pgid 1009, tty->sid 1009
+   17   19159 [main] _test 1009 _pinfo::set_ctty: cygheap->ctty now 0x18034C380, archetype 0x18034C380
+  338   19497 [main] _test 1009 handle_to_fn: current match 'D:' = '\Device\HarddiskVolume8'
+ 1059   20556 [main] _test 1009 mount_info::conv_to_posix_path: conv_to_posix_path (D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\log.lopg, 0x10000000, no-add-slash)
+   42   20598 [main] _test 1009 normalize_win32_path: D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\log.lopg = normalize_win32_path (D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\log.lopg)
+   23   20621 [main] _test 1009 mount_info::conv_to_posix_path: /cygdrive/d/work/Proxychains.exe/proxychains.exe/cygwin_build/test/fork_exec/log.lopg = conv_to_posix_path (D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\log.lopg)
+   19   20640 [main] _test 1009 handle_to_fn: derived path 'D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\log.lopg', posix '/cygdrive/d/work/Proxychains.exe/proxychains.exe/cygwin_build/test/fork_exec/log.lopg'
+   21   20661 [main] _test 1009 normalize_posix_path: src /cygdrive/d/work/Proxychains.exe/proxychains.exe/cygwin_build/test/fork_exec/log.lopg
+   22   20683 [main] _test 1009 normalize_posix_path: /cygdrive/d/work/Proxychains.exe/proxychains.exe/cygwin_build/test/fork_exec/log.lopg = normalize_posix_path (/cygdrive/d/work/Proxychains.exe/proxychains.exe/cygwin_build/test/fork_exec/log.lopg)
+   20   20703 [main] _test 1009 mount_info::conv_to_win32_path: conv_to_win32_path (/cygdrive/d/work/Proxychains.exe/proxychains.exe/cygwin_build/test/fork_exec/log.lopg)
+   22   20725 [main] _test 1009 mount_info::cygdrive_win32_path: src '/cygdrive/d/work/Proxychains.exe/proxychains.exe/cygwin_build/test/fork_exec/log.lopg', dst 'D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\log.lopg'
+   18   20743 [main] _test 1009 mount_info::conv_to_win32_path: src_path /cygdrive/d/work/Proxychains.exe/proxychains.exe/cygwin_build/test/fork_exec/log.lopg, dst D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\log.lopg, flags 0x4020, rc 0
+   41   20784 [main] _test 1009 symlink_info::check: 0x0 = NtCreateFile (\??\D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\log.lopg)
+   58   20842 [main] _test 1009 symlink_info::check: not a symlink
+   55   20897 [main] _test 1009 symlink_info::check: 0 = symlink.check(D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\log.lopg, 0xFFFFB810) (mount_flags 0x4020, path_flags 0x0)
+   24   20921 [main] _test 1009 path_conv::check: this->path(D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\log.lopg), has_acls(1)
+   27   20948 [main] _test 1009 build_fh_pc: fh 0x18034C880, dev 000000C3
+   21   20969 [main] _test 1009 fhandler_base::set_flags: flags 0x10001, supplied_bin 0x0
+   26   20995 [main] _test 1009 fhandler_base::set_flags: O_TEXT/O_BINARY set in flags 0x10000
+   20   21015 [main] _test 1009 fhandler_base::set_flags: filemode set to binary
+   19   21034 [main] _test 1009 fhandler_base::init: created new fhandler_base for handle 0x390, bin 1
+   54   21088 [main] _test 1009 build_fh_pc: found an archetype for (null)(3/0) io_handle 0x180
+   19   21107 [main] _test 1009 build_fh_pc: fh 0x18034CB90, dev 00030000
+   20   21127 [main] _test 1009 fhandler_base::open_with_arch: line 490:  /dev/cons0<0x18034C380> usecount + 1 = 3
+   18   21145 [main] _test 1009 fhandler_base::set_flags: flags 0x10002, supplied_bin 0x0
+   18   21163 [main] _test 1009 fhandler_base::set_flags: O_TEXT/O_BINARY set in flags 0x10000
+   18   21181 [main] _test 1009 fhandler_base::set_flags: filemode set to binary
+   24   21205 [main] _test 1009 _pinfo::set_ctty: old ctty /dev/cons0, ctty device number 0x30000, tc.ntty device number 0x30000 flags & O_NOCTTY 0x0
+   24   21229 [main] _test 1009 _pinfo::set_ctty: attaching ctty /dev/cons0 sid 1009, pid 1009, pgid 1009, tty->pgid 1009, tty->sid 1009
+   20   21249 [main] _test 1009 _pinfo::set_ctty: cygheap->ctty now 0x18034C380, archetype 0x18034C380
+   32   21281 [main] _test 1009 fhandler_console::output_tcsetattr: 0 = tcsetattr(,0x180000024) (ENABLE FLAGS 0x3) (lflag 0x107 oflag 0x9)
+   34   21315 [main] _test 1009 fhandler_console::input_tcsetattr: this 0x18034CB90, get_ttyp () 0x180000000, t 0x180000024
+   19   21334 [main] _test 1009 fhandler_base::set_flags: flags 0x10002, supplied_bin 0x0
+   18   21352 [main] _test 1009 fhandler_base::set_flags: O_TEXT/O_BINARY set in flags 0x10000
+   18   21370 [main] _test 1009 fhandler_base::set_flags: filemode set to binary
+   19   21389 [main] _test 1009 _pinfo::set_ctty: old ctty /dev/cons0, ctty device number 0x30000, tc.ntty device number 0x30000 flags & O_NOCTTY 0x0
+   19   21408 [main] _test 1009 _pinfo::set_ctty: attaching ctty /dev/cons0 sid 1009, pid 1009, pgid 1009, tty->pgid 1009, tty->sid 1009
+   20   21428 [main] _test 1009 _pinfo::set_ctty: cygheap->ctty now 0x18034C380, archetype 0x18034C380
+   58   21486 [main] _test 1009 __set_errno: void dll_crt0_1(void*):989 setting errno 0
+  296   21782 [main] _test 1009 child_info::child_info: subproc_ready 0x194
+   22   21804 [main] _test 1009 dofork: entering
+  272   22076 [main] _test 1009 sig_send: sendsig 0x100, pid 1009, signal -72, its_me 1
+   23   22099 [main] _test 1009 sig_send: wakeup 0x1AC
+   22   22121 [main] _test 1009 sig_send: Waiting for pack.wakeup 0x1AC
+   21   22142 [sig] _test 1009 wait_sig: signalling pack.wakeup 0x1AC
+   28   22170 [main] _test 1009 sig_send: returning 0x0 from sending signal -72
+   28   22198 [main] _test 1009 frok::parent: priority class 32
+   54   22252 [main] _test 1009 frok::parent: stack - bottom 0x100000000, top 0xFFFFC000, addr 0xFFE00000, guardsize 0x3000
+   44   22296 [main] _test 1009 frok::parent: CreateProcessW (D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\_test.exe, D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\_test.exe, 0, 0, 1, 0x420, 0, 0, 0xFFFFC840, 0xFFFFC7E0)
+ 1508   23804 [main] _test 1009 frok::parent: forked pid 25880
+--- Process 25880 created
+   35   23839 [main] _test 1009 child_info::sync: n 2, waiting for subproc_ready(0x194) and child process(0x1C0)
+--- Process 25880 loaded C:\Windows\System32\ntdll.dll at 00007ffbe9380000
+--- Process 25880 loaded C:\Windows\System32\kernel32.dll at 00007ffbe8280000
+--- Process 25880 loaded C:\Windows\System32\KernelBase.dll at 00007ffbe66d0000
+--- Process 25880 thread 17564 created
+--- Process 25880 loaded C:\cygwin64\bin\cygwin1.dll at 0000000180040000
+    0       0 [main] _test (25880) **********************************************
+   37      37 [main] _test (25880) Program name: D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\_test.exe (windows pid 25880)
+   18      55 [main] _test (25880) OS version:   Windows NT-10.0
+   21      76 [main] _test (25880) **********************************************
+--- Process 25880 loaded C:\Windows\System32\advapi32.dll at 00007ffbe9080000
+--- Process 25880 loaded C:\Windows\System32\msvcrt.dll at 00007ffbe7460000
+--- Process 25880 loaded C:\Windows\System32\sechost.dll at 00007ffbe7710000
+--- Process 25880 loaded C:\Windows\System32\rpcrt4.dll at 00007ffbe8f30000
+--- Process 25880 thread 3324 created
+--- Process 25880 loaded C:\Windows\System32\cryptbase.dll at 00007ffbe5c30000
+--- Process 25880 loaded C:\Windows\System32\bcryptprimitives.dll at 00007ffbe6650000
+ 1604    1680 [main] _test (25880) sigprocmask: 0 = sigprocmask (0, 0x0, 0x180320DD0)
+  111    1791 [main] _test (25880) child_copy: cygheap - hp 0x198 low 0x180343408, high 0x18034D1D0, res 1
+   21    1812 [main] _test (25880) child_copy: done
+   60    1872 [main] _test (25880) open_shared: name shared.5, n 5, shared 0x180030000 (wanted 0x180030000), h 0xDC, *m 6
+   31    1903 [main] _test (25880) user_heap_info::init: heap base 0x800000000, heap top 0x800060000, heap size 0x20000000 (536870912)
+   26    1929 [main] _test (25880) open_shared: name (null), n 1, shared 0x180020000 (wanted 0x180020000), h 0xE0, *m 6
+   23    1952 [main] _test (25880) user_info::create: opening user shared for '' at 0x180020000
+   20    1972 [main] _test (25880) user_info::create: user shared version AB1FCCE8
+   43    2015 [main] _test (25880) open_shared: name cygpid.1010, n 1010, shared 0x180010000 (wanted 0x180010000), h 0xE8, *m 2
+   27    2042 [main] _test (25880) time: 1583460889 = time(0x0)
+   38    2080 [main] _test 1010 pinfo::thisproc: myself dwProcessId 25880
+   69    2149 [main] _test 1010 child_copy: dll data - hp 0x198 low 0x180224000, high 0x180230DA0, res 1
+  142    2291 [main] _test 1010 child_copy: dll bss - hp 0x198 low 0x1802EA000, high 0x180321D0C, res 1
+  155    2446 [main] _test 1010 child_copy: user heap - hp 0x198 low 0x800000000, high 0x800060000, res 1
+   21    2467 [main] _test 1010 child_copy: done
+   26    2493 [main] _test 1010 child_copy: data - hp 0x198 low 0x100402000, high 0x100402060, res 1
+   21    2514 [main] _test 1010 child_copy: bss - hp 0x198 low 0x100407000, high 0x1004071A0, res 1
+   18    2532 [main] _test 1010 child_copy: done
+   19    2551 [main] _test 1010 fixup_mmaps_after_fork: succeeded
+   28    2579 [main] _test 1010 fhandler_pipe::create: name \\.\pipe\cygwin-e022582115c10879-25880-sigwait, size 11440, mode PIPE_TYPE_MESSAGE
+   45    2624 [main] _test 1010 fhandler_pipe::create: pipe read handle 0x100
+   69    2693 [main] _test 1010 fhandler_pipe::create: CreateFile: name \\.\pipe\cygwin-e022582115c10879-25880-sigwait
+   31    2724 [main] _test 1010 fhandler_pipe::create: pipe write handle 0x104
+   28    2752 [main] _test 1010 dll_crt0_0: finished dll_crt0_0 initialization
+--- Process 25880 (pid: 1010) thread 15592 created
+  176    2928 [sig] _test 1010 wait_sig: entering ReadFile loop, my_readsig 0x100, my_sendsig 0x104
+   54    2982 [main] _test 1010 sync_with_parent: signalling parent: after longjmp
+   38    3020 [main] _test 1010 child_info::ready: signalled 0x194 that I was ready
+ 5268   29107 [main] _test 1009 child_info::sync: pid 25880, WFMO returned 0, exit_code 0x103, res 1
+   67   29174 [main] _test 1009 open_shared: name cygpid.1010, n 1010, shared 0x80000 (wanted 0x0), h 0x1BC, *m 6
+   29   29203 [main] _test 1009 time: 1583460889 = time(0x0)
+   32   29235 [main] _test 1009 proc_subproc: args: 1, -14336
+   26   29261 [main] _test 1009 proc_subproc: returning 1
+   20   29281 [main] _test 1009 frok::parent: child is alive (but stopped)
+   37   29318 [main] _test 1009 child_copy: stack - hp 0x1C0 low 0xFFFFC900, high 0x100000000, res 1
+   21   29339 [main] _test 1009 child_copy: done
+   30   29369 [main] _test 1009 resume_child: signalled child
+  269    3289 [main] _test 1010 sync_with_parent: awake
+   24   29393 [main] _test 1009 child_info::sync: n 2, waiting for subproc_ready(0x194) and child process(0x1C0)
+   30    3319 [main] _test 1010 sync_with_parent: no problems
+   19    3338 [main] _test 1010 frok::child: child is running.  pid 1010, ppid 1009, stack here 0xFFFFC8B8
+   19    3357 [main] _test 1010 frok::child: hParent 0x198, load_dlls 0
+   35    3392 [main] _test 1010 dtable::fixup_after_fork: fd 0 (/dev/cons0)
+   60    3452 [main] _test 1010 open_shared: name (null), n 0, shared 0x180000000 (wanted 0x180000000), h 0x454, *m 6
+   36    3488 [main] _test 1010 open_shared: name cygpid.1009, n 1009, shared 0x20000 (wanted 0x0), h 0x124, *m 6
+   45    3533 [main] _test 1010 dtable::fixup_after_fork: fd 2 (/dev/cons0)
+   31    3564 [main] _test 1010 open_shared: name cygpid.1009, n 1009, shared 0x20000 (wanted 0x0), h 0x128, *m 6
+   39    3603 [main] _test 1010 sync_with_parent: signalling parent: performed fork fixups and dynamic dll loading
+   27    3630 [main] _test 1010 child_info::ready: signalled 0x194 that I was ready
+  322   29715 [main] _test 1009 child_info::sync: pid 1010, WFMO returned 0, exit_code 0x103, res 1
+   30   29745 [main] _test 1009 proc_subproc: args: 2, -14336
+--- Process 18488 (pid: 1009) thread 19228 created
+  111   29856 [main] _test 1009 pinfo::wait: created tracking thread for pid 1010, winpid 0x6518, rd_proc_pipe 0x1B4
+   35   29891 [main] _test 1009 proc_subproc: added pid 1010 to proc table, slot 0
+   23   29914 [main] _test 1009 proc_subproc: returning 1
+   24   29938 [main] _test 1009 resume_child: signalled child
+  227    3857 [main] _test 1010 sync_with_parent: awake
+   27   29965 [main] _test 1009 sig_send: sendsig 0x100, pid 1009, signal -73, its_me 1
+   34    3891 [main] _test 1010 sync_with_parent: no problems
+   26   29991 [main] _test 1009 sig_send: wakeup 0x1DC
+   34   30025 [main] _test 1009 sig_send: Waiting for pack.wakeup 0x1DC
+   31   30056 [sig] _test 1009 wait_sig: signalling pack.wakeup 0x1DC
+   27   30083 [waitproc] _test 1009 cygthread::stub: thread 'waitproc', id 0x4B1C, stack_ptr 0x275CCA0
+   31   30114 [main] _test 1009 sig_send: returning 0x0 from sending signal -73
+  202   30316 [main] _test 1009 dofork: 1010 = fork()
+   29   30345 [main] _test 1009 wait4: calling proc_subproc, pid -1, options 0
+   21   30366 [main] _test 1009 proc_subproc: args: 6, -7152
+   27   30393 [main] _test 1009 proc_subproc: wval->pid -1, wval->options 0
+  432    4323 [main] _test 1010 dofork: 0 = fork()
+   33   30426 [main] _test 1009 checkstate: nprocs 1
+   36    4359 [main] _test 1010 spawnve: spawnve (./_test2, ./_test2, 0x8000281A0)
+   32   30458 [main] _test 1009 stopped_or_terminated: considering pid 1010, pgid 1009, w->pid -1
+   34    4393 [main] _test 1010 child_info_spawn::worker: mode = 3, prog_arg = ./_test2
+   25   30483 [main] _test 1009 checkstate: no matching terminated children found
+   24    4417 [main] _test 1010 perhaps_suffix: prog './_test2'
+   25   30508 [main] _test 1009 checkstate: returning -1
+   21   30529 [main] _test 1009 proc_subproc: only found non-terminated children
+   26    4443 [main] _test 1010 normalize_posix_path: src ./_test2
+   29   30558 [main] _test 1009 proc_subproc: finished processing terminated/stopped child
+   44    4487 [main] _test 1010 cwdstuff::get: posix /cygdrive/d/work/Proxychains.exe/proxychains.exe/cygwin_build/test/fork_exec
+   20   30578 [main] _test 1009 proc_subproc: returning 1
+   30    4517 [main] _test 1010 cwdstuff::get: (/cygdrive/d/work/Proxychains.exe/proxychains.exe/cygwin_build/test/fork_exec) = cwdstuff::get (0x800000010, 32768, 1, 0), errno 0
+   27    4544 [main] _test 1010 normalize_posix_path: /cygdrive/d/work/Proxychains.exe/proxychains.exe/cygwin_build/test/fork_exec/_test2 = normalize_posix_path (./_test2)
+   31    4575 [main] _test 1010 mount_info::conv_to_win32_path: conv_to_win32_path (/cygdrive/d/work/Proxychains.exe/proxychains.exe/cygwin_build/test/fork_exec/_test2)
+   25    4600 [main] _test 1010 mount_info::cygdrive_win32_path: src '/cygdrive/d/work/Proxychains.exe/proxychains.exe/cygwin_build/test/fork_exec/_test2', dst 'D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\_test2'
+   27    4627 [main] _test 1010 mount_info::conv_to_win32_path: src_path /cygdrive/d/work/Proxychains.exe/proxychains.exe/cygwin_build/test/fork_exec/_test2, dst D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\_test2, flags 0x4020, rc 0
+   54    4681 [main] _test 1010 symlink_info::check: 0xC0000034 = NtCreateFile (\??\D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\_test2)
+   18    4699 [main] _test 1010 symlink_info::check: 0xC0000034 = NtQueryInformationFile (\??\D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\_test2)
+   39    4738 [main] _test 1010 symlink_info::check: 0x0 = NtCreateFile (\??\D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\_test2.exe)
+   37    4775 [main] _test 1010 symlink_info::check: not a symlink
+   34    4809 [main] _test 1010 symlink_info::check: 0 = symlink.check(D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\_test2.exe, 0xFFFFACB0) (mount_flags 0x4020, path_flags 0x0)
+   20    4829 [main] _test 1010 path_conv::check: this->path(D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\_test2.exe), has_acls(1)
+   16    4845 [main] _test 1010 perhaps_suffix: buf D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\_test2.exe, suffix found '.exe'
+   63    4908 [main] _test 1010 child_info_spawn::worker: priority class 32
+   39    4947 [main] _test 1010 fhandler_console::need_invisible: invisible_console 0
+   26    4973 [main] _test 1010 build_env: envp 0x8000281A0
+   34    5007 [main] _test 1010 spenv::retrieve: no_envblock 1
+   21    5028 [main] _test 1010 spenv::retrieve: duping existing value for 'HOMEDRIVE='
+   21    5049 [main] _test 1010 spenv::retrieve: no_envblock 1
+   20    5069 [main] _test 1010 spenv::retrieve: duping existing value for 'HOMEPATH='
+   18    5087 [main] _test 1010 spenv::retrieve: no_envblock 1
+   18    5105 [main] _test 1010 spenv::retrieve: duping existing value for 'LOGONSERVER='
+   24    5129 [main] _test 1010 spenv::retrieve: no_envblock 1
+   24    5153 [main] _test 1010 spenv::retrieve: no_envblock 1
+   17    5170 [main] _test 1010 spenv::retrieve: no_envblock 1
+   17    5187 [main] _test 1010 spenv::retrieve: duping existing value for 'SYSTEMROOT='
+   19    5206 [main] _test 1010 spenv::retrieve: no_envblock 1
+   16    5222 [main] _test 1010 spenv::retrieve: duping existing value for 'USERDOMAIN='
+   19    5241 [main] _test 1010 spenv::retrieve: no_envblock 1
+   17    5258 [main] _test 1010 spenv::retrieve: duping existing value for 'USERNAME='
+   17    5275 [main] _test 1010 spenv::retrieve: no_envblock 1
+   20    5295 [main] _test 1010 spenv::retrieve: duping existing value for 'USERPROFILE='
+   19    5314 [main] _test 1010 spenv::retrieve: no_envblock 1
+   17    5331 [main] _test 1010 spenv::retrieve: duping existing value for 'WINDIR='
+   18    5349 [main] _test 1010 build_env: env count 4, bytes 2340
+   52    5401 [main] _test 1010 build_env: envp 0x18034D380, envc 77
+   25    5426 [main] _test 1010 child_info::child_info: subproc_ready 0x194
+ 1128    6554 [main] _test 1010 child_info_spawn::worker: pid 1010, prog_arg ./_test2, cmd line (null))
+   32    6586 [main] _test 1010! child_info_spawn::worker: new process name \\?\D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\_test2.exe
+--- Process 3996 created
+   19    6605 [main] _test 1010! child_info_spawn::worker: spawned windows pid 3996
+   31    6636 [main] _test 1010! child_info::sync: n 2, waiting for subproc_ready(0x194) and child process(0x16C)
+--- Process 3996 loaded C:\Windows\System32\ntdll.dll at 00007ffbe9380000
+--- Process 3996 loaded C:\Windows\System32\kernel32.dll at 00007ffbe8280000
+--- Process 3996 loaded C:\Windows\System32\KernelBase.dll at 00007ffbe66d0000
+--- Process 3996 thread 23928 created
+--- Process 3996 loaded C:\cygwin64\bin\cygwin1.dll at 0000000180040000
+    0       0 [main] _test2 (3996) **********************************************
+   35      35 [main] _test2 (3996) Program name: D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\_test2.exe (windows pid 3996)
+   18      53 [main] _test2 (3996) OS version:   Windows NT-10.0
+   17      70 [main] _test2 (3996) **********************************************
+--- Process 3996 loaded C:\Windows\System32\advapi32.dll at 00007ffbe9080000
+--- Process 3996 loaded C:\Windows\System32\msvcrt.dll at 00007ffbe7460000
+--- Process 3996 loaded C:\Windows\System32\sechost.dll at 00007ffbe7710000
+--- Process 3996 loaded C:\Windows\System32\rpcrt4.dll at 00007ffbe8f30000
+--- Process 3996 thread 9672 created
+--- Process 3996 loaded C:\Windows\System32\cryptbase.dll at 00007ffbe5c30000
+--- Process 3996 loaded C:\Windows\System32\bcryptprimitives.dll at 00007ffbe6650000
+ 1352    1422 [main] _test2 (3996) sigprocmask: 0 = sigprocmask (0, 0x0, 0x180320DD0)
+  125    1547 [main] _test2 (3996) child_copy: cygheap - hp 0x15C low 0x180343408, high 0x180350520, res 1
+   23    1570 [main] _test2 (3996) child_copy: done
+   53    1623 [main] _test2 (3996) open_shared: name shared.5, n 5, shared 0x180030000 (wanted 0x180030000), h 0xDC, *m 6
+   23    1646 [main] _test2 (3996) user_heap_info::init: heap base 0x800000000, heap top 0x800000000, heap size 0x20000000 (536870912)
+   24    1670 [main] _test2 (3996) open_shared: name (null), n 1, shared 0x180020000 (wanted 0x180020000), h 0xE0, *m 6
+   17    1687 [main] _test2 (3996) user_info::create: opening user shared for '' at 0x180020000
+   19    1706 [main] _test2 (3996) user_info::create: user shared version AB1FCCE8
+   28    1734 [main] _test2 (3996) open_shared: name (null), n 1010, shared 0x180010000 (wanted 0x180010000), h 0x160, *m 6
+   30    1764 [main] _test2 1010 pinfo::thisproc: myself dwProcessId 3996
+   40    1804 [main] _test2 1010 open_shared: name (null), n 0, shared 0x180000000 (wanted 0x180000000), h 0x454, *m 6
+   24    1828 [main] _test2 1010 open_shared: name cygpid.1009, n 1009, shared 0x20000 (wanted 0x0), h 0xEC, *m 6
+   34    1862 [main] _test2 1010 fhandler_base::fixup_after_exec: here for '/cygdrive/d/work/Proxychains.exe/proxychains.exe/cygwin_build/test/fork_exec/log.lopg'
+   24    1886 [main] _test2 1010 open_shared: name cygpid.1009, n 1009, shared 0x20000 (wanted 0x0), h 0xEC, *m 6
+   26    1912 [main] _test2 1010 child_info::ready: signalled 0x194 that I was ready
+ 3899   10535 [main] _test 1010! child_info::sync: pid 3996, WFMO returned 0, exit_code 0x103, res 1
+   28   10563 [main] _test 1010! fhandler_base::close_with_arch: line 1183:  /dev/cons0<0x18034C380> usecount + -1 = 2
+   36    1948 [main] _test2 1010 fhandler_pipe::create: name \\.\pipe\cygwin-e022582115c10879-3996-sigwait, size 11440, mode PIPE_TYPE_MESSAGE
+   22   10585 [main] _test 1010! fhandler_base::close_with_arch: not closing archetype
+   21   10606 [main] _test 1010! fhandler_base::close: closing '/cygdrive/d/work/Proxychains.exe/proxychains.exe/cygwin_build/test/fork_exec/log.lopg' handle 0x390
+   18   10624 [main] _test 1010! fhandler_base::close_with_arch: line 1183:  /dev/cons0<0x18034C380> usecount + -1 = 1
+   54    2002 [main] _test2 1010 fhandler_pipe::create: pipe read handle 0xF8
+   26   10650 [main] _test 1010! fhandler_base::close_with_arch: not closing archetype
+   35    2037 [main] _test2 1010 fhandler_pipe::create: CreateFile: name \\.\pipe\cygwin-e022582115c10879-3996-sigwait
+   26   10676 [main] _test 1010! proc_terminate: nprocs 0
+   37    2074 [main] _test2 1010 fhandler_pipe::create: pipe write handle 0xFC
+   26   10702 [main] _test 1010! proc_terminate: leaving
+   17   10719 [main] _test 1010! pinfo::maybe_set_exit_code_from_windows: pid 1010, exit value - old 0x0, windows 0xDEADBEEF, cygwin 0x0
+   26    2100 [main] _test2 1010 dll_crt0_0: finished dll_crt0_0 initialization
+   22   10741 [main] _test 1010! pinfo::exit: Calling dlls.cleanup_forkables n 0x4000000, exitcode 0x0
+   22   10763 [main] _test 1010! pinfo::exit: Calling ExitProcess n 0x4000000, exitcode 0x0
+--- Process 25880 thread 3324 exited with status 0x0
+--- Process 25880 thread 15864 exited with status 0x0
+--- Process 25880 thread 17564 exited with status 0x0
+--- Process 3996 (pid: 1010) thread 21240 created
+--- Process 25880 exited with status 0x0
+  171    2271 [sig] _test2 1010 wait_sig: entering ReadFile loop, my_readsig 0xF8, my_sendsig 0xFC
+   86    2357 [main] _test2 1010 time: 1583460889 = time(0x0)
+   46    2403 [main] _test2 1010 sigprocmask: 0 = sigprocmask (0, 0x0, 0x800000100)
+  107    2510 [main] _test2 1010 _cygwin_istext_for_stdio: fd 0: opened as binary
+   34    2544 [main] _test2 1010 _cygwin_istext_for_stdio: fd 1: opened as binary
+   23    2567 [main] _test2 1010 _cygwin_istext_for_stdio: fd 2: opened as binary
+   68    2635 [main] _test2 1010 parse_options: glob (called func)
+   38    2673 [main] _test2 1010 parse_options: returning
+   21    2694 [main] _test2 1010 pinfo_init: pid 1010, pgid 1009, process_state 0xC1
+   18    2712 [main] _test2 1010 App version:  3001.4, api: 0.340
+   17    2729 [main] _test2 1010 DLL version:  3001.4, api: 0.340
+   18    2747 [main] _test2 1010 DLL build:    2020-02-19 08:49
+   36    2783 [main] _test2 1010 __get_lcid_from_locale: LCID=0x0409
+  124    2907 [main] _test2 1010 __set_errno: void dll_crt0_1(void*):989 setting errno 0
+  912    3819 [main] _test2 1010 pwdgrp::fetch_account_from_windows: line: <SYSTEM:S-1-5-18:18:>
+--- Process 3996 (pid: 1010) loaded C:\Windows\System32\netapi32.dll at 00007ffbdd0d0000
+--- Process 3996 (pid: 1010) loaded C:\Windows\System32\samcli.dll at 00007ffbe1070000
+--- Process 3996 (pid: 1010) loaded C:\Windows\System32\ucrtbase.dll at 00007ffbe7330000
+--- Process 3996 (pid: 1010) loaded C:\Windows\System32\samlib.dll at 00007ffbe2d00000
+--- Process 3996 (pid: 1010) loaded C:\Windows\System32\netutils.dll at 00007ffbe5880000
+ 1508    5327 [main] _test2 1010 pwdgrp::fetch_account_from_windows: line: <Administrators:S-1-5-32-544:544:>
+   43    5370 [main] _test2 1010 fhandler_base::fstat_helper: 0 = fstat (\??\D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\log.lopg, 0xFFFFC9C0) st_size=80434, st_mode=0100744, st_ino=2533274790608040st_atim=5E61B219.32FD3BBC st_ctim=5E61B219.32FD3BBC st_mtim=5E61B219.32FD3BBC st_birthtim=5E61B219.2D6199DC
+   21    5391 [main] _test2 1010 fstat64: 0 = fstat(1, 0xFFFFC9C0)
+I'm test2
+  160    5551 [main] _test2 1010 write: 10 = write(1, 0x8000004A0, 10)
+   20    5571 [main] _test2 1010 do_exit: do_exit (0), exit_state 1
+   18    5589 [main] _test2 1010 void: 0x0 = signal (20, 0x1)
+   18    5607 [main] _test2 1010 void: 0x0 = signal (1, 0x1)
+   18    5625 [main] _test2 1010 void: 0x0 = signal (2, 0x1)
+   16    5641 [main] _test2 1010 void: 0x0 = signal (3, 0x1)
+   19    5660 [main] _test2 1010 fhandler_base::close_with_arch: line 1183:  /dev/cons0<0x18034C380> usecount + -1 = 2
+   20    5680 [main] _test2 1010 fhandler_base::close_with_arch: not closing archetype
+   22    5702 [main] _test2 1010 fhandler_base::close: closing '/cygdrive/d/work/Proxychains.exe/proxychains.exe/cygwin_build/test/fork_exec/log.lopg' handle 0x390
+   25    5727 [main] _test2 1010 fhandler_base::close_with_arch: line 1183:  /dev/cons0<0x18034C380> usecount + -1 = 1
+   17    5744 [main] _test2 1010 fhandler_base::close_with_arch: not closing archetype
+   17    5761 [main] _test2 1010 init_cygheap::close_ctty: closing cygheap->ctty 0x18034C380
+   19    5780 [main] _test2 1010 fhandler_base::close_with_arch: closing passed in archetype 0x0, usecount 0
+   19    5799 [main] _test2 1010 fhandler_console::close: closing: 0x180, 0x184
+   32    5831 [main] _test2 1010 fhandler_console::free_console: freed console, res 1
+   18    5849 [main] _test2 1010 dtable::delete_archetype: deleting element 0 for /dev/cons0(3/0)
+   20    5869 [main] _test2 1010 getpid: 1010 = getpid()
+   17    5886 [main] _test2 1010 proc_terminate: nprocs 0
+   17    5903 [main] _test2 1010 proc_terminate: leaving
+   19    5922 [main] _test2 1010 pinfo::exit: Calling dlls.cleanup_forkables n 0x0, exitcode 0x0
+   19    5941 [main] _test2 1010 pinfo::exit: Calling ExitProcess n 0x0, exitcode 0x0
+--- Process 3996 (pid: 1010) thread 9364 exited with status 0x0
+--- Process 3996 (pid: 1010) thread 23928 exited with status 0x0
+--- Process 3996 (pid: 1010) thread 9672 exited with status 0x0
+--- Process 3996 (pid: 1010) exited with status 0x0
+10505   41083 [waitproc] _test 1009 pinfo::maybe_set_exit_code_from_windows: pid 1010, exit value - old 0x8000000, windows 0xDEADBEEF, cygwin 0x8000000
+   29   41112 [waitproc] _test 1009 sig_send: sendsig 0x100, pid 1009, signal 20, its_me 1
+   34   41146 [waitproc] _test 1009 sig_send: Not waiting for sigcomplete.  its_me 1 signal 20
+   27   41173 [waitproc] _test 1009 sig_send: returning 0x0 from sending signal 20
+   27   41200 [waitproc] _test 1009 proc_waiter: exiting wait thread for pid 1010
+   38   41238 [sig] _test 1009 sigpacket::process: signal 20 processing
+   25   41263 [sig] _test 1009 init_cygheap::find_tls: sig 20
+   30   41293 [sig] _test 1009 sigpacket::process: using tls 0xFFFFCE00
+   56   41349 [sig] _test 1009 sigpacket::process: signal 20 default is currently ignore
+   27   41376 [sig] _test 1009 sigpacket::process: returning 1
+   23   41399 [sig] _test 1009 proc_subproc: args: 5, 0
+   25   41424 [sig] _test 1009 proc_subproc: looking for processes to reap, nprocs 1
+   18   41442 [sig] _test 1009 checkstate: nprocs 1
+   23   41465 [sig] _test 1009 stopped_or_terminated: considering pid 1010, pgid 1009, w->pid -1
+   25   41490 [sig] _test 1009 remove_proc: removing procs[0], pid 1010, nprocs 1
+   24   41514 [main] _test 1009 wait4: 0 = cygwait (...)
+   30   41544 [main] _test 1009 wait4: 1010 = wait4(-1, 0x0, 0, 0x0)
+  137   41681 [sig] _test 1009 checkstate: returning 1
+   32   41713 [sig] _test 1009 proc_subproc: released waiting thread
+   26   41739 [sig] _test 1009 proc_subproc: finished processing terminated/stopped child
+   24   41763 [sig] _test 1009 proc_subproc: returning 1
+  231   41994 [main] _test 1009 pwdgrp::fetch_account_from_windows: line: <SYSTEM:S-1-5-18:18:>
+  877   42871 [main] _test 1009 pwdgrp::fetch_account_from_windows: line: <Administrators:S-1-5-32-544:544:>
+   43   42914 [main] _test 1009 fhandler_base::fstat_helper: 0 = fstat (\??\D:\work\Proxychains.exe\proxychains.exe\cygwin_build\test\fork_exec\log.lopg, 0xFFFFC940) st_size=84874, st_mode=0100744, st_ino=2533274790608040st_atim=5E61B219.333A5718 st_ctim=5E61B219.333A5718 st_mtim=5E61B219.333A5718 st_birthtim=5E61B219.2D6199DC
+   24   42938 [main] _test 1009 fstat64: 0 = fstat(1, 0xFFFFC940)
+waitpid() ends
+  118   43056 [main] _test 1009 write: 15 = write(1, 0x800053A10, 15)
+  111   43167 [main] _test 1009 do_exit: do_exit (0), exit_state 1
+   19   43186 [main] _test 1009 void: 0x0 = signal (20, 0x1)
+   21   43207 [main] _test 1009 void: 0x0 = signal (1, 0x1)
+   29   43236 [main] _test 1009 void: 0x0 = signal (2, 0x1)
+   17   43253 [main] _test 1009 void: 0x0 = signal (3, 0x1)
+   26   43279 [main] _test 1009 fhandler_base::close_with_arch: line 1183:  /dev/cons0<0x18034C380> usecount + -1 = 2
+   19   43298 [main] _test 1009 fhandler_base::close_with_arch: not closing archetype
+   22   43320 [main] _test 1009 fhandler_base::close: closing '/cygdrive/d/work/Proxychains.exe/proxychains.exe/cygwin_build/test/fork_exec/log.lopg' handle 0x390
+   22   43342 [main] _test 1009 fhandler_base::close_with_arch: line 1183:  /dev/cons0<0x18034C380> usecount + -1 = 1
+   18   43360 [main] _test 1009 fhandler_base::close_with_arch: not closing archetype
+   19   43379 [main] _test 1009 init_cygheap::close_ctty: closing cygheap->ctty 0x18034C380
+   18   43397 [main] _test 1009 fhandler_base::close_with_arch: closing passed in archetype 0x0, usecount 0
+   18   43415 [main] _test 1009 fhandler_console::close: closing: 0x180, 0x184
+   36   43451 [main] _test 1009 fhandler_console::free_console: freed console, res 1
+   20   43471 [main] _test 1009 dtable::delete_archetype: deleting element 0 for /dev/cons0(3/0)
+   19   43490 [main] _test 1009 do_exit: 1009 == pgrp 1009, send SIG{HUP,CONT} to stopped children
+   20   43510 [main] _test 1009 kill_pgrp: pid 1009, signal -1
+   69   43579 [main] _test 1009 open_shared: name cygpid.976, n 976, shared 0x80000 (wanted 0x0), h 0x4C, *m 6
+   30   43609 [main] _test 1009 open_shared: name cygpid.875, n 875, shared 0x90000 (wanted 0x0), h 0x180, *m 6
+   29   43638 [main] _test 1009 open_shared: name cygpid.857, n 857, shared 0xA0000 (wanted 0x0), h 0x188, *m 6
+   33   43671 [main] _test 1009 open_shared: name cygpid.874, n 874, shared 0xB0000 (wanted 0x0), h 0x1C4, *m 6
+   32   43703 [main] _test 1009 open_shared: name cygpid.815, n 815, shared 0xC0000 (wanted 0x0), h 0x1D8, *m 6
+   32   43735 [main] _test 1009 open_shared: name cygpid.982, n 982, shared 0xD0000 (wanted 0x0), h 0x194, *m 6
+   28   43763 [main] _test 1009 open_shared: name cygpid.979, n 979, shared 0xE0000 (wanted 0x0), h 0x1C0, *m 6
+   28   43791 [main] _test 1009 open_shared: name cygpid.983, n 983, shared 0x1F0000 (wanted 0x0), h 0x1BC, *m 6
+   29   43820 [main] _test 1009 open_shared: name cygpid.858, n 858, shared 0xAD0000 (wanted 0x0), h 0x1EC, *m 6
+   29   43849 [main] _test 1009 open_shared: name cygpid.975, n 975, shared 0xAE0000 (wanted 0x0), h 0x1F4, *m 6
+   32   43881 [main] _test 1009 open_shared: name cygpid.1007, n 1007, shared 0xAF0000 (wanted 0x0), h 0x1FC, *m 6
+   32   43913 [main] _test 1009 __set_errno: int kill_pgrp(pid_t, siginfo_t&):378 setting errno 3
+   19   43932 [main] _test 1009 kill_pgrp: -1 = kill(1009, -1), errno 3
+   97   44029 [main] _test 1009 getpid: 1009 = getpid()
+   29   44058 [main] _test 1009 proc_terminate: nprocs 0
+   26   44084 [main] _test 1009 proc_terminate: leaving
+   21   44105 [main] _test 1009 pinfo::exit: Calling dlls.cleanup_forkables n 0x0, exitcode 0x0
+   21   44126 [main] _test 1009 pinfo::exit: Calling ExitProcess n 0x0, exitcode 0x0
+--- Process 18488 (pid: 1009) thread 17096 exited with status 0x0
+--- Process 18488 (pid: 1009) thread 19060 exited with status 0x0
+--- Process 18488 (pid: 1009) thread 22604 exited with status 0x0
+--- Process 18488 (pid: 1009) thread 19228 exited with status 0x0
+--- Process 18488 (pid: 1009) thread 20796 exited with status 0x0
+--- Process 18488 (pid: 1009) exited with status 0x0

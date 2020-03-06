@@ -48,6 +48,8 @@ int main(int argc, const char* const* argv)
         wprintf(L"%llX\n", 0ULL);
         wprintf(L"%llX\n", 0ULL);
         wprintf(L"%llX\n", 0ULL);
+        wprintf(L"%llX\n", 0ULL);
+        wprintf(L"%llX\n", 0ULL);
 #else
         wprintf(L"%llX\n", (unsigned long long)&GetModuleHandleW);
         wprintf(L"%llX\n", (unsigned long long)&LoadLibraryW);
@@ -57,6 +59,8 @@ int main(int argc, const char* const* argv)
         wprintf(L"%llX\n", (unsigned long long)&OutputDebugStringA);
         wprintf(L"%llX\n", (unsigned long long)&GetCurrentProcessId);
         wprintf(L"%llX\n", (unsigned long long)&wsprintfA);
+        wprintf(L"%llX\n", (unsigned long long)&Sleep);
+        wprintf(L"%llX\n", (unsigned long long)&ExitThread);
 #endif
         return 0;
     }

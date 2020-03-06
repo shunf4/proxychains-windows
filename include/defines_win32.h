@@ -58,6 +58,8 @@ typedef DWORD(WINAPI* FpGetLastError)(VOID);
 typedef VOID (WINAPI* FpOutputDebugStringA)(LPCSTR);
 typedef DWORD (WINAPI* FpGetCurrentProcessId)(VOID);
 typedef int (__cdecl* FpwsprintfA)(char* const _Buffer, char const* const _Format,...);
+typedef VOID (WINAPI* FpSleep)(DWORD);
+typedef VOID (WINAPI* FpExitThread)(DWORD);
 
 #pragma pack(push, 1)
 typedef struct _PXCH_INJECT_REMOTE_DATA {
@@ -77,6 +79,7 @@ typedef struct _PXCH_INJECT_REMOTE_DATA {
 
 	WCHAR szCygwin1ModuleName[PXCH_MAX_DLL_FILE_NAME_BUFSIZE];
 	WCHAR szMsys2ModuleName[PXCH_MAX_DLL_FILE_NAME_BUFSIZE];
+	CHAR szCygwin1InitFuncName[PXCH_MAX_DLL_FUNC_NAME_BUFSIZE];
 	WCHAR szHookDllModuleName[PXCH_MAX_DLL_FILE_NAME_BUFSIZE];
 
 	PXCH_UINT32 dwLastError;

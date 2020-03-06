@@ -23,11 +23,29 @@
 
 DWORD __stdcall LoadHookDll(LPVOID* pArg)
 {
-	// Arrays are not allowed here
-	PXCH_INJECT_REMOTE_DATA* pRemoteData = (PXCH_INJECT_REMOTE_DATA*)pArg;
+	// Arrays are not allowed here. To reserve padding for cygtls, we substract rbp and rsp
+	// Since we modified the stack frame, there is no normal way to exit this thread (return) except calling ExitThread()
+#if (defined(_M_X64) || defined(__x86_64__)) && 0
+	__asm__("sub $0x8000, %rbp\n\t"
+        "sub $0x8000, %rsp\n\t");
+#endif
+
+	PXCH_INJECT_REMOTE_DATA* pRemoteData;
 	HMODULE hHookDllModule;
 	FARPROC fpInitFunc;
 	LPVOID pbCurrentlyInWinapiCall;
+
+	// Pass the argument to pRemoteData at the right(after reservation) position
+#if (defined(_M_X64) || defined(__x86_64__)) && 0
+	__asm__("mov %%rcx, %0"
+		: "=r"(pRemoteData)
+		:
+	);
+#endif
+
+	if (((PXCH_INJECT_REMOTE_DATA*)pArg)->dwDebugDepth >= 2) { ((FpExitThread)(((PXCH_INJECT_REMOTE_DATA*)pArg)->pxchConfig.FunctionPointers.fpExitThreadX64))(-3); return -1; }
+
+	pRemoteData = (PXCH_INJECT_REMOTE_DATA*)pArg;
 
 	DBGSTEP('A');
 
@@ -35,6 +53,39 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 
 	DBGSTEP('B');
 
+#ifdef __CYGWIN__
+	{
+		HMODULE hCygwinModule;
+		void (*cyginit)();
+#ifndef PXCH_IS_MSYS
+		pRemoteData->dwLastError = ERROR_DLL_INIT_FAILED;
+		hCygwinModule = CAST_FUNC_ADDR(LoadLibraryW)(pRemoteData->szCygwin1ModuleName);
+		if (!hCygwinModule) {
+			pRemoteData->dwLastError = CAST_FUNC_ADDR(GetLastError)();
+			CAST_FUNC_ADDR(ExitThread)(pRemoteData->dwLastError);
+			return -1; // To make compiler happy
+		}
+		
+		pRemoteData->dwLastError = ERROR_PROC_NOT_FOUND;
+		cyginit = (void (*)())CAST_FUNC_ADDR(GetProcAddress)(hCygwinModule, pRemoteData->szCygwin1InitFuncName);
+		(void)cyginit;
+		// (*cyginit)();
+#else
+		pRemoteData->dwLastError = ERROR_DLL_INIT_FAILED;
+		hCygwinModule = CAST_FUNC_ADDR(LoadLibraryW)(pRemoteData->szMsys2ModuleName);
+		if (!hCygwinModule) {
+			pRemoteData->dwLastError = CAST_FUNC_ADDR(GetLastError)();
+			CAST_FUNC_ADDR(ExitThread)(pRemoteData->dwLastError);
+			return -1; // To make compiler happy
+		}
+
+		pRemoteData->dwLastError = ERROR_PROC_NOT_FOUND;
+		cyginit = (void (*)())CAST_FUNC_ADDR(GetProcAddress)(hCygwinModule, pRemoteData->szCygwin1InitFuncName);
+		(void)cyginit;
+		// (*cyginit)();
+#endif
+	}
+#endif
 	
 	DBGSTEP('C');
 
@@ -46,7 +97,8 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 			hMinHookDllModule = CAST_FUNC_ADDR(LoadLibraryW)(pRemoteData->pxchConfig.szMinHookDllPath);
 			if (!hMinHookDllModule) {
 				pRemoteData->dwLastError = CAST_FUNC_ADDR(GetLastError)();
-				return pRemoteData->dwLastError;
+				CAST_FUNC_ADDR(ExitThread)(pRemoteData->dwLastError);
+				return -1; // To make compiler happy
 			}
 		}
 	}
@@ -58,7 +110,8 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 	// hHookDllModule = CAST_FUNC_ADDR(GetModuleHandleW)(pRemoteData->szHookDllModuleName);
 	// if (hHookDllModule) {
 	// 	pRemoteData->dwLastError = ERROR_ALREADY_REGISTERED;
-	// 	return ERROR_ALREADY_REGISTERED;
+	// 	CAST_FUNC_ADDR(ExitThread)(ERROR_ALREADY_REGISTERED);
+	//  return -1; // To make compiler happy
 	// }
 
 	DBGSTEP('E');
@@ -68,7 +121,8 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 	hHookDllModule = CAST_FUNC_ADDR(LoadLibraryW)(pRemoteData->pxchConfig.szHookDllPath);
 	if (!hHookDllModule) {
 		pRemoteData->dwLastError = CAST_FUNC_ADDR(GetLastError)();
-		return pRemoteData->dwLastError;
+		CAST_FUNC_ADDR(ExitThread)(pRemoteData->dwLastError);
+		return -1; // To make compiler happy
 	}
 
 	DBGSTEP('F');
@@ -100,7 +154,8 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 
 	DBGSTEP('K');
 
-	return 0;
+	CAST_FUNC_ADDR(ExitThread)(0);
+	return -1; // To make compiler happy
 
 err_init_func_failed:
 	goto err_after_load_dll;
@@ -111,7 +166,8 @@ err_getprocaddress:
 
 err_after_load_dll:
 	CAST_FUNC_ADDR(FreeLibrary)(hHookDllModule);
-	return pRemoteData->dwLastError;
+	CAST_FUNC_ADDR(ExitThread)(pRemoteData->dwLastError);
+	return -1; // To make compiler happy
 }
 
 

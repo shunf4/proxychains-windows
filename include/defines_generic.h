@@ -335,6 +335,8 @@ typedef struct _PROXYCHAINS_CONFIG {
 		PXCH_UINT64 fpOutputDebugStringAX64;
 		PXCH_UINT64 fpGetCurrentProcessIdX64;
 		PXCH_UINT64 fpwsprintfAX64;
+		PXCH_UINT64 fpSleepX64;
+		PXCH_UINT64 fpExitThreadX64;
 
 		PXCH_UINT64 fpGetModuleHandleWX86;
 		PXCH_UINT64 fpLoadLibraryWX86;
@@ -344,6 +346,8 @@ typedef struct _PROXYCHAINS_CONFIG {
 		PXCH_UINT64 fpOutputDebugStringAX86;
 		PXCH_UINT64 fpGetCurrentProcessIdX86;
 		PXCH_UINT64 fpwsprintfAX86;
+		PXCH_UINT64 fpSleepX86;
+		PXCH_UINT64 fpExitThreadX86;
 	} FunctionPointers;
 	
 	PXCH_UINT32 cbProxyListOffset;

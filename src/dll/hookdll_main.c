@@ -113,6 +113,8 @@ DWORD RemoteCopyExecute(HANDLE hProcess, BOOL bIsX86, PXCH_INJECT_REMOTE_DATA* p
 
 	IPCLOGV(L"CreateProcessW: Before CreateRemoteThread(ReadProcessMemory finished). " WPRDW, 0);
 
+	if ((g_pRemoteData ? g_pRemoteData->dwDebugDepth : 0) >= 1 && FALSE) return 0;
+
 	// Create remote thread in target process to execute the code
 	hRemoteThread = CreateRemoteThread(hProcess, NULL, 0, pTargetCode, pTargetData, 0, &dwRemoteTid);
 	if (!hRemoteThread) goto err_create_remote_thread;
@@ -252,6 +254,7 @@ DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi)
 	pRemoteData->cbDebugOutputCharOffset = (PXCH_UINT32)(StrChrA(pRemoteData->chDebugOutputBuf, '?') - pRemoteData->chDebugOutputBuf);
 	StringCchCopyW(pRemoteData->szCygwin1ModuleName, _countof(pRemoteData->szCygwin1ModuleName), g_pRemoteData ? g_pRemoteData->szCygwin1ModuleName : L"cygwin1.dll");
 	StringCchCopyW(pRemoteData->szMsys2ModuleName, _countof(pRemoteData->szMsys2ModuleName), g_pRemoteData ? g_pRemoteData->szMsys2ModuleName : L"msys-2.0.dll");
+	StringCchCopyA(pRemoteData->szCygwin1InitFuncName, _countof(pRemoteData->szCygwin1InitFuncName), g_pRemoteData ? g_pRemoteData->szCygwin1InitFuncName : "cygwin_dll_init");
 	StringCchCopyW(pRemoteData->szHookDllModuleName, _countof(pRemoteData->szHookDllModuleName), g_pRemoteData ? g_pRemoteData->szHookDllModuleName : g_szHookDllFileName);
 	pRemoteData->dwEverExecuted = 0;
 	pRemoteData->dwSize = sizeof(PXCH_INJECT_REMOTE_DATA) + dwExtraSize;
@@ -368,6 +371,7 @@ PXCH_DLL_API void UninitHook(void)
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
+#ifndef __CYGWIN__
 	LPVOID pvData;
 	switch (fdwReason)
 	{
@@ -394,6 +398,6 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 		TlsFree(g_dwTlsIndex);
 		break;
 	}
-
+#endif
 	return TRUE;
 }
