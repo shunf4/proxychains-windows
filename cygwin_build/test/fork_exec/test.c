@@ -6,12 +6,19 @@
 #include <sys/wait.h>
 #include <signal.h>
 
+int global_var;
+
+int global_var_data = 111;
+
+static int static_var;
+
 int main(int argc, char*const*const argv, char*const*const envp)
 {
     int ret;
     pid_t child_pid;
     int i;
 
+    printf("parent ptr %p %p %p\n", &ret, &global_var_data, &static_var);
     printf("parent pid %d\n", getpid());
     //sleep(1);
 

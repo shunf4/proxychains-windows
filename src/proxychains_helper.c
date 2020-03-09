@@ -66,11 +66,14 @@ int main(int argc, const char* const* argv)
     }
 
     if (strcmp(argv[1], "--dump-remote-function") == 0) {
-        void* pCode = LoadHookDll;
-        void* pAfterCode = LoadHookDll_End;
+        void* pCode;
+        void* pAfterCode;
         SSIZE_T cbCodeSize;
         SSIZE_T cbCodeSizeAligned;
         SSIZE_T cb;
+
+        pCode = LoadHookDll;
+        pAfterCode = LoadHookDll_End;
 
         if (*(BYTE*)pCode == 0xE9) {
             fwprintf(stderr, L"Warning: Remote function body is a JMP instruction! This is usually caused by \"incremental linking\". Although this is correctly handled now, there might be problems in the future. Try to disable that.\n");
@@ -90,7 +93,33 @@ int main(int argc, const char* const* argv)
             wprintf(L"\\x%02hhX", ((char*)pCode)[cb]);
         }
 
+        wprintf(L"\";\n\n");
+
+
+
+        pCode = CygwinEntryDetour;
+        pAfterCode = CygwinEntryDetour_End;
+
+        if (*(BYTE*)pCode == 0xE9) {
+            fwprintf(stderr, L"Warning: Cygwin entry detour body is a JMP instruction! This is usually caused by \"incremental linking\". Although this is correctly handled now, there might be problems in the future. Try to disable that.\n");
+            pCode = (void*)((char*)pCode + *(DWORD*)((char*)pCode + 1) + 5);
+        }
+
+        if (*(BYTE*)pAfterCode == 0xE9) {
+            pAfterCode = (void*)((char*)pAfterCode + *(DWORD*)((char*)pAfterCode + 1) + 5);
+        }
+
+        cbCodeSize = ((char*)pAfterCode - (char*)pCode);
+        cbCodeSizeAligned = (cbCodeSize + (sizeof(LONG_PTR) - 1)) & ~(sizeof(LONG_PTR) - 1);
+
+        wprintf(L"static const char g_CygwinEntryDetour" SUFFIX_ARCH L"[] = \"");
+        
+        for (cb = 0; cb < cbCodeSizeAligned; cb++) {
+            wprintf(L"\\x%02hhX", ((char*)pCode)[cb]);
+        }
+
         wprintf(L"\";\n");
+
         fflush(stdout);
         return 0;
     }

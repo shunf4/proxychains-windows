@@ -1,0 +1,8 @@
+2020/03/09 10:27:26 Starting cygwin install, version 2.901
+2020/03/09 10:27:26 User has backup/restore rights
+2020/03/09 10:27:26 io_stream_cygfile: fopen(/etc/setup/setup.rc) failed 2 No such file or directory
+2020/03/09 10:27:26 Current Directory: D:\work\Proxychains.exe\proxychains.exe\cygwin_build
+2020/03/09 10:27:26 Could not open service McShield for query, start and stop. McAfee may not be installed, or we don't have access.
+2020/03/09 10:27:33 source: network install
+2020/03/09 10:28:37 io_stream_cygfile: fopen(/etc/setup/setup.rc) failed 2 No such file or directory
+2020/03/09 10:28:37 Ending cygwin install

@@ -59,12 +59,16 @@ PXCH_DLL_API extern wchar_t log_ods_buf_early[PXCH_LOG_ODS_BUFSIZE];
 #endif
 
 #ifdef _DEBUG
-#define ODBGSTRLOGD_FORCE_WITH_EARLY_BUF(fmt, ...) do { \
+#define ODBGSTRLOGD_WITH_EARLY_BUF(fmt, ...) do { \
 	StringCchPrintfW(log_ods_buf_early, PXCH_LOG_ODS_BUFSIZE, fmt, ##__VA_ARGS__); OutputDebugStringW(log_ods_buf_early); \
 } while(0)
 #else
-#define ODBGSTRLOGD_FORCE_WITH_EARLY_BUF(fmt, ...)
+#define ODBGSTRLOGD_WITH_EARLY_BUF(fmt, ...)
 #endif
+
+#define ODBGSTRLOG_FORCE_WITH_EARLY_BUF(fmt, ...) do { \
+	StringCchPrintfW(log_ods_buf_early, PXCH_LOG_ODS_BUFSIZE, fmt, ##__VA_ARGS__); OutputDebugStringW(log_ods_buf_early); \
+} while(0)
 
 #if PXCH_LOG_LEVEL_ENABLED >= PXCH_LOG_LEVEL_DEBUG
 #define ODBGSTRLOGD(fmt, ...) do { \

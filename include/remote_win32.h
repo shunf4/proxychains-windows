@@ -54,3 +54,6 @@
 // MSVC arranges these functions in alphabetical order
 DWORD __stdcall LoadHookDll(LPVOID * pArg);
 void* LoadHookDll_End(void);
+
+void __cdecl CygwinEntryDetour(void);
+void* CygwinEntryDetour_End(void);

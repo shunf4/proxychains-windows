@@ -206,7 +206,7 @@ PXCH_UINT32 RestoreChildData()
 
 	if ((dwRealCurrentProcessId = GetCurrentProcessId()) == g_dwCurrentProcessIdForVerify) return 0;
 
-	ODBGSTRLOGD_FORCE_WITH_EARLY_BUF(L"winpid " WPRDW L" data was rewritten, now restoring", dwRealCurrentProcessId);
+	ODBGSTRLOGD_WITH_EARLY_BUF(L"winpid " WPRDW L" data was rewritten, now restoring", dwRealCurrentProcessId);
 
 	// Overwritten, now restoring
 	g_pPxchConfig = NULL;

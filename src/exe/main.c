@@ -35,6 +35,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <spawn.h>
+#include <process.h>
 #endif
 
 HANDLE g_hIpcServerSemaphore;
@@ -616,16 +617,20 @@ void handle_sigchld(int sig)
 DWORD WINAPI CygwinSpawn(LPVOID lpParam)
 {
 	void** ctx = lpParam;
-	pid_t child_pid;
+	pid_t child_pid = 0;
 	char*const* p_argv_command_start = ctx[0];
 	char*const* envp = ctx[1];
 	int iReturn;
 
-	iReturn = posix_spawnp(&child_pid, *p_argv_command_start, NULL, NULL, p_argv_command_start, envp);
+	// iReturn = posix_spawnp(&child_pid, *p_argv_command_start, NULL, NULL, p_argv_command_start, envp);
+	iReturn = spawnvpe(_P_NOWAIT, (const char*)*p_argv_command_start, (const char*const*)p_argv_command_start, (const char*const*)envp);
 	(void)iReturn;
-	LOGD(L"Spawn ret: %d; CYGPID: " WPRDW L"", iReturn, child_pid);
+	if (child_pid == 0) {
+		child_pid = (pid_t)iReturn;
+	}
+	LOGI(L"Spawnvpe ret: %d; CYGPID: " WPRDW L"", iReturn, child_pid);
 
-	return 0;
+	return iReturn < 0 ? ERROR_OPEN_FAILED : 0;
 }
 
 int main(int argc, char* const argv[], char* const envp[])
@@ -707,7 +712,12 @@ int main(int argc, char* const argv[], char* const envp[])
 	ctx[0] = &argv[iCommandStart];
 	ctx[1] = envp;
 
-	CygwinSpawn(ctx);
+	if (CygwinSpawn(ctx) != NO_ERROR) {
+		LOGE(L"Spawn child process failed.");
+		return 1;
+	}
+
+	LOGI(L"getpid(): %d ", getpid());
 
 	if (g_tabPerProcess == NULL) {
 		LOGI(L"No child process registered. Injection might not have succeeded.");

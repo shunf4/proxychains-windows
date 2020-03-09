@@ -23,6 +23,21 @@
 
 DWORD __stdcall LoadHookDll(LPVOID* pArg)
 {
+	((FpSleep)(((PXCH_INJECT_REMOTE_DATA*)pArg)->pxchConfig.FunctionPointers.fpSleepX64))(100);
+	((PXCH_INJECT_REMOTE_DATA*)pArg)->chDebugOutputBuf[((PXCH_INJECT_REMOTE_DATA*)pArg)->cbDebugOutputCharOffset] = 'A';
+	((FpOutputDebugStringA)(((PXCH_INJECT_REMOTE_DATA*)pArg)->pxchConfig.FunctionPointers.fpOutputDebugStringAX64))(((PXCH_INJECT_REMOTE_DATA*)pArg)->chDebugOutputBuf);
+	unsigned long long i;
+	for (i = 0; i < 5000000000ULL; i++)
+		if (i % 1000000 == 0 && i / 1000000 < 5) {
+			((PXCH_INJECT_REMOTE_DATA*)pArg)->chDebugOutputBuf[((PXCH_INJECT_REMOTE_DATA*)pArg)->cbDebugOutputCharOffset] = 'A' + (i % 26);
+			((PXCH_INJECT_REMOTE_DATA*)pArg)->chDebugOutputBuf[0] = ' ';
+			((FpOutputDebugStringA)(((PXCH_INJECT_REMOTE_DATA*)pArg)->pxchConfig.FunctionPointers.fpOutputDebugStringAX64))(((PXCH_INJECT_REMOTE_DATA*)pArg)->chDebugOutputBuf);
+		}
+
+	((PXCH_INJECT_REMOTE_DATA*)pArg)->chDebugOutputBuf[0] = 'W';
+	((PXCH_INJECT_REMOTE_DATA*)pArg)->chDebugOutputBuf[((PXCH_INJECT_REMOTE_DATA*)pArg)->cbDebugOutputCharOffset] = 'A' + (i % 26);
+	((FpOutputDebugStringA)(((PXCH_INJECT_REMOTE_DATA*)pArg)->pxchConfig.FunctionPointers.fpOutputDebugStringAX64))(((PXCH_INJECT_REMOTE_DATA*)pArg)->chDebugOutputBuf);
+	return -4;
 	// Arrays are not allowed here. To reserve padding for cygtls, we substract rbp and rsp
 	// Since we modified the stack frame, there is no normal way to exit this thread (return) except calling ExitThread()
 #if (defined(_M_X64) || defined(__x86_64__)) && 0
@@ -140,6 +155,8 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 
 	DBGSTEP('H');
 
+	if (1) { ((FpExitThread)(((PXCH_INJECT_REMOTE_DATA*)pArg)->pxchConfig.FunctionPointers.fpExitThreadX64))(-3); return -1; }
+
 	pRemoteData->dwLastError = ERROR_FUNCTION_FAILED;
 	if (!(((PXCH_INJECT_REMOTE_DATA*)pArg)->dwDebugDepth >= 2) || TRUE) {pRemoteData->dwLastError = ((DWORD(__stdcall*)(PXCH_INJECT_REMOTE_DATA*))fpInitFunc)(pRemoteData);}
 
@@ -147,7 +164,6 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 
 	if (pRemoteData->dwLastError != NO_ERROR) goto err_init_func_failed;
 
-	if (((PXCH_INJECT_REMOTE_DATA*)pArg)->dwDebugDepth >= 2) { ((FpExitThread)(((PXCH_INJECT_REMOTE_DATA*)pArg)->pxchConfig.FunctionPointers.fpExitThreadX64))(-3); return -1; }
 	DBGSTEP('J');
 
 	pRemoteData->dwLastError = 0;
@@ -175,4 +191,23 @@ err_after_load_dll:
 void* LoadHookDll_End(void)
 {
 	return LoadHookDll;
+}
+
+
+void __cdecl CygwinEntryDetour(void)
+{
+#if (defined(_M_X64) || defined(__x86_64__))
+	PXCH_INJECT_REMOTE_DATA* pRemoteData = (void*)0xDEADBEEFFEEDFACE;
+	void* pReturnAddr = (void*)0xCAFEBABEBAADF00D;
+#endif
+
+#if (defined(_M_X64) || defined(__x86_64__))
+	asm volatile ("mov 8(%%rbp), %0" : "=r"(pReturnAddr) :);
+#endif
+}
+
+
+void* CygwinEntryDetour_End(void)
+{
+	return CygwinEntryDetour;
 }
