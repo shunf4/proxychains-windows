@@ -112,7 +112,7 @@ DWORD RemoteCopyExecute(const PROCESS_INFORMATION* pPi, BOOL bIsX86, PXCH_INJECT
 
 	// Create remote thread in target process to execute the code
 	hRemoteThread = CreateRemoteThread(pPi->hProcess, NULL, 0, pTargetCode, pTargetData, CREATE_SUSPENDED, &dwRemoteTid);
-	IPCLOGv(L"CreateProcessW: After CreateRemoteThread(). Tid: " WPRDW, dwRemoteTid);
+	IPCLOGV(L"CreateProcessW: After CreateRemoteThread(). Tid: " WPRDW, dwRemoteTid);
 	if (!hRemoteThread) goto err_create_remote_thread;
 
 	// Make remote function step format string and write data
@@ -393,6 +393,6 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 		TlsFree(g_dwTlsIndex);
 		break;
 	}
-	
+
 	return TRUE;
 }

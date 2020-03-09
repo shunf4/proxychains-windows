@@ -262,7 +262,7 @@ PXCH_UINT32 ReverseLookupForHost(PXCH_HOSTNAME_PORT* pReverseLookedupHostnamePor
 
 		if ((dwLastError = HostnameAndIpsToMessage(chMessageBuf, &cbMessageSize, GetCurrentProcessId(), &EmptyHostname, FALSE /*ignored*/, 1, &ReqIp, FALSE /*ignored*/)) != NO_ERROR) goto err_general;
 
-		if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) goto err_general;
+		if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, (PXCH_UINT32*)&cbRespMessageSize)) != NO_ERROR) goto err_general;
 
 		if ((dwLastError = MessageToHostnameAndIps(NULL, (PXCH_HOSTNAME*)pReverseLookedupHostnamePort, NULL, &dwRespIpNum, RespIps, pdwTarget, chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) goto err_general;
 
@@ -1529,7 +1529,7 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 
 		if ((dwLastError = HostnameAndIpsToMessage(pLocalData->chMessageBuf, &cbMessageSize, GetCurrentProcessId(), &pLocalData->Hostname, g_pPxchConfig->dwWillMapResolvedIpToHost, dwIpNum, pLocalData->Ips, dwTarget)) != NO_ERROR) goto err;
 
-		if ((dwLastError = IpcCommunicateWithServer(pLocalData->chMessageBuf, cbMessageSize, pLocalData->chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) goto err;
+		if ((dwLastError = IpcCommunicateWithServer(pLocalData->chMessageBuf, cbMessageSize, pLocalData->chRespMessageBuf, (PXCH_UINT32*)&cbRespMessageSize)) != NO_ERROR) goto err;
 
 		if ((dwLastError = MessageToHostnameAndIps(NULL, NULL, NULL, NULL /*Must be 2*/, (PXCH_IP_PORT*)pLocalData->FakeIpPorts, NULL, pLocalData->chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) goto err;
 

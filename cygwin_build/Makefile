@@ -31,7 +31,7 @@ OBJS = $(patsubst $(SRC_PREFIX)%,%,$(SRCS:.c=.o))
 DEPS = $(patsubst $(SRC_PREFIX)%,%,$(SRCS:.c=.d))
 
 CFLAGS = -fno-omit-frame-pointer -fno-strict-aliasing -fgnu89-inline -Wall -D_UNICODE -DUNICODE $(INCLUDE_DIR_CFLAGS)
-DLL_CFLAGS = -fno-omit-frame-pointer -fno-strict-aliasing -fgnu89-inline -Wall -D_UNICODE -DUNICODE -DPXCH_DLL_EXPORTS $(INCLUDE_DIR_CFLAGS)
+DLL_CFLAGS = $(CFLAGS) -DPXCH_DLL_EXPORTS
 
 DEPFLAGS_STEM = -MT $@ -MMD -MP -MF $*.d
 DEPFLAGS_IN_PREREQ = -MT $@ -MMD -MP -MF $(filter %.d,$^)
@@ -114,19 +114,27 @@ release : CFLAGS += -DPXCH_LOG_LEVEL=400
 release : DLL_CFLAGS += -DPXCH_LOG_LEVEL=400
 release : pre_release $(ALL_EXECS_RELEASE)
 
-pre_debug : MAKING_DEBUG $(REMOTE_FUNC_BIN_HEADER_DEBUG)
+pre_debug : MAKING_DEBUG MAKING_$(ARCHITECT) $(REMOTE_FUNC_BIN_HEADER_DEBUG)
 	$(eval REMOTE_FUNC_BIN_HEADER := $(REMOTE_FUNC_BIN_HEADER_DEBUG))
 
-pre_release : MAKING_RELEASE $(REMOTE_FUNC_BIN_HEADER_RELEASE)
+pre_release : MAKING_RELEASE MAKING_$(ARCHITECT) $(REMOTE_FUNC_BIN_HEADER_RELEASE)
 	$(eval REMOTE_FUNC_BIN_HEADER := $(REMOTE_FUNC_BIN_HEADER_RELEASE))
 
 MAKING_DEBUG :
-	$(MAKE) -f $(MAKEFILE_PATH) clean
+	$(MAKE) -f $(MAKEFILE_PATH) clean_include_profile_mark
 	touch MAKING_DEBUG
 	
 MAKING_RELEASE :
-	$(MAKE) -f $(MAKEFILE_PATH) clean
+	$(MAKE) -f $(MAKEFILE_PATH) clean_include_profile_mark
 	touch MAKING_RELEASE
+
+MAKING_x64 :
+	$(MAKE) -f $(MAKEFILE_PATH) clean_include_arch_mark
+	touch MAKING_x64
+	
+MAKING_x86 :
+	$(MAKE) -f $(MAKEFILE_PATH) clean_include_arch_mark
+	touch MAKING_x86
 
 $(NONDLL_OBJS) : %.o : $(SRC_PREFIX)%.c %.d
 	$(CC) $(CFLAGS) $(DEPFLAGS_STEM) -c -o$@ $<
@@ -143,10 +151,10 @@ $(HELPER_PATH_RELEASE) : proxychains_helper.o remote_function.o
 	$(CC) -o$@ $(filter %.c %.o %.a %.lib,$^) -Wl,-Bdynamic -lntdllcrt -lkernel32 -l$(CYGWIN_LIB)
 
 $(REMOTE_FUNC_BIN_HEADER_DEBUG) : $(HELPER_PATH_DEBUG)
-	$(HELPER_PATH_DEBUG) --dump-remote-function > $@
+	$(HELPER_PATH_DEBUG) --dump-functions > $@
 
 $(REMOTE_FUNC_BIN_HEADER_RELEASE) : $(HELPER_PATH_RELEASE)
-	$(HELPER_PATH_RELEASE) --dump-remote-function > $@
+	$(HELPER_PATH_RELEASE) --dump-functions > $@
 	
 dll/hookdll_main.o : MADE_REMOTE_FUNC_BIN_HEADER
 
@@ -155,10 +163,10 @@ MADE_REMOTE_FUNC_BIN_HEADER : proxychains_helper.o remote_function.o
 	touch MADE_REMOTE_FUNC_BIN_HEADER
 	
 $(DLL_PATH_DEBUG) : ../minhook/libMinHook.a dll/hookdll_main.o dll/hook_connect_win32.o dll/hook_connect_win32.o dll/hook_connect_cygwin.o dll/hook_createprocess_win32.o dll/hook_installer.o dll/ipc_client_and_child_data.o dll/hookdll_util.o dll/hookdll_util_wsock.o dll/hookdll_util_ipc_message.o cygwin_strsafe/strsafe.o
-	$(CC) -shared -o$@ -Wl,--out-implib=$(DLL_IMPLIB_PATH_DEBUG) $(LIB_DIR_LDFLAGS) $(filter %.c %.o %.a %.lib,$^) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lws2_32 -lshlwapi
+	$(CC) -shared -o$@ -Wl,--out-implib=$(DLL_IMPLIB_PATH_DEBUG),--output-def,$@.def $(LIB_DIR_LDFLAGS) $(filter %.c %.o %.a %.lib,$^) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lws2_32 -lshlwapi
 	
 $(DLL_PATH_RELEASE) : ../minhook/libMinHook.a dll/hookdll_main.o dll/hook_connect_win32.o dll/hook_connect_win32.o dll/hook_connect_cygwin.o dll/hook_createprocess_win32.o dll/hook_installer.o dll/ipc_client_and_child_data.o dll/hookdll_util.o dll/hookdll_util_wsock.o dll/hookdll_util_ipc_message.o cygwin_strsafe/strsafe.o
-	$(CC) -shared -o$@ -Wl,--out-implib=$(DLL_IMPLIB_PATH_RELEASE) $(LIB_DIR_LDFLAGS) $(filter %.c %.o %.a %.lib,$^) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lws2_32 -lshlwapi
+	$(CC) -shared -o$@ -Wl,--out-implib=$(DLL_IMPLIB_PATH_RELEASE),--output-def,$@.def $(LIB_DIR_LDFLAGS) $(filter %.c %.o %.a %.lib,$^) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lws2_32 -lshlwapi
 
 #	-Wl,--export-all-symbols \
 #	-Wl,--enable-auto-import \
@@ -172,18 +180,28 @@ $(EXEC_PATH_DEBUG) : ../minhook/libMinHook.a exe/main.o exe/args_and_config.o ex
 $(EXEC_PATH_RELEASE) : ../minhook/libMinHook.a exe/main.o exe/args_and_config.o exe/ipc_proc_bookkeeping.o stdlib_config_reader.o cygwin_strsafe/strsafe.o $(DLL_IMPLIB_PATH_RELEASE)
 	$(CC) -o$@ $(filter %.c %.o %.a %.lib,$^) $(LIB_DIR_LDFLAGS) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lkernel32 -lshlwapi -ladvapi32 -l$(CYGWIN_LIB) -lws2_32
 
-.PHONY : clean dist pre_debug pre_release
+.PHONY : clean_except_mark clean_include_profile_mark clean_include_arch_mark clean dist pre_debug pre_release
 
-clean :
-	$(RM) MAKING_DEBUG MAKING_RELEASE MADE_REMOTE_FUNC_BIN_HEADER
+clean_except_mark :
+	$(RM) MADE_REMOTE_FUNC_BIN_HEADER
 	$(RM) $(ALL_EXECS_DEBUG) $(ALL_EXECS_RELEASE)
 	$(RM) $(ALL_SHARED_LIBS_DEBUG) $(ALL_SHARED_LIBS_RELEASE)
+	$(RM) $(ALL_SHARED_LIBS_DEBUG).def $(ALL_SHARED_LIBS_RELEASE).def
 	$(RM) $(ALL_IMPLIBS_DEBUG) $(ALL_IMPLIBS_RELEASE)
 	$(RM) $(OBJS)
 	$(RM) $(DEPS)
 	$(RM) $(HELPER_PATH_DEBUG) $(HELPER_PATH_RELEASE)
 	$(RM) $(REMOTE_FUNC_BIN_HEADER_DEBUG) $(REMOTE_FUNC_BIN_HEADER_RELEASE)
 	$(MAKE) -C ../minhook -f ../minhook/build/MinGW/Makefile clean
+
+clean_include_profile_mark : clean_except_mark
+	$(RM) MAKING_DEBUG MAKING_RELEASE
+
+clean_include_arch_mark : clean_except_mark
+	$(RM) MAKING_x86 MAKING_x64
+
+clean : clean_except_mark
+	$(RM) MAKING_*
 
 ../minhook/libMinHook.a :
 	$(MAKE) -C ../minhook -f ../minhook/build/MinGW/Makefile

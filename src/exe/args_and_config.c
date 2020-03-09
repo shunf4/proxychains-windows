@@ -51,7 +51,7 @@
 #define FUNCTION_SUFFIX_ARCH X86
 #endif
 
-#define ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, funcName, funcPtr, arch) (pPxchConfig)->FunctionPointers.fp##funcName##arch = (PXCH_UINT64)(funcPtr)
+#define ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, funcName, funcPtr, arch) (pPxchConfig)->FunctionPointers.fp##funcName##arch = (PXCH_UINT64)(uintptr_t)(funcPtr)
 #define ASSIGN_FUNC_ADDR_WITH_ARCH_X(pPxchConfig, funcName, funcPtr, arch) ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, funcName, funcPtr, arch)
 #define ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, funcName) ASSIGN_FUNC_ADDR_WITH_ARCH_X(pPxchConfig, funcName, &funcName, FUNCTION_SUFFIX_ARCH)
 #define ASSIGN_FUNC_ADDR(pPxchConfig, funcName, funcPtr) ASSIGN_FUNC_ADDR_WITH_ARCH_X(pPxchConfig, funcName, funcPtr, FUNCTION_SUFFIX_ARCH)

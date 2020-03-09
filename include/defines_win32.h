@@ -84,6 +84,8 @@ typedef struct _PXCH_INJECT_REMOTE_DATA {
 	PXCH_UINT32 dwLastError;
 	PROXYCHAINS_CONFIG pxchConfig;
 
+	HANDLE hSemaphore;
+
 } PXCH_INJECT_REMOTE_DATA;
 #pragma pack(pop)
 

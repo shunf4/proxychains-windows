@@ -27,7 +27,19 @@
 #define FUNCTION_SUFFIX_ARCH X86
 #endif
 
-#define CAST_FUNC_ADDR_WITH_PTR_ARCH(pRemoteData, funcName, arch) ((Fp##funcName)((pRemoteData)->pxchConfig.FunctionPointers.fp##funcName##arch))
+
+#if defined(_M_X64) || defined(__x86_64__)
+#define PXCH_POINTER_PLACEHOLDER_PREMOTEDATA (0xDEADBEEFFEEDFACEull)
+#define PXCH_POINTER_PLACEHOLDER_STARTMARKER (0xC00010FFD0CF11E0ull)
+#define PXCH_POINTER_PLACEHOLDER_PRETURNADDR (0xCAFEBABEBAADF00Dull)
+#else
+#define PXCH_POINTER_PLACEHOLDER_PREMOTEDATA (0xDEADBEEFull)
+#define PXCH_POINTER_PLACEHOLDER_STARTMARKER (0xC00010FFull)
+#define PXCH_POINTER_PLACEHOLDER_PRETURNADDR (0xCAFEBABEull)
+#endif
+
+
+#define CAST_FUNC_ADDR_WITH_PTR_ARCH(pRemoteData, funcName, arch) ((Fp##funcName)(uintptr_t)((pRemoteData)->pxchConfig.FunctionPointers.fp##funcName##arch))
 #define CAST_FUNC_ADDR_WITH_PTR_ARCH_X(pRemoteData, funcName, arch) CAST_FUNC_ADDR_WITH_PTR_ARCH(pRemoteData, funcName, arch)
 #define CAST_FUNC_ADDR_WITH_PTR(pRemoteData, funcName) CAST_FUNC_ADDR_WITH_PTR_ARCH_X(pRemoteData, funcName, FUNCTION_SUFFIX_ARCH)
 #define CAST_FUNC_ADDR(funcName) CAST_FUNC_ADDR_WITH_PTR_ARCH_X(pRemoteData, funcName, FUNCTION_SUFFIX_ARCH)

@@ -351,6 +351,7 @@ cygwin_build/**/distx*
 cygwin_build/**/*.stackdump
 cygwin_build/**/*.bin
 cygwin_build/**/MADE_REMOTE_FUNC_BIN_HEADER
+cygwin_build/**/*.def
 
 msys_build/**/*.d
 msys_build/**/*.o

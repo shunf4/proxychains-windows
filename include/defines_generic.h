@@ -21,7 +21,7 @@
 #include "includes_generic.h"
 
 #ifdef __CYGWIN__
-#define _byteswap_uint64 _bswap64
+#define _byteswap_uint64 __builtin_bswap64
 typedef __UINT16_TYPE__ PXCH_UINT16;
 typedef __INT32_TYPE__ PXCH_INT32;
 typedef __UINT32_TYPE__ PXCH_UINT32;
@@ -41,6 +41,12 @@ typedef unsigned __int64 PXCH_UINT_PTR;
 #else
 typedef unsigned int PXCH_UINT_PTR;
 #endif
+#endif
+
+#if defined(_M_X64) || defined(__x86_64__)
+typedef PXCH_UINT64 PXCH_UINT_MACHINE;
+#else
+typedef PXCH_UINT32 PXCH_UINT_MACHINE;
 #endif
 
 #ifdef _DEBUG

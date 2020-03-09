@@ -122,8 +122,8 @@
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>cd /d $(SolutionDir)win32_output
-.\proxychains_helper_win32_x86d.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x86d.h
-.\proxychains_helper_win32_x64d.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x64d.h</Command>
+.\proxychains_helper_win32_x86d.exe --dump-functions &gt; $(SolutionDir)include\remote_func_bin_x86d.h
+.\proxychains_helper_win32_x64d.exe --dump-functions &gt; $(SolutionDir)include\remote_func_bin_x64d.h</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -147,8 +147,8 @@
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>cd /d $(SolutionDir)win32_output
-.\proxychains_helper_win32_x86d.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x86d.h
-.\proxychains_helper_win32_x64d.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x64d.h</Command>
+.\proxychains_helper_win32_x86d.exe --dump-functions &gt; $(SolutionDir)include\remote_func_bin_x86d.h
+.\proxychains_helper_win32_x64d.exe --dump-functions &gt; $(SolutionDir)include\remote_func_bin_x64d.h</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -174,8 +174,8 @@
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>cd /d $(SolutionDir)win32_output
-.\proxychains_helper_win32_x86.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x86.h
-.\proxychains_helper_win32_x64.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x64.h</Command>
+.\proxychains_helper_win32_x86.exe --dump-functions &gt; $(SolutionDir)include\remote_func_bin_x86.h
+.\proxychains_helper_win32_x64.exe --dump-functions &gt; $(SolutionDir)include\remote_func_bin_x64.h</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -201,8 +201,8 @@
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>cd /d $(SolutionDir)win32_output
-.\proxychains_helper_win32_x86.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x86.h
-.\proxychains_helper_win32_x64.exe --dump-remote-function &gt; $(SolutionDir)include\remote_func_bin_x64.h</Command>
+.\proxychains_helper_win32_x86.exe --dump-functions &gt; $(SolutionDir)include\remote_func_bin_x86.h
+.\proxychains_helper_win32_x64.exe --dump-functions &gt; $(SolutionDir)include\remote_func_bin_x64.h</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

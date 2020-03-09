@@ -21,6 +21,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "defines_win32.h"
 #include "remote_win32.h"
+#include <limits.h>
 
 #ifdef __CYGWIN__
 #define PREFIX_ZERO_X ""
@@ -30,9 +31,248 @@
 
 #if defined(_M_X64) || defined(__x86_64__)
 #define SUFFIX_ARCH L"X64"
+#define MACHINE_WORD_SIZE 8
 #else
 #define SUFFIX_ARCH L"X86"
+#define MACHINE_WORD_SIZE 4
 #endif
+
+int ReplaceStartMarker(char** ppInput, size_t* pcbInputRemaining, char** ppOutput, size_t* pcbOutputRemaining, char** ppOutputStartAddress)
+{
+#if defined(_M_X64) || defined(__x86_64__)
+    // movabs register, imm64
+    static char cInst[] = "\x48\xb8\x00\x00\x00\x00\x00\x00\x00\x00";
+    static char cInstMatchMask[] = "\xFF\xF8\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF";
+    static PXCH_UINT_MACHINE* pInstAddr = (PXCH_UINT_MACHINE*)(cInst + 2);
+
+    // push rbp
+    // sub rsp, 1024
+    // lea rbp, [rsp+512]
+    static const char cSubstitute[] = "\x55\x48\x81\xEC\x00\x04\x00\x00\x48\x8D\xAC\x24\x00\x02\x00\x00";
+#else
+    // mov QWORD PTR [register+0x??], imm32
+    static char cInst[] = "\xc7\x45\xf4\x00\x00\x00\x00";
+    static char cInstMatchMask[] = "\xFF\x00\x00\xFF\xFF\xFF\xFF";
+    static PXCH_UINT_MACHINE* pInstAddr = (PXCH_UINT_MACHINE*)(cInst + 3);
+
+    // push ebp
+    // sub esp, 1024
+    // lea ebp, [esp+512]
+    static const char cSubstitute[] = "\x55\x81\xEC\x00\x04\x00\x00\x8D\xAC\x24\x00\x02\x00\x00";
+#endif
+
+    static char cInstBuf[sizeof(cInst)];
+    static const size_t cbInst = sizeof(cInst) - 1;
+    static const size_t cbSubstitute = sizeof(cSubstitute) - 1;
+    char* pInput = *ppInput;
+    const char* pInst = cInst;
+    const char* pMask = cInstMatchMask;
+    char* pBuf = cInstBuf;
+
+    if (*pcbInputRemaining < cbInst) return 0;
+
+    if (*pInstAddr == 0) {
+        *pInstAddr = PXCH_POINTER_PLACEHOLDER_STARTMARKER;
+    }
+
+    for (; pInput < (*ppInput) + cbInst; pInput++, pMask++, pBuf++) {
+        *pBuf = *pInput & *pMask;
+    }
+
+    for (pInst = cInst, pBuf = cInstBuf, pMask = cInstMatchMask; pBuf < cInstBuf + cbInst; pInst++, pBuf++, pMask++) {
+        if ((*pInst & *pMask) != *pBuf) {
+            return 0;
+        }
+    }
+
+    if (*pcbOutputRemaining < cbSubstitute) {
+        fwprintf(stderr, L"Error: Cygwin entry detour output buf insufficient.\n");
+        exit(4);
+    }
+
+    if (*ppOutputStartAddress) {
+        fwprintf(stderr, L"Error: Duplicate start mark found in Cygwin entry detour.\n");
+        exit(4);
+    }
+
+    *ppOutputStartAddress = *ppOutput;
+    memcpy(*ppOutput, cSubstitute, cbSubstitute);
+    *ppOutput += cbSubstitute;
+    *pcbOutputRemaining -= cbSubstitute;
+
+    *ppInput += cbInst;
+    *pcbInputRemaining -= cbInst;
+
+    return 1;
+}
+
+
+int AppendJmpAfterReturnAddressAssign(char** ppInput, size_t* pcbInputRemaining, char** ppOutput, size_t* pcbOutputRemaining, char** ppOutputEndAddress, char** pp_pReturnAddr)
+{
+#if defined(_M_X64) || defined(__x86_64__)
+    // movabs rax, imm64
+    static char cInst[] = "\x48\xb8\x00\x00\x00\x00\x00\x00\x00\x00";
+    static const char cInstMatchMask[] = "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF";
+    static PXCH_UINT_MACHINE* pInstAddr = (PXCH_UINT_MACHINE*)(cInst + 2);
+    static const size_t cbInputRegisterNoOffset = 1;
+    static const char cbRegisterNoMask = '\x07';
+
+    // add rsp, 1024
+    // pop rbp
+    // jmp rax
+    const char cInsert[] = "\x48\x81\xC4\x00\x04\x00\x00\x5D\xFF\xE0";
+    static const size_t cbInsertRegisterNoOffset = 8;
+#else
+    // or eax, imm32
+    static char cInst[] = "\x0d\x00\x00\x00\x00";
+    static const char cInstMatchMask[] = "\xFF\xFF\xFF\xFF\xFF";
+    static PXCH_UINT_MACHINE* pInstAddr = (PXCH_UINT_MACHINE*)(cInst + 1);
+    static const size_t cbInputRegisterNoOffset = 0;
+    static const char cbRegisterNoMask = '\x00';
+
+    // add esp, 1024
+    // pop ebp
+    // jmp eax
+    const char cInsert[] = "\x81\xC4\x00\x04\x00\x00\x5D\xFF\xE0";
+    static const size_t cbInsertRegisterNoOffset = 0;
+#endif
+
+    static char cInstBuf[sizeof(cInst)];
+    static const size_t cbInst = sizeof(cInst) - 1;
+    static const size_t cbInsert = sizeof(cInsert) - 1;
+
+    char* pInput = *ppInput;
+    const char* pInst = cInst;
+    const char* pMask = cInstMatchMask;
+    char* pBuf = cInstBuf;
+    char RegisterNo;
+
+    if (*pcbInputRemaining < cbInst) return 0;
+
+    if (*pInstAddr == 0) {
+        *pInstAddr = PXCH_POINTER_PLACEHOLDER_PRETURNADDR;
+    }
+
+    for (; pInput < (*ppInput) + cbInst; pInput++, pMask++, pBuf++) {
+        *pBuf = *pInput & *pMask;
+    }
+
+    for (pInst = cInst, pBuf = cInstBuf, pMask = cInstMatchMask; pBuf < cInstBuf + cbInst; pInst++, pBuf++, pMask++) {
+        if ((*pInst & *pMask) != *pBuf) {
+            return 0;
+        }
+    }
+
+    if (*pcbOutputRemaining < cbInst + cbInsert) {
+        fwprintf(stderr, L"Error: Cygwin entry detour output buf insufficient.\n");
+        exit(4);
+    }
+
+    if (*ppOutputEndAddress || *pp_pReturnAddr) {
+        fwprintf(stderr, L"Error: Duplicate end mark found in Cygwin entry detour.\n");
+        exit(4);
+    }
+
+    RegisterNo = *(*ppInput + cbInputRegisterNoOffset) & cbRegisterNoMask;
+
+    *pp_pReturnAddr = *ppOutput + ((char*)pInstAddr - cInst);
+
+    memcpy(*ppOutput, *ppInput, cbInst);
+    *ppOutput += cbInst;
+    *pcbOutputRemaining -= cbInst;
+
+    memcpy(*ppOutput, cInsert, cbInsert);
+    *(*ppOutput + cbInsertRegisterNoOffset) |= RegisterNo;
+
+    *ppOutput += cbInsert;
+    *pcbOutputRemaining -= cbInsert;
+
+    *ppOutputEndAddress = *ppOutput;
+
+    *ppInput += cbInst;
+    *pcbInputRemaining -= cbInst;
+
+    return 1;
+}
+
+int AppendJmpAfterReturnAddressAssignAlt(char** ppInput, size_t* pcbInputRemaining, char** ppOutput, size_t* pcbOutputRemaining, char** ppOutputEndAddress, char** pp_pReturnAddr)
+{
+#if defined(_M_X64) || defined(__x86_64__)
+    return 0;
+#else
+    // or e??, imm32
+    static char cInst[] = "\x81\xca\x00\x00\x00\x00";
+    static const char cInstMatchMask[] = "\xFF\xF8\xFF\xFF\xFF\xFF";
+    static PXCH_UINT_MACHINE* pInstAddr = (PXCH_UINT_MACHINE*)(cInst + 2);
+    static const size_t cbInputRegisterNoOffset = 1;
+    static const char cbRegisterNoMask = '\x07';
+
+    // add esp, 1024
+    // pop ebp
+    // jmp e??
+    const char cInsert[] = "\x81\xC4\x00\x04\x00\x00\x5D\xFF\xE0";
+    static const size_t cbInsertRegisterNoOffset = 8;
+
+    static char cInstBuf[sizeof(cInst)];
+    static const size_t cbInst = sizeof(cInst) - 1;
+    static const size_t cbInsert = sizeof(cInsert) - 1;
+    
+
+    char* pInput = *ppInput;
+    const char* pInst = cInst;
+    const char* pMask = cInstMatchMask;
+    char* pBuf = cInstBuf;
+    char RegisterNo;
+
+    if (*pcbInputRemaining < cbInst) return 0;
+
+    if (*pInstAddr == 0) {
+        *pInstAddr = PXCH_POINTER_PLACEHOLDER_PRETURNADDR;
+    }
+
+    for (; pInput < (*ppInput) + cbInst; pInput++, pMask++, pBuf++) {
+        *pBuf = *pInput & *pMask;
+    }
+
+    for (pInst = cInst, pBuf = cInstBuf, pMask = cInstMatchMask; pBuf < cInstBuf + cbInst; pInst++, pBuf++, pMask++) {
+        if ((*pInst & *pMask) != *pBuf) {
+            return 0;
+        }
+    }
+
+    if (*pcbOutputRemaining < cbInst + cbInsert) {
+        fwprintf(stderr, L"Error: Cygwin entry detour output buf insufficient.\n");
+        exit(4);
+    }
+
+    if (*ppOutputEndAddress || *pp_pReturnAddr) {
+        fwprintf(stderr, L"Error: Duplicate end mark found in Cygwin entry detour.\n");
+        exit(4);
+    }
+
+    RegisterNo = *(*ppInput + cbInputRegisterNoOffset) & cbRegisterNoMask;
+
+    *pp_pReturnAddr = *ppOutput + ((char*)pInstAddr - cInst);
+
+    memcpy(*ppOutput, *ppInput, cbInst);
+    *ppOutput += cbInst;
+    *pcbOutputRemaining -= cbInst;
+
+    memcpy(*ppOutput, cInsert, cbInsert);
+    *(*ppOutput + cbInsertRegisterNoOffset) |= RegisterNo;
+
+    *ppOutput += cbInsert;
+    *pcbOutputRemaining -= cbInsert;
+
+    *ppOutputEndAddress = *ppOutput;
+
+    *ppInput += cbInst;
+    *pcbInputRemaining -= cbInst;
+
+    return 1;
+#endif
+}
+
 
 int main(int argc, const char* const* argv)
 {
@@ -51,32 +291,34 @@ int main(int argc, const char* const* argv)
         wprintf(L"%llX\n", 0ULL);
         wprintf(L"%llX\n", 0ULL);
 #else
-        wprintf(L"%llX\n", (unsigned long long)&GetModuleHandleW);
-        wprintf(L"%llX\n", (unsigned long long)&LoadLibraryW);
-        wprintf(L"%llX\n", (unsigned long long)&GetProcAddress);
-        wprintf(L"%llX\n", (unsigned long long)&FreeLibrary);
-        wprintf(L"%llX\n", (unsigned long long)&GetLastError);
-        wprintf(L"%llX\n", (unsigned long long)&OutputDebugStringA);
-        wprintf(L"%llX\n", (unsigned long long)&GetCurrentProcessId);
-        wprintf(L"%llX\n", (unsigned long long)&wsprintfA);
-        wprintf(L"%llX\n", (unsigned long long)&Sleep);
-        wprintf(L"%llX\n", (unsigned long long)&ExitThread);
+        wprintf(L"%llX\n", (unsigned long long)(uintptr_t)&GetModuleHandleW);
+        wprintf(L"%llX\n", (unsigned long long)(uintptr_t)&LoadLibraryW);
+        wprintf(L"%llX\n", (unsigned long long)(uintptr_t)&GetProcAddress);
+        wprintf(L"%llX\n", (unsigned long long)(uintptr_t)&FreeLibrary);
+        wprintf(L"%llX\n", (unsigned long long)(uintptr_t)&GetLastError);
+        wprintf(L"%llX\n", (unsigned long long)(uintptr_t)&OutputDebugStringA);
+        wprintf(L"%llX\n", (unsigned long long)(uintptr_t)&GetCurrentProcessId);
+        wprintf(L"%llX\n", (unsigned long long)(uintptr_t)&wsprintfA);
+        wprintf(L"%llX\n", (unsigned long long)(uintptr_t)&Sleep);
+        wprintf(L"%llX\n", (unsigned long long)(uintptr_t)&ExitThread);
 #endif
         return 0;
     }
 
-    if (strcmp(argv[1], "--dump-remote-function") == 0) {
-        void* pCode;
-        void* pAfterCode;
+    if (strcmp(argv[1], "--dump-functions") == 0) {
+        char* pCode;
+        char* pAfterCode;
         SSIZE_T cbCodeSize;
         SSIZE_T cbCodeSizeAligned;
         SSIZE_T cb;
 
-        pCode = LoadHookDll;
-        pAfterCode = LoadHookDll_End;
+        // Print HookDll loader (remote function)
+
+        pCode = (char*)LoadHookDll;
+        pAfterCode = (char*)LoadHookDll_End;
 
         if (*(BYTE*)pCode == 0xE9) {
-            fwprintf(stderr, L"Warning: Remote function body is a JMP instruction! This is usually caused by \"incremental linking\". Although this is correctly handled now, there might be problems in the future. Try to disable that.\n");
+            fwprintf(stderr, L"Warning: Remote function body is a JMP instruction! This is usually caused by \"incremental linking\". hough this is correctly handled now, there might be problems in the future. Try to disable that.\n");
             pCode = (void*)((char*)pCode + *(DWORD*)((char*)pCode + 1) + 5);
         }
 
@@ -95,13 +337,15 @@ int main(int argc, const char* const* argv)
 
         wprintf(L"\";\n\n");
 
+        // Print Cygwin entry detour
 
-
-        pCode = CygwinEntryDetour;
-        pAfterCode = CygwinEntryDetour_End;
+        pCode = (char*)CygwinEntryDetour;
+        pAfterCode = (char*)CygwinEntryDetour_End;
 
         if (*(BYTE*)pCode == 0xE9) {
-            fwprintf(stderr, L"Warning: Cygwin entry detour body is a JMP instruction! This is usually caused by \"incremental linking\". Although this is correctly handled now, there might be problems in the future. Try to disable that.\n");
+            fwprintf(stderr, L"!!!Warning: Cygwin entry detour body is a JMP instruction! This is usually caused by \"incremental linking\". hough this is handled now(?), there might be problems in the future. Try to disable that.\n");
+            fwprintf(stderr, L"!!!Warning: Cygwin entry detour body is a JMP instruction! This is usually caused by \"incremental linking\". hough this is handled now(?), there might be problems in the future. Try to disable that.\n");
+            fwprintf(stderr, L"!!!Warning: Cygwin entry detour body is a JMP instruction! This is usually caused by \"incremental linking\". hough this is handled now(?), there might be problems in the future. Try to disable that.\n");
             pCode = (void*)((char*)pCode + *(DWORD*)((char*)pCode + 1) + 5);
         }
 
@@ -112,13 +356,99 @@ int main(int argc, const char* const* argv)
         cbCodeSize = ((char*)pAfterCode - (char*)pCode);
         cbCodeSizeAligned = (cbCodeSize + (sizeof(LONG_PTR) - 1)) & ~(sizeof(LONG_PTR) - 1);
 
-        wprintf(L"static const char g_CygwinEntryDetour" SUFFIX_ARCH L"[] = \"");
-        
-        for (cb = 0; cb < cbCodeSizeAligned; cb++) {
-            wprintf(L"\\x%02hhX", ((char*)pCode)[cb]);
-        }
+        {
+            char* pInput;
+            size_t cbInputRemaining;
+            char* pOutput;
+            size_t cbOutputRemaining;
+            char cEntryDetourBin[2048];
 
-        wprintf(L"\";\n");
+            char* pOutputStartAddress;
+            char* pOutputEndAddress;
+            char* p_pReturnAddr;
+            char* p_pRemoteData;
+
+            pInput = pCode;
+            cbInputRemaining = pAfterCode - pCode;
+            pOutput = cEntryDetourBin;
+            cbOutputRemaining = sizeof(cEntryDetourBin);
+
+            pOutputStartAddress = pOutputEndAddress = p_pReturnAddr = p_pRemoteData = NULL;
+
+            // Scan: recognize start & end, tailor the func code to output
+
+            while (1) {
+                if (ReplaceStartMarker(&pInput, &cbInputRemaining, &pOutput, &cbOutputRemaining, &pOutputStartAddress)) {
+                    ;
+                } else if (AppendJmpAfterReturnAddressAssign(&pInput, &cbInputRemaining, &pOutput, &cbOutputRemaining, &pOutputEndAddress, &p_pReturnAddr)) {
+                    ;
+                } else if (AppendJmpAfterReturnAddressAssignAlt(&pInput, &cbInputRemaining, &pOutput, &cbOutputRemaining, &pOutputEndAddress, &p_pReturnAddr)) {
+                    ;
+                } else {
+                    if (cbInputRemaining >= MACHINE_WORD_SIZE && (*(PXCH_UINT_MACHINE*)pInput) == PXCH_POINTER_PLACEHOLDER_PREMOTEDATA) {
+                        if (p_pRemoteData != NULL) {
+                            fwprintf(stderr, L"Error: redundant pRemoteData placeholder 0x%llx in entry detour machine code.\n", (unsigned long long)PXCH_POINTER_PLACEHOLDER_PREMOTEDATA);
+                            return 2;
+                        }
+                        p_pRemoteData = pOutput;
+                    }
+
+                    *pOutput = *pInput;
+                    pOutput++;
+                    cbOutputRemaining--;
+                    pInput++;
+                    cbInputRemaining--;
+
+                    if (cbInputRemaining == 0) break;
+                    if (cbOutputRemaining == 0) {
+                        fwprintf(stderr, L"Error: Cygwin entry detour output buf insufficient.\n");
+                        return 4;
+                    }
+                }
+            }
+
+            wprintf(L"static const char g_OriginalCygwinEntryDetour" SUFFIX_ARCH L"[] = \"");
+        
+            for (pInput = pCode; pInput != pCode + cbCodeSizeAligned; pInput++) {
+                wprintf(L"\\x%02hhX", *pInput);
+            }
+
+            wprintf(L"\";\n\n");
+
+            if (pOutputStartAddress == NULL) {
+                fwprintf(stderr, L"Error: Start mark not found in entry detour machine code.\n");
+                return 3;
+            }
+
+            if (pOutputEndAddress == NULL || pOutputEndAddress <= pOutputStartAddress) {
+                fwprintf(stderr, L"Error: End mark not found or less than start mark in entry detour machine code.\n");
+                return 3;
+            }
+
+            if (p_pRemoteData == NULL || p_pRemoteData < pOutputStartAddress || p_pRemoteData >= pOutputEndAddress) {
+                fwprintf(stderr, L"Error: pRemoteData placeholder 0x%llx not found or at wrong place in entry detour machine code.\n", (unsigned long long)PXCH_POINTER_PLACEHOLDER_PREMOTEDATA);
+                return 3;
+            }
+
+            if (p_pReturnAddr == NULL || p_pReturnAddr < pOutputStartAddress || p_pReturnAddr >= pOutputEndAddress) {
+                fwprintf(stderr, L"Error: pReturnAddr placeholder 0x%llx (end mark) not found or at wrong place in entry detour machine code.\n", (unsigned long long)PXCH_POINTER_PLACEHOLDER_PRETURNADDR);
+                return 3;
+            }
+
+            wprintf(L"static const char g_CygwinEntryDetour" SUFFIX_ARCH L"[] = \"");
+
+            cbCodeSize = pOutputEndAddress - pOutputStartAddress;
+            cbCodeSizeAligned = (cbCodeSize + (sizeof(LONG_PTR) - 1)) & ~(sizeof(LONG_PTR) - 1);
+        
+            for (pOutput = pOutputStartAddress; pOutput != pOutputStartAddress + cbCodeSizeAligned; pOutput++) {
+                wprintf(L"\\x%02hhX", *pOutput);
+            }
+
+            wprintf(L"\";\n\n");
+
+            wprintf(L"static const size_t g_CygwinEntryDetour_cbpRemoteDataOffset" SUFFIX_ARCH L" = 0x%zx;\n", p_pRemoteData - pOutputStartAddress);
+            wprintf(L"static const size_t g_CygwinEntryDetour_cbpReturnAddrOffset" SUFFIX_ARCH L" = 0x%zx;\n", p_pReturnAddr - pOutputStartAddress);
+        }
 
         fflush(stdout);
         return 0;

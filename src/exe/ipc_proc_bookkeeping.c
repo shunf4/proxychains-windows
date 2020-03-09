@@ -438,7 +438,7 @@ DWORD HandleMessage(int i, PXCH_IPC_INSTANCE* pipc)
 		LOGV(L"Message is QUERYSTORAGE");
 		MessageToQueryStorage(&ChildData.dwPid, pMsg, pipc->cbRead);
 		QueryChildStorage(&ChildData);
-		ChildDataToMessage(pipc->chWriteBuf, &pipc->cbToWrite, &ChildData);
+		ChildDataToMessage(pipc->chWriteBuf, (PXCH_UINT32*)&pipc->cbToWrite, &ChildData);
 		goto ret;
 	}
 
@@ -454,10 +454,10 @@ DWORD HandleMessage(int i, PXCH_IPC_INSTANCE* pipc)
 		if (HostIsType(HOSTNAME, Entry.Hostname) && Entry.Hostname.szValue[0]) {
 			LOGV(L"Client is registering hostname, retrieving fake ips");
 			if (RegisterHostnameAndGetFakeIp(&FakeIps[0], &FakeIps[1], &Entry, dwPid, bWillMapResolvedIpToHost) != NO_ERROR) LOGE(L"RegisterHostnameAndGetFakeIp() failed");
-			HostnameAndIpsToMessage(pipc->chWriteBuf, &pipc->cbToWrite, 0 /*ignored*/, &Entry.Hostname /*ignored*/, FALSE /*ignored*/, 2, FakeIps, PXCH_RULE_TARGET_DIRECT /*ignored*/);
+			HostnameAndIpsToMessage(pipc->chWriteBuf, (PXCH_UINT32*)&pipc->cbToWrite, 0 /*ignored*/, &Entry.Hostname /*ignored*/, FALSE /*ignored*/, 2, FakeIps, PXCH_RULE_TARGET_DIRECT /*ignored*/);
 		} else {
 			LOGV(L"Client is querying with fake ip");
-			if (GetMsgHostnameAndResolvedIpsFromMsgIp(pipc->chWriteBuf, &pipc->cbToWrite, (const PXCH_IPC_MSGHDR_HOSTNAMEANDIPS*)pMsg) != NO_ERROR) LOGE(L"GetHostnameFromIp() failed");
+			if (GetMsgHostnameAndResolvedIpsFromMsgIp(pipc->chWriteBuf, (PXCH_UINT32*)&pipc->cbToWrite, (const PXCH_IPC_MSGHDR_HOSTNAMEANDIPS*)pMsg) != NO_ERROR) LOGE(L"GetHostnameFromIp() failed");
 		}
 		goto ret;
 	}
@@ -465,11 +465,11 @@ DWORD HandleMessage(int i, PXCH_IPC_INSTANCE* pipc)
 	goto after_handling_not_recognized;
 
 after_handling_resp_ok:
-	WstrToMessage(pipc->chWriteBuf, &pipc->cbToWrite, L"OK");
+	WstrToMessage(pipc->chWriteBuf, (PXCH_UINT32*)&pipc->cbToWrite, L"OK");
 	return 0;
 
 after_handling_not_recognized:
-	WstrToMessage(pipc->chWriteBuf, &pipc->cbToWrite, L"NOT RECOGNIZED");
+	WstrToMessage(pipc->chWriteBuf, (PXCH_UINT32*)&pipc->cbToWrite, L"NOT RECOGNIZED");
 	return 0;
 
 ret:

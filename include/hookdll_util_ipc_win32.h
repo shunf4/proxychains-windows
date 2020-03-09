@@ -23,7 +23,7 @@
 
 #pragma pack(push, 1)
 typedef struct _REPORTED_CHILD_DATA {
-	DWORD dwPid;
+	PXCH_UINT32 dwPid;
 	HANDLE hMapFile;
 	LPCVOID pMappedBuf;
 	PROXYCHAINS_CONFIG* pSavedPxchConfig;
@@ -39,15 +39,15 @@ typedef struct _IPC_MSGHDR_CHILDDATA {
 
 typedef struct _IPC_MSGHDR_QUERYSTORAGE {
 	UINT32 dwTag;
-	DWORD dwChildPid;
+	PXCH_UINT32 dwChildPid;
 } PXCH_IPC_MSGHDR_QUERYSTORAGE;
 #pragma pack(pop)
 
-PXCH_DLL_API DWORD ChildDataToMessage(PXCH_IPC_MSGBUF chMessageBuf, DWORD* pcbMessageSize, const REPORTED_CHILD_DATA* pChildData);
-PXCH_DLL_API DWORD MessageToChildData(REPORTED_CHILD_DATA* pChildData, CPXCH_IPC_MSGBUF chMessageBuf, DWORD cbMessageSize);
+PXCH_DLL_API PXCH_UINT32 ChildDataToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, const REPORTED_CHILD_DATA* pChildData);
+PXCH_DLL_API PXCH_UINT32 MessageToChildData(REPORTED_CHILD_DATA* pChildData, CPXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize);
 
-PXCH_DLL_API DWORD QueryStorageToMessage(PXCH_IPC_MSGBUF chMessageBuf, DWORD* pcbMessageSize, DWORD dwChildPid);
-PXCH_DLL_API DWORD MessageToQueryStorage(DWORD* pdwChildPid, CPXCH_IPC_MSGBUF chMessageBuf, DWORD cbMessageSize);
+PXCH_DLL_API PXCH_UINT32 QueryStorageToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, PXCH_UINT32 dwChildPid);
+PXCH_DLL_API PXCH_UINT32 MessageToQueryStorage(PXCH_UINT32* pdwChildPid, CPXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize);
 
 PXCH_DLL_API PXCH_UINT32 HostnameAndIpsToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, PXCH_UINT32 dwPid, const PXCH_HOSTNAME* Hostname, BOOL bWillMapResolvedIpToHost, PXCH_UINT32 dwIpNum, const PXCH_IP_ADDRESS* Ips, PXCH_UINT32 dwTarget);
 PXCH_DLL_API PXCH_UINT32 MessageToHostnameAndIps(PXCH_UINT32* pdwPid, PXCH_HOSTNAME* pHostname, BOOL* pbWillMapResolvedIpToHost, PXCH_UINT32* pdwIpNum, PXCH_IP_ADDRESS* Ips, PXCH_UINT32* pdwTarget, CPXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize);

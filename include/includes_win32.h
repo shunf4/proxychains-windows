@@ -27,6 +27,7 @@
 #ifndef PXCH_DO_NOT_INCLUDE_STD_HEADERS_NOW
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <wchar.h>
 #include <inttypes.h>
 #include <locale.h>

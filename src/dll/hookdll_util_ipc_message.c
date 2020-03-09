@@ -25,8 +25,8 @@ PXCH_DLL_API PXCH_UINT32 WstrToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32
 
 	pHdr->dwTag = PXCH_IPC_MSGTYPE_WSTR;
 	if (FAILED(StringCchCopyExW((PWSTR)(chMessageBuf + sizeof(PXCH_IPC_MSGHDR_WSTR)), (sizeof(PXCH_IPC_MSGBUF) - sizeof(PXCH_IPC_MSGHDR_WSTR)) / sizeof(WCHAR), szWstr, &szWstrEnd, NULL, 0))) goto err_copy;
-	pHdr->cchLength = (DWORD)(((char*)szWstrEnd - (chMessageBuf + sizeof(PXCH_IPC_MSGHDR_WSTR))) / sizeof(WCHAR));
-	*pcbMessageSize = (DWORD)((char*)szWstrEnd - chMessageBuf);
+	pHdr->cchLength = (PXCH_UINT32)(((char*)szWstrEnd - (chMessageBuf + sizeof(PXCH_IPC_MSGHDR_WSTR))) / sizeof(WCHAR));
+	*pcbMessageSize = (PXCH_UINT32)((char*)szWstrEnd - chMessageBuf);
 	return 0;
 
 err_copy:
@@ -47,7 +47,7 @@ PXCH_DLL_API PXCH_UINT32 MessageToWstr(wchar_t* szWstr, CPXCH_IPC_MSGBUF chMessa
 }
 
 
-PXCH_DLL_API DWORD ChildDataToMessage(PXCH_IPC_MSGBUF chMessageBuf, DWORD* pcbMessageSize, const REPORTED_CHILD_DATA* pChildData)
+PXCH_DLL_API PXCH_UINT32 ChildDataToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, const REPORTED_CHILD_DATA* pChildData)
 {
 	PXCH_IPC_MSGHDR_CHILDDATA* pHdr = (PXCH_IPC_MSGHDR_CHILDDATA*)chMessageBuf;
 
@@ -58,7 +58,7 @@ PXCH_DLL_API DWORD ChildDataToMessage(PXCH_IPC_MSGBUF chMessageBuf, DWORD* pcbMe
 }
 
 
-PXCH_DLL_API DWORD MessageToChildData(REPORTED_CHILD_DATA* pChildData, CPXCH_IPC_MSGBUF chMessageBuf, DWORD cbMessageSize)
+PXCH_DLL_API PXCH_UINT32 MessageToChildData(REPORTED_CHILD_DATA* pChildData, CPXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize)
 {
 	const PXCH_IPC_MSGHDR_CHILDDATA* pHdr = (const PXCH_IPC_MSGHDR_CHILDDATA*)chMessageBuf;
 	if (!MsgIsType(CHILDDATA, chMessageBuf)) return ERROR_INVALID_PARAMETER;
@@ -67,7 +67,7 @@ PXCH_DLL_API DWORD MessageToChildData(REPORTED_CHILD_DATA* pChildData, CPXCH_IPC
 }
 
 
-PXCH_DLL_API DWORD QueryStorageToMessage(PXCH_IPC_MSGBUF chMessageBuf, DWORD* pcbMessageSize, DWORD dwChildPid)
+PXCH_DLL_API PXCH_UINT32 QueryStorageToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, PXCH_UINT32 dwChildPid)
 {
 	PXCH_IPC_MSGHDR_QUERYSTORAGE* pHdr = (PXCH_IPC_MSGHDR_QUERYSTORAGE*)chMessageBuf;
 
@@ -78,7 +78,7 @@ PXCH_DLL_API DWORD QueryStorageToMessage(PXCH_IPC_MSGBUF chMessageBuf, DWORD* pc
 }
 
 
-PXCH_DLL_API DWORD MessageToQueryStorage(DWORD* pdwChildPid, CPXCH_IPC_MSGBUF chMessageBuf, DWORD cbMessageSize)
+PXCH_DLL_API PXCH_UINT32 MessageToQueryStorage(PXCH_UINT32* pdwChildPid, CPXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize)
 {
 	const PXCH_IPC_MSGHDR_QUERYSTORAGE* pHdr = (const PXCH_IPC_MSGHDR_QUERYSTORAGE*)chMessageBuf;
 	if (!MsgIsType(QUERYSTORAGE, chMessageBuf)) return ERROR_INVALID_PARAMETER;

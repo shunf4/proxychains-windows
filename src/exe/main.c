@@ -613,14 +613,14 @@ void handle_sigchld(int sig)
 	KillAllAndExit();
 }
 
-#define PXCH_CYWIN_USE_SPAWNVPE_INSTEAD_OF_FORK_EXEC
+// #define PXCH_CYWIN_USE_SPAWNVPE_INSTEAD_OF_FORK_EXEC
 DWORD WINAPI CygwinSpawn(LPVOID lpParam)
 {
 	void** ctx = lpParam;
 	pid_t child_pid = 0;
 	char*const* p_argv_command_start = ctx[0];
 	char*const* envp = ctx[1];
-	int iReturn;
+	int iReturn = 0;
 
 #ifdef PXCH_CYWIN_USE_SPAWNVPE_INSTEAD_OF_FORK_EXEC
 	iReturn = spawnvpe(_P_NOWAIT, (const char*)*p_argv_command_start, (const char*const*)p_argv_command_start, (const char*const*)envp);
@@ -729,23 +729,6 @@ int main(int argc, char* const argv[], char* const envp[])
 	signal(SIGCHLD, handle_sigchld);
 
 	while(1) pause();
-
-#ifdef __CYGWIN_PXCH_FORK__
-	child_pid = fork();
-	if (child_pid) {
-		// Parent
-		int status;
-		LOGI(L"I'm parent");
-		// waitpid(-1, &status, 0);
-		signal(SIGCHLD, handle_sigchld);
-		ServerLoop(g_pPxchConfig, INVALID_HANDLE_VALUE);
-	}
-	else {
-		// Child
-		LOGI(L"I'm child\n");
-		execvp(argv[iCommandStart], &argv[iCommandStart]);
-	}
-#endif
 	return 0;
 
 err_get:

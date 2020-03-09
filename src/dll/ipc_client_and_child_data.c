@@ -67,7 +67,7 @@ PXCH_UINT32 IpcCommunicateWithServer(const PXCH_IPC_MSGBUF sendMessage, PXCH_UIN
 	ODBGSTRLOGV(L"after WriteFile");
 
 	// Read response
-	bReturn = ReadFile(hPipe, responseMessage, PXCH_IPC_BUFSIZE, pcbResponseMessageSize, NULL);
+	bReturn = ReadFile(hPipe, responseMessage, PXCH_IPC_BUFSIZE, (DWORD*)pcbResponseMessageSize, NULL);
 	if (!bReturn) goto err_read;
 
 	ODBGSTRLOGV(L"after ReadFile");
@@ -120,7 +120,7 @@ DWORD IpcClientRegisterChildProcess()
 	ChildData.pSavedRemoteData = g_pRemoteData;
 
 	if ((dwLastError = ChildDataToMessage(chMessageBuf, &cbMessageSize, &ChildData)) != NO_ERROR) return dwLastError;
-	if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) return dwLastError;
+	if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, (PXCH_UINT32*)&cbRespMessageSize)) != NO_ERROR) return dwLastError;
 
 	return 0;*/
 
@@ -153,8 +153,8 @@ DWORD IpcClientRegisterChildProcess()
 	pChildData->dwSavedTlsIndex = g_dwTlsIndex;
 	pChildData->pSavedHeapAllocatedPointers = g_arrHeapAllocatedPointers;
 
-	if ((dwLastError = ChildDataToMessage(chMessageBuf, &cbMessageSize, pChildData)) != NO_ERROR) return dwLastError;
-	if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) return dwLastError;
+	if ((dwLastError = ChildDataToMessage(chMessageBuf, (PXCH_UINT32*)&cbMessageSize, pChildData)) != NO_ERROR) return dwLastError;
+	if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, (PXCH_UINT32*)&cbRespMessageSize)) != NO_ERROR) return dwLastError;
 
 	IPCLOGV(L"Saved child data, g_pPxchConfig = %p", g_pPxchConfig);
 

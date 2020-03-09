@@ -26,7 +26,11 @@ extern BOOL g_bSystemInfoInitialized;
 extern SYSTEM_INFO g_SystemInfo;
 
 #define PXCH_INITHOOK_SYMBOL_NAME_X64 "InitHook"
+#ifdef __CYGWIN__
+#define PXCH_INITHOOK_SYMBOL_NAME_X86 "InitHook@4"
+#else
 #define PXCH_INITHOOK_SYMBOL_NAME_X86 "_InitHook@4"
+#endif
 
 PXCH_DLL_API DWORD __stdcall InitHook(PXCH_INJECT_REMOTE_DATA * pData);
 PXCH_DLL_API DWORD __stdcall InitHookForMain(PROXYCHAINS_CONFIG * pConfig);
