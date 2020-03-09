@@ -30,8 +30,8 @@ OBJS = $(patsubst $(SRC_PREFIX)%,%,$(SRCS:.c=.o))
 
 DEPS = $(patsubst $(SRC_PREFIX)%,%,$(SRCS:.c=.d))
 
-CFLAGS = -fgnu89-inline -Wall -D_UNICODE -DUNICODE $(INCLUDE_DIR_CFLAGS)
-DLL_CFLAGS = -fgnu89-inline -Wall -D_UNICODE -DUNICODE -DPXCH_DLL_EXPORTS $(INCLUDE_DIR_CFLAGS)
+CFLAGS = -fno-omit-frame-pointer -fno-strict-aliasing -fgnu89-inline -Wall -D_UNICODE -DUNICODE $(INCLUDE_DIR_CFLAGS)
+DLL_CFLAGS = -fno-omit-frame-pointer -fno-strict-aliasing -fgnu89-inline -Wall -D_UNICODE -DUNICODE -DPXCH_DLL_EXPORTS $(INCLUDE_DIR_CFLAGS)
 
 DEPFLAGS_STEM = -MT $@ -MMD -MP -MF $*.d
 DEPFLAGS_IN_PREREQ = -MT $@ -MMD -MP -MF $(filter %.d,$^)

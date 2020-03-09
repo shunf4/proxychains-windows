@@ -1128,6 +1128,8 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, OutputDebugStringA );
 	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, GetCurrentProcessId);
 	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, wsprintfA          );
+	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, Sleep              );
+	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, ExitThread         );
 
 #if (defined(_M_X64) || defined(__x86_64__)) && !defined(__CYGWIN__)
 	{
@@ -1156,17 +1158,22 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 					ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, OutputDebugStringA , NULL, X86);
 					ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, GetCurrentProcessId, NULL, X86);
 					ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, wsprintfA          , NULL, X86);
+					ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, Sleep              , NULL, X86);
+					ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, ExitThread         , NULL, X86);
 					break;
 				}
 				switch (i) {
-				case 0: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, GetModuleHandleW   , tmp, X86); break;
-				case 1: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, LoadLibraryW       , tmp, X86); break;
-				case 2: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, GetProcAddress     , tmp, X86); break;
-				case 3: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, FreeLibrary        , tmp, X86); break;
-				case 4: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, GetLastError       , tmp, X86); break;
-				case 5: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, OutputDebugStringA , tmp, X86); break;
-				case 6: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, GetCurrentProcessId, tmp, X86); break;
-				case 7: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, wsprintfA          , tmp, X86);
+				case 0: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, GetModuleHandleW   , tmp, X86);
+				break; case 1: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, LoadLibraryW       , tmp, X86);
+				break; case 2: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, GetProcAddress     , tmp, X86);
+				break; case 3: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, FreeLibrary        , tmp, X86);
+				break; case 4: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, GetLastError       , tmp, X86);
+				break; case 5: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, OutputDebugStringA , tmp, X86);
+				break; case 6: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, GetCurrentProcessId, tmp, X86);
+				break; case 7: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, wsprintfA          , tmp, X86);
+				break; case 8: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, Sleep              , tmp, X86);
+				break; case 9: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, ExitThread         , tmp, X86);
+				bStop = TRUE; break;
 				default: bStop = TRUE; break;
 				}
 			}
@@ -1182,6 +1189,8 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 	PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, OutputDebugStringA );
 	PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, GetCurrentProcessId);
 	PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, wsprintfA          );
+	PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, Sleep              );
+	PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, ExitThread         );
 
 	return NO_ERROR;
 

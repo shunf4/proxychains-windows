@@ -10,6 +10,12 @@ _test : test.c
 
 _test2 : test2.c
 	$(CC) -g -o_$(basename $^) $^
+	
+_test3 : test3.c
+	$(CC) -g -o_$(basename $^) $^
+	
+_test4 : test4.c
+	$(CC) -g -o_$(basename $^) $^
 
 px :
 	make -C ../../

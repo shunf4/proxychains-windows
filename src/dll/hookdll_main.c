@@ -24,6 +24,7 @@
 #include <MinHook.h>
 #include <Shlwapi.h>
 #include <strsafe.h>
+#include <winternl.h>
 #include "hookdll_win32.h"
 
 #if defined(_M_X64) || defined(__x86_64__) || !defined(__CYGWIN__)
@@ -54,7 +55,7 @@ UT_array* g_arrHeapAllocatedPointers;
 // To verify that this process has its original data (not overwritten with those of parent by fork())
 PXCH_DLL_API DWORD g_dwCurrentProcessIdForVerify;
 
-DWORD RemoteCopyExecute(HANDLE hProcess, BOOL bIsX86, PXCH_INJECT_REMOTE_DATA* pRemoteData)
+DWORD RemoteCopyExecute(const PROCESS_INFORMATION* pPi, BOOL bIsX86, PXCH_INJECT_REMOTE_DATA* pRemoteData)
 {
 	const void* pCode;
 	void* pTargetBuf;
@@ -91,33 +92,38 @@ DWORD RemoteCopyExecute(HANDLE hProcess, BOOL bIsX86, PXCH_INJECT_REMOTE_DATA* p
 	IPCLOGV(L"CreateProcessW: Before VirtualAllocEx. %lld", (long long)cbCodeSize);
 
 	// Allocate memory (code + data) in remote process
-	pTargetBuf = VirtualAllocEx(hProcess, NULL, cbCodeSize + dwRemoteDataSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+	pTargetBuf = NULL;
+	// pTargetBuf = (void*)0x40000000;
+	pTargetBuf = VirtualAllocEx(pPi->hProcess, pTargetBuf, cbCodeSize + dwRemoteDataSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 	if (!pTargetBuf) goto err_alloc;
 
 	IPCLOGV(L"CreateProcessW: After VirtualAllocEx. %p", pTargetBuf);
 
 	// Write code
 	pTargetCode = pTargetBuf;
-	if (!WriteProcessMemory(hProcess, pTargetCode, pCode, cbCodeSize, &cbWritten) || cbWritten != cbCodeSize) goto err_write_code;
+	if (!WriteProcessMemory(pPi->hProcess, pTargetCode, pCode, cbCodeSize, &cbWritten) || cbWritten != cbCodeSize) goto err_write_code;
 
 	IPCLOGV(L"CreateProcessW: After Write Code. " WPRDW, cbWritten);
 
-	// Write data
+	// We will write data later
 	pTargetData = (char *)pTargetBuf + cbCodeSize;
-	if (!WriteProcessMemory(hProcess, pTargetData, pRemoteData, dwRemoteDataSize, &cbWritten) || cbWritten != dwRemoteDataSize) goto err_write_data;
-
-	IPCLOGV(L"CreateProcessW: After Write Data. " WPRDW, cbWritten);
+	
 	IPCLOGV(L"CreateProcessW: Before CreateRemoteThread. " WPRDW, 0);
 
-	if (!ReadProcessMemory(hProcess, pTargetData, pRemoteData, dwRemoteDataSize, &cbRead) || cbRead != dwRemoteDataSize) goto err_read_data_0;
-
-	IPCLOGV(L"CreateProcessW: Before CreateRemoteThread(ReadProcessMemory finished). " WPRDW, 0);
-
 	// Create remote thread in target process to execute the code
-	hRemoteThread = CreateRemoteThread(hProcess, NULL, 0, pTargetCode, pTargetData, 0, &dwRemoteTid);
+	hRemoteThread = CreateRemoteThread(pPi->hProcess, NULL, 0, pTargetCode, pTargetData, CREATE_SUSPENDED, &dwRemoteTid);
+	IPCLOGv(L"CreateProcessW: After CreateRemoteThread(). Tid: " WPRDW, dwRemoteTid);
 	if (!hRemoteThread) goto err_create_remote_thread;
 
-	IPCLOGV(L"CreateProcessW: After CreateRemoteThread(). Tid: " WPRDW, dwRemoteTid);
+	// Make remote function step format string and write data
+	StringCchPrintfA(pRemoteData->chDebugOutputBuf, _countof(pRemoteData->chDebugOutputBuf), "[pid %" PRIdword "] [tid %" PRIdword "] : in step ? in remote func process", pPi->dwProcessId, dwRemoteTid);
+	pRemoteData->cbDebugOutputCharOffset = (PXCH_UINT32)(StrChrA(pRemoteData->chDebugOutputBuf, '?') - pRemoteData->chDebugOutputBuf);
+
+	if (!WriteProcessMemory(pPi->hProcess, pTargetData, pRemoteData, dwRemoteDataSize, &cbWritten) || cbWritten != dwRemoteDataSize) goto err_write_data;
+
+	IPCLOGV(L"CreateProcessW: After Write Data. " WPRDW, cbWritten);
+
+	ResumeThread(hRemoteThread);
 
 	// Wait for the thread to exit
 	if ((dwReturn = WaitForSingleObject(hRemoteThread, INFINITE)) != WAIT_OBJECT_0) goto err_wait;
@@ -134,7 +140,7 @@ DWORD RemoteCopyExecute(HANDLE hProcess, BOOL bIsX86, PXCH_INJECT_REMOTE_DATA* p
 
 	// Copy back data
 	FillMemory(pRemoteData, dwRemoteDataSize, 0xFF);
-	if (!ReadProcessMemory(hProcess, pTargetData, pRemoteData, dwRemoteDataSize, &cbRead) || cbRead != dwRemoteDataSize) goto err_read_data;
+	if (!ReadProcessMemory(pPi->hProcess, pTargetData, pRemoteData, dwRemoteDataSize, &cbRead) || cbRead != dwRemoteDataSize) goto err_read_data;
 
 	if (pRemoteData->dwEverExecuted != 1) {
 		IPCLOGE(L"Error: Remote thread never executed! (%u)", pRemoteData->dwEverExecuted);
@@ -173,11 +179,6 @@ err_wait:
 	IPCLOGE(L"WaitForSingleObject() Failed: " WPRDW L", %ls", dwReturn, FormatErrorToStr(dwLastError));
 	goto ret_close;
 
-err_read_data_0:
-	dwLastError = GetLastError();
-	IPCLOGE(L"ReadProcessMemory()(First time) Failed to read data: %ls", FormatErrorToStr(dwLastError));
-	goto ret_free;
-
 err_read_data:
 	dwLastError = GetLastError();
 	IPCLOGE(L"ReadProcessMemory() Failed to read data(" WPRDW L"/" WPRDW L"): %ls", cbRead, dwRemoteDataSize, FormatErrorToStr(dwLastError));
@@ -187,7 +188,7 @@ ret_close:
 	CloseHandle(hRemoteThread);
 
 ret_free:
-	VirtualFreeEx(hProcess, pTargetBuf, 0, MEM_RELEASE);
+	VirtualFreeEx(pPi->hProcess, pTargetBuf, 0, MEM_RELEASE);
 	return dwLastError;
 }
 
@@ -248,8 +249,6 @@ DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi)
 	StringCchCopyA(pRemoteData->szInitFuncName, _countof(pRemoteData->szInitFuncName), bIsX86 ? PXCH_INITHOOK_SYMBOL_NAME_X86 : PXCH_INITHOOK_SYMBOL_NAME_X64);
 	StringCchCopyA(pRemoteData->szCIWCVarName, _countof(pRemoteData->szCIWCVarName), "g_bCurrentlyInWinapiCall");
 	CopyMemory(pRemoteData->chDebugOutputStepData, g_pRemoteData ? g_pRemoteData->chDebugOutputStepData : "A\0B\0C\0D\0E\0F\0G\0H\0I\0J\0K\0L\0M\0N\0O\0P\0Q\0R\0S\0T\0", sizeof(pRemoteData->chDebugOutputStepData));
-	StringCchPrintfA(pRemoteData->chDebugOutputBuf, _countof(pRemoteData->chDebugOutputBuf), "Winpid %" PRIdword " is in step ? in remote func process", pPi->dwProcessId);
-	pRemoteData->cbDebugOutputCharOffset = (PXCH_UINT32)(StrChrA(pRemoteData->chDebugOutputBuf, '?') - pRemoteData->chDebugOutputBuf);
 	StringCchCopyW(pRemoteData->szCygwin1ModuleName, _countof(pRemoteData->szCygwin1ModuleName), g_pRemoteData ? g_pRemoteData->szCygwin1ModuleName : L"cygwin1.dll");
 	StringCchCopyW(pRemoteData->szMsys2ModuleName, _countof(pRemoteData->szMsys2ModuleName), g_pRemoteData ? g_pRemoteData->szMsys2ModuleName : L"msys-2.0.dll");
 	StringCchCopyW(pRemoteData->szHookDllModuleName, _countof(pRemoteData->szHookDllModuleName), g_pRemoteData ? g_pRemoteData->szHookDllModuleName : g_szHookDllFileName);
@@ -260,7 +259,7 @@ DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi)
 
 	IPCLOGV(L"CreateProcessW: After StringCchCopy. " WPRDW, 0);
 
-	dwReturn = RemoteCopyExecute(hProcess, bIsX86, pRemoteData);
+	dwReturn = RemoteCopyExecute(pPi, bIsX86, pRemoteData);
 
 	if (dwReturn != 0) goto error;
 	IPCLOGV(L"CreateProcessW: After RemoteCopyExecute. " WPRDW, 0);
@@ -394,6 +393,6 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 		TlsFree(g_dwTlsIndex);
 		break;
 	}
-
+	
 	return TRUE;
 }

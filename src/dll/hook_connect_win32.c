@@ -20,6 +20,8 @@
 #define PXCH_DO_NOT_INCLUDE_STRSAFE_NOW
 #define PXCH_INCLUDE_WINSOCK_UTIL
 #include "includes_win32.h"
+#define PXCH_CONST_TLS_SIZE_COMPILE_TIME_WIN32_NEEDED
+#include "tls_generic.h"
 #include <WinSock2.h>
 #include <ws2tcpip.h>
 #include <Mswsock.h>
@@ -40,6 +42,8 @@
 #endif
 
 static PXCH_PROXY_DIRECT_DATA g_proxyDirect;
+
+static char pHostentPseudoTls[PXCH_TLS_END_W32HOSTENT];
 
 typedef struct _PXCH_WS2_32_TEMP_DATA {
 	DWORD iConnectLastError;
@@ -1256,7 +1260,7 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 		if (g_pPxchConfig->dwWillFirstTunnelUseIpv6 /* && bAnyResolvedIpv6*/) {
 			iIpFamilyAllowed++;
 		}
-		HostnameAndIpsToHostent(&pNewHostentResult, TlsGetValue(g_dwTlsIndex), &pLocalData->OriginalHostname, iIpFamilyAllowed, pLocalData->pFakeIps);
+		HostnameAndIpsToHostent(&pNewHostentResult, (g_dwTlsIndex != TLS_OUT_OF_INDEXES) ? TlsGetValue(g_dwTlsIndex) : pHostentPseudoTls, &pLocalData->OriginalHostname, iIpFamilyAllowed, pLocalData->pFakeIps);
 		iWSALastError = NO_ERROR;
 		dwLastError = NO_ERROR;
 	

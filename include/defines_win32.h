@@ -58,6 +58,8 @@ typedef DWORD(WINAPI* FpGetLastError)(VOID);
 typedef VOID (WINAPI* FpOutputDebugStringA)(LPCSTR);
 typedef DWORD (WINAPI* FpGetCurrentProcessId)(VOID);
 typedef int (__cdecl* FpwsprintfA)(char* const _Buffer, char const* const _Format,...);
+typedef VOID (WINAPI* FpSleep)(DWORD);
+typedef VOID (WINAPI* FpExitThread)(DWORD);
 
 #pragma pack(push, 1)
 typedef struct _PXCH_INJECT_REMOTE_DATA {

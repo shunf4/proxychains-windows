@@ -35,7 +35,7 @@ DWORD __stdcall LoadHookDll(LPVOID* pArg)
 
 	DBGSTEP('B');
 
-	
+
 	DBGSTEP('C');
 
 #ifdef PXCH_MINHOOK_USE_DYNAMIC
@@ -118,4 +118,23 @@ err_after_load_dll:
 void* LoadHookDll_End(void)
 {
 	return LoadHookDll;
+}
+
+
+void __cdecl CygwinEntryDetour(void)
+{
+#if (defined(_M_X64) || defined(__x86_64__))
+	PXCH_INJECT_REMOTE_DATA* pRemoteData = (void*)0xDEADBEEFFEEDFACE;
+	void* pReturnAddr = (void*)0xCAFEBABEBAADF00D;
+#endif
+
+#if (defined(_M_X64) || defined(__x86_64__))
+	asm volatile ("mov 8(%%rbp), %0" : "=r"(pReturnAddr) :);
+#endif
+}
+
+
+void* CygwinEntryDetour_End(void)
+{
+	return CygwinEntryDetour;
 }
