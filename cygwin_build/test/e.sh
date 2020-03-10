@@ -1,2 +1,2 @@
 #!/bin/sh
-echo this is e
+curl ip.sb
