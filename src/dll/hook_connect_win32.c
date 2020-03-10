@@ -1212,6 +1212,7 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 	pLocalData->RequeryAddrInfoHints.ai_socktype = SOCK_STREAM;
 	pLocalData->RequeryAddrInfoHints.ai_protocol = IPPROTO_TCP;
 
+	ZeroMemory(&pLocalData->OriginalHostname, sizeof(PXCH_HOSTNAME));
 	pLocalData->OriginalHostname.wPort = 0;
 	pLocalData->OriginalHostname.wTag = PXCH_HOST_TYPE_HOSTNAME;
 	StringCchPrintfW(pLocalData->OriginalHostname.szValue, _countof(pLocalData->OriginalHostname.szValue), L"%S", name);
@@ -1494,6 +1495,7 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 
 	if (pRequeryAddrInfo) orig_fpWs2_32_FreeAddrInfoW(pRequeryAddrInfo);
 
+	ZeroMemory(&pLocalData->HostPort, sizeof(PXCH_HOST_PORT));
 	SetHostType(HOSTNAME, pLocalData->HostPort);
 	pLocalData->HostPort.HostnamePort.wPort = ((PXCH_IP_PORT*)pOriginalResultCast->ai_addr)->CommonHeader.wPort;
 	StringCchCopyW(pLocalData->HostPort.HostnamePort.szValue, _countof(pLocalData->HostPort.HostnamePort.szValue), pNodeName);

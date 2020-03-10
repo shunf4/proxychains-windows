@@ -487,6 +487,7 @@ void PrintConfiguration(PROXYCHAINS_CONFIG* pPxchConfig)
 	LOGD(L"WillForceResolveByHostsFile: " WPRDW, pPxchConfig->dwWillForceResolveByHostsFile);
 	LOGD(L"WillFirstTunnelUseIpv4: " WPRDW, pPxchConfig->dwWillFirstTunnelUseIpv4);
 	LOGD(L"WillFirstTunnelUseIpv6: " WPRDW, pPxchConfig->dwWillFirstTunnelUseIpv6);
+	LOGD(L"WillGenFakeIpUsingHashedHostname: " WPRDW, pPxchConfig->dwWillGenFakeIpUsingHashedHostname);
 	switch (pPxchConfig->dwDefaultTarget) {
 		case PXCH_RULE_TARGET_BLOCK: pszTargetDesc = L"BLOCK"; break;
 		case PXCH_RULE_TARGET_DIRECT: pszTargetDesc = L"DIRECT"; break;
@@ -650,6 +651,7 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 	pPxchConfig->dwWillForceResolveByHostsFile = TRUE;
 	pPxchConfig->dwWillUseUdpAssociateAsRemoteDns = FALSE;
 	pPxchConfig->dwWillUseFakeIpAsRemoteDns = FALSE;
+	pPxchConfig->dwWillGenFakeIpUsingHashedHostname = TRUE;
 
 	// Parse configuration file
 
@@ -771,6 +773,9 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"first_tunnel_uses_ipv6")) {
 			if (OptionGetNumberValueAfterOptionName(&lValue, sOptionNameEnd, NULL, 0, 1) == -1) goto err_invalid_config_with_msg;
 			pPxchConfig->dwWillFirstTunnelUseIpv6 = lValue;
+		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"gen_fake_ip_using_hashed_hostname")) {
+			if (OptionGetNumberValueAfterOptionName(&lValue, sOptionNameEnd, NULL, 0, 1) == -1) goto err_invalid_config_with_msg;
+			pPxchConfig->dwWillGenFakeIpUsingHashedHostname = lValue;
 		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"custom_hosts_file_path")) {
 			const WCHAR* pPathStart;
 			const WCHAR* pPathEnd;

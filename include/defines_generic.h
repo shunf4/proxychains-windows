@@ -411,6 +411,7 @@ typedef struct _PROXYCHAINS_CONFIG {
 	PXCH_UINT32 dwWillMapResolvedIpToHost;
 	PXCH_UINT32 dwWillLookupForHostByResolvedIp;
 	PXCH_UINT32 dwWillForceResolveByHostsFile;
+	PXCH_UINT32 dwWillGenFakeIpUsingHashedHostname;
 
 	PXCH_UINT32 dwWillFirstTunnelUseIpv4;
 	PXCH_UINT32 dwWillFirstTunnelUseIpv6;

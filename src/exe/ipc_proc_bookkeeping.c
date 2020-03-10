@@ -16,11 +16,14 @@
  *   version 2 along with this program. If not, see
  *   <http://www.gnu.org/licenses/>.
  */
+#define PXCH_DO_NOT_INCLUDE_STRSAFE_NOW
 #include "includes_win32.h"
 #include "log_win32.h"
 #include "proc_bookkeeping_win32.h"
 #include "hookdll_win32.h"
 #include "hookdll_util_win32.h"
+#include <shlwapi.h>
+#include <strsafe.h>
 
 tab_per_process_t* g_tabPerProcess;
 tab_fake_ip_hostname_t* g_tabFakeIpHostname;
@@ -268,9 +271,79 @@ DWORD NextAvailableFakeIp(PXCH_IP_ADDRESS* pFakeIpv4, PXCH_IP_ADDRESS* pFakeIpv6
 	return NO_ERROR;
 }
 
+DWORD NextAvailableFakeIpByDomainHash(PXCH_IP_ADDRESS* pFakeIpv4, PXCH_IP_ADDRESS* pFakeIpv6, const PXCH_HOSTNAME* pHostname)
+{
+	PXCH_UINT32 iSearchIpv4;
+	PXCH_UINT32 iSearchIpv6;
+	PXCH_UINT32 iSearchIpv4WhenEnter;
+	PXCH_UINT32 iSearchIpv6WhenEnter;
+	PXCH_UINT32 iIpv4ShiftLength;
+	PXCH_UINT32 iIpv6ShiftLength;
+	tab_fake_ip_hostname_t* Entry;
+	tab_fake_ip_hostname_t AsKey;
+	AsKey.dwOptionalPid = 0;
+	unsigned _hr_hashv;
+
+	iIpv4ShiftLength = (32 > g_pPxchConfig->dwFakeIpv4PrefixLength) ? (32 - g_pPxchConfig->dwFakeIpv4PrefixLength) : 0;
+
+	HASH_VALUE(pHostname, sizeof(PXCH_HOSTNAME), _hr_hashv);
+	iSearchIpv4 = _hr_hashv % ((PXCH_UINT64)1 << iIpv4ShiftLength);
+	iSearchIpv4WhenEnter = iSearchIpv4;
+	AsKey.Ip.CommonHeader.wTag = PXCH_HOST_TYPE_IPV4;
+
+	while (1) {
+		Entry = NULL;
+		IndexToIp(g_pPxchConfig, &AsKey.Ip, iSearchIpv4);
+		LOGV(L"Map index to IPv4: " WPRDW L" -> %ls", iSearchIpv4, FormatHostPortToStr(&AsKey.Ip, sizeof(PXCH_IP_ADDRESS)));
+		HASH_FIND(hh, g_tabFakeIpHostname, &AsKey.Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), Entry);
+		if (!Entry || StrCmpW(Entry->Hostname.szValue, pHostname->szValue) == 0) break;
+		iSearchIpv4++;
+		if (iSearchIpv4 >= ((PXCH_UINT64)1 << iIpv4ShiftLength) - 1) {
+			iSearchIpv4 = 1;
+		}
+
+		if (iSearchIpv4 == iSearchIpv4WhenEnter) {
+			return ERROR_RESOURCE_NOT_AVAILABLE;
+		}
+	}
+
+	LOGV(L"Next available IPv4 index: " WPRDW, iSearchIpv4);
+	*pFakeIpv4 = AsKey.Ip;
+
+
+	iIpv6ShiftLength = (128 > g_pPxchConfig->dwFakeIpv6PrefixLength) ? (128 - g_pPxchConfig->dwFakeIpv6PrefixLength) : 0;
+	iIpv6ShiftLength = iIpv6ShiftLength > 64 ? 64 : iIpv6ShiftLength;
+
+	iSearchIpv6 = ((iIpv6ShiftLength == 64) ? _hr_hashv : _hr_hashv % (((PXCH_UINT64)1 << iIpv6ShiftLength) - 1));
+	iSearchIpv6WhenEnter = iSearchIpv6;
+	AsKey.Ip.CommonHeader.wTag = PXCH_HOST_TYPE_IPV6;
+	
+	while (1) {
+		Entry = NULL;
+		IndexToIp(g_pPxchConfig, &AsKey.Ip, iSearchIpv6);
+		LOGV(L"Map index to IPv6: " WPRDW L" -> %ls", iSearchIpv6, FormatHostPortToStr(&AsKey.Ip, sizeof(PXCH_IP_ADDRESS)));
+		HASH_FIND(hh, g_tabFakeIpHostname, &AsKey.Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), Entry);
+		if (!Entry || StrCmpW(Entry->Hostname.szValue, pHostname->szValue) == 0) break;
+		iSearchIpv6++;
+		if (iSearchIpv6 >= ((iIpv6ShiftLength == 64) ? 0xFFFFFFFFFFFFFFFF : (((PXCH_UINT64)1 << iIpv6ShiftLength) - 1))) {
+			iSearchIpv6 = 1;
+		}
+
+		if (iSearchIpv6 == iSearchIpv6WhenEnter) {
+			return ERROR_RESOURCE_NOT_AVAILABLE;
+		}
+	}
+
+	LOGV(L"Next available IPv6 index: " WPRDW, iSearchIpv6);
+	*pFakeIpv6 = AsKey.Ip;
+
+	return NO_ERROR;
+}
+
 DWORD RegisterHostnameAndGetFakeIp(PXCH_IP_ADDRESS* pFakeIpv4, PXCH_IP_ADDRESS* pFakeIpv6, const tab_fake_ip_hostname_t* TempEntry, PXCH_UINT32 dwPid, BOOL bWillMapResolvedIpToHost)
 {
 	PXCH_DO_IN_CRITICAL_SECTION_RETURN_DWORD{
+		tab_fake_ip_hostname_t* ReplacedEntry;
 		tab_fake_ip_hostname_t* FakeIpv4Entry;
 		tab_fake_ip_hostname_t* FakeIpv6Entry;
 		tab_fake_ip_hostname_t* ResolvedIpEntry;
@@ -289,7 +362,11 @@ DWORD RegisterHostnameAndGetFakeIp(PXCH_IP_ADDRESS* pFakeIpv4, PXCH_IP_ADDRESS* 
 
 		pIpv4Node = (IpNode*)HeapAlloc(GetProcessHeap(), 0, sizeof(IpNode));
 		pIpv6Node = (IpNode*)HeapAlloc(GetProcessHeap(), 0, sizeof(IpNode));
-		dwLastError = NextAvailableFakeIp(&pIpv4Node->Ip, &pIpv6Node->Ip);
+		if (g_pPxchConfig->dwWillGenFakeIpUsingHashedHostname) {
+			dwLastError = NextAvailableFakeIpByDomainHash(&pIpv4Node->Ip, &pIpv6Node->Ip, &TempEntry->Hostname);
+		} else {
+			dwLastError = NextAvailableFakeIp(&pIpv4Node->Ip, &pIpv6Node->Ip);
+		}
 		if (dwLastError != NO_ERROR) goto err_no_avail_fake_ip;
 		LL_PREPEND(CurrentProcessDataEntry->Ips, pIpv4Node);
 		LL_PREPEND(CurrentProcessDataEntry->Ips, pIpv6Node);
@@ -303,7 +380,8 @@ DWORD RegisterHostnameAndGetFakeIp(PXCH_IP_ADDRESS* pFakeIpv4, PXCH_IP_ADDRESS* 
 		LOGD(L"Fake Ipv4: %ls", FormatHostPortToStr(&pIpv4Node->Ip, sizeof(PXCH_IP_ADDRESS)));
 		CopyMemory(FakeIpv4Entry->ResolvedIps, TempEntry->ResolvedIps, sizeof(PXCH_IP_ADDRESS) * FakeIpv4Entry->dwResovledIpNum);
 
-		HASH_ADD(hh, g_tabFakeIpHostname, Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), FakeIpv4Entry);
+		HASH_REPLACE(hh, g_tabFakeIpHostname, Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), FakeIpv4Entry, ReplacedEntry);
+		if (ReplacedEntry) HeapFree(GetProcessHeap(), 0, ReplacedEntry);
 		*pFakeIpv4 = pIpv4Node->Ip;
 
 
@@ -316,7 +394,8 @@ DWORD RegisterHostnameAndGetFakeIp(PXCH_IP_ADDRESS* pFakeIpv4, PXCH_IP_ADDRESS* 
 		LOGD(L"Fake Ipv6: %ls", FormatHostPortToStr(&pIpv6Node->Ip, sizeof(PXCH_IP_ADDRESS)));
 		CopyMemory(FakeIpv6Entry->ResolvedIps, TempEntry->ResolvedIps, sizeof(PXCH_IP_ADDRESS) * FakeIpv6Entry->dwResovledIpNum);
 
-		HASH_ADD(hh, g_tabFakeIpHostname, Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), FakeIpv6Entry);
+		HASH_REPLACE(hh, g_tabFakeIpHostname, Ip, sizeof(PXCH_IP_ADDRESS) + sizeof(PXCH_UINT32), FakeIpv6Entry, ReplacedEntry);
+		if (ReplacedEntry) HeapFree(GetProcessHeap(), 0, ReplacedEntry);
 		*pFakeIpv6 = pIpv6Node->Ip;
 
 		if (bWillMapResolvedIpToHost) {
