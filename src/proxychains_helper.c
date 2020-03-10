@@ -86,12 +86,12 @@ int ReplaceStartMarker(char** ppInput, size_t* pcbInputRemaining, char** ppOutpu
     }
 
     if (*pcbOutputRemaining < cbSubstitute) {
-        fwprintf(stderr, L"Error: Cygwin entry detour output buf insufficient.\n");
+        fwprintf(stderr, L"Error: Entry detour output buf insufficient.\n");
         exit(4);
     }
 
     if (*ppOutputStartAddress) {
-        fwprintf(stderr, L"Error: Duplicate start mark found in Cygwin entry detour.\n");
+        fwprintf(stderr, L"Error: Duplicate start mark found in Entry detour.\n");
         exit(4);
     }
 
@@ -110,18 +110,18 @@ int ReplaceStartMarker(char** ppInput, size_t* pcbInputRemaining, char** ppOutpu
 int AppendJmpAfterReturnAddressAssign(char** ppInput, size_t* pcbInputRemaining, char** ppOutput, size_t* pcbOutputRemaining, char** ppOutputEndAddress, char** pp_pReturnAddr)
 {
 #if defined(_M_X64) || defined(__x86_64__)
-    // movabs rax, imm64
+    // movabs r??, imm64
     static char cInst[] = "\x48\xb8\x00\x00\x00\x00\x00\x00\x00\x00";
-    static const char cInstMatchMask[] = "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF";
+    static const char cInstMatchMask[] = "\xFF\xF8\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF";
     static PXCH_UINT_MACHINE* pInstAddr = (PXCH_UINT_MACHINE*)(cInst + 2);
     static const size_t cbInputRegisterNoOffset = 1;
     static const char cbRegisterNoMask = '\x07';
 
     // add rsp, 1024
     // pop rbp
-    // jmp rax
+    // jmp r??
     const char cInsert[] = "\x48\x81\xC4\x00\x04\x00\x00\x5D\xFF\xE0";
-    static const size_t cbInsertRegisterNoOffset = 8;
+    static const size_t cbInsertRegisterNoOffset = 9;
 #else
     // or eax, imm32
     static char cInst[] = "\x0d\x00\x00\x00\x00";
@@ -164,12 +164,12 @@ int AppendJmpAfterReturnAddressAssign(char** ppInput, size_t* pcbInputRemaining,
     }
 
     if (*pcbOutputRemaining < cbInst + cbInsert) {
-        fwprintf(stderr, L"Error: Cygwin entry detour output buf insufficient.\n");
+        fwprintf(stderr, L"Error: Entry detour output buf insufficient.\n");
         exit(4);
     }
 
     if (*ppOutputEndAddress || *pp_pReturnAddr) {
-        fwprintf(stderr, L"Error: Duplicate end mark found in Cygwin entry detour.\n");
+        fwprintf(stderr, L"Error: Duplicate end mark found in Entry detour.\n");
         exit(4);
     }
 
@@ -241,12 +241,12 @@ int AppendJmpAfterReturnAddressAssignAlt(char** ppInput, size_t* pcbInputRemaini
     }
 
     if (*pcbOutputRemaining < cbInst + cbInsert) {
-        fwprintf(stderr, L"Error: Cygwin entry detour output buf insufficient.\n");
+        fwprintf(stderr, L"Error: Entry detour output buf insufficient.\n");
         exit(4);
     }
 
     if (*ppOutputEndAddress || *pp_pReturnAddr) {
-        fwprintf(stderr, L"Error: Duplicate end mark found in Cygwin entry detour.\n");
+        fwprintf(stderr, L"Error: Duplicate end mark found in Entry detour.\n");
         exit(4);
     }
 
@@ -290,6 +290,9 @@ int main(int argc, const char* const* argv)
         wprintf(L"%llX\n", 0ULL);
         wprintf(L"%llX\n", 0ULL);
         wprintf(L"%llX\n", 0ULL);
+        wprintf(L"%llX\n", 0ULL);
+        wprintf(L"%llX\n", 0ULL);
+        wprintf(L"%llX\n", 0ULL);
 #else
         wprintf(L"%llX\n", (unsigned long long)(uintptr_t)&GetModuleHandleW);
         wprintf(L"%llX\n", (unsigned long long)(uintptr_t)&LoadLibraryW);
@@ -301,6 +304,9 @@ int main(int argc, const char* const* argv)
         wprintf(L"%llX\n", (unsigned long long)(uintptr_t)&wsprintfA);
         wprintf(L"%llX\n", (unsigned long long)(uintptr_t)&Sleep);
         wprintf(L"%llX\n", (unsigned long long)(uintptr_t)&ExitThread);
+        wprintf(L"%llX\n", (unsigned long long)(uintptr_t)&ReleaseSemaphore);
+        wprintf(L"%llX\n", (unsigned long long)(uintptr_t)&CloseHandle);
+        wprintf(L"%llX\n", (unsigned long long)(uintptr_t)&WaitForSingleObject);
 #endif
         return 0;
     }
@@ -337,15 +343,15 @@ int main(int argc, const char* const* argv)
 
         wprintf(L"\";\n\n");
 
-        // Print Cygwin entry detour
+        // Print Entry detour
 
-        pCode = (char*)CygwinEntryDetour;
-        pAfterCode = (char*)CygwinEntryDetour_End;
+        pCode = (char*)EntryDetour;
+        pAfterCode = (char*)EntryDetour_End;
 
         if (*(BYTE*)pCode == 0xE9) {
-            fwprintf(stderr, L"!!!Warning: Cygwin entry detour body is a JMP instruction! This is usually caused by \"incremental linking\". hough this is handled now(?), there might be problems in the future. Try to disable that.\n");
-            fwprintf(stderr, L"!!!Warning: Cygwin entry detour body is a JMP instruction! This is usually caused by \"incremental linking\". hough this is handled now(?), there might be problems in the future. Try to disable that.\n");
-            fwprintf(stderr, L"!!!Warning: Cygwin entry detour body is a JMP instruction! This is usually caused by \"incremental linking\". hough this is handled now(?), there might be problems in the future. Try to disable that.\n");
+            fwprintf(stderr, L"!!!Warning: Entry detour body is a JMP instruction! This is usually caused by \"incremental linking\". hough this is handled now(?), there might be problems in the future. Try to disable that.\n");
+            fwprintf(stderr, L"!!!Warning: Entry detour body is a JMP instruction! This is usually caused by \"incremental linking\". hough this is handled now(?), there might be problems in the future. Try to disable that.\n");
+            fwprintf(stderr, L"!!!Warning: Entry detour body is a JMP instruction! This is usually caused by \"incremental linking\". hough this is handled now(?), there might be problems in the future. Try to disable that.\n");
             pCode = (void*)((char*)pCode + *(DWORD*)((char*)pCode + 1) + 5);
         }
 
@@ -401,13 +407,13 @@ int main(int argc, const char* const* argv)
 
                     if (cbInputRemaining == 0) break;
                     if (cbOutputRemaining == 0) {
-                        fwprintf(stderr, L"Error: Cygwin entry detour output buf insufficient.\n");
+                        fwprintf(stderr, L"Error: Entry detour output buf insufficient.\n");
                         return 4;
                     }
                 }
             }
 
-            wprintf(L"static const char g_OriginalCygwinEntryDetour" SUFFIX_ARCH L"[] = \"");
+            wprintf(L"static const char g_OriginalEntryDetour" SUFFIX_ARCH L"[] = \"");
         
             for (pInput = pCode; pInput != pCode + cbCodeSizeAligned; pInput++) {
                 wprintf(L"\\x%02hhX", *pInput);
@@ -435,7 +441,7 @@ int main(int argc, const char* const* argv)
                 return 3;
             }
 
-            wprintf(L"static const char g_CygwinEntryDetour" SUFFIX_ARCH L"[] = \"");
+            wprintf(L"static const char g_EntryDetour" SUFFIX_ARCH L"[] = \"");
 
             cbCodeSize = pOutputEndAddress - pOutputStartAddress;
             cbCodeSizeAligned = (cbCodeSize + (sizeof(LONG_PTR) - 1)) & ~(sizeof(LONG_PTR) - 1);
@@ -446,8 +452,8 @@ int main(int argc, const char* const* argv)
 
             wprintf(L"\";\n\n");
 
-            wprintf(L"static const size_t g_CygwinEntryDetour_cbpRemoteDataOffset" SUFFIX_ARCH L" = 0x%zx;\n", p_pRemoteData - pOutputStartAddress);
-            wprintf(L"static const size_t g_CygwinEntryDetour_cbpReturnAddrOffset" SUFFIX_ARCH L" = 0x%zx;\n", p_pReturnAddr - pOutputStartAddress);
+            wprintf(L"static const size_t g_EntryDetour_cbpRemoteDataOffset" SUFFIX_ARCH L" = 0x%zx;\n", p_pRemoteData - pOutputStartAddress);
+            wprintf(L"static const size_t g_EntryDetour_cbpReturnAddrOffset" SUFFIX_ARCH L" = 0x%zx;\n", p_pReturnAddr - pOutputStartAddress);
         }
 
         fflush(stdout);

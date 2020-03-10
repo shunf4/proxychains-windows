@@ -565,7 +565,6 @@ PXCH_DLL_API int Ws2_32_DirectConnect(void* pTempData, PXCH_UINT_PTR s, const PX
 {
 	int iReturn;
 
-	FUNCIPCLOGD(L"XXXX");
 	ODBGSTRLOGD(L"Ws2_32_DirectConnect 0 %p", pHostPort);
 	if (HostIsType(INVALID, *pHostPort)) {
 		FUNCIPCLOGW(L"Error connecting directly: address is invalid (%#06hx).", *(const PXCH_UINT16*)pHostPort);
@@ -862,8 +861,8 @@ err_return:
 PROXY_FUNC2(Ws2_32, connect)
 {
 	int iReturn = 0;
-	DWORD dwLastError;
-	int iWSALastError;
+	DWORD dwLastError = 0;
+	int iWSALastError = 0;
 
 	const PXCH_HOST_PORT* pHostPortForProxiedConnection = name;
 	const PXCH_IP_PORT* pIpPortForDirectConnection = name;
@@ -966,8 +965,8 @@ PROXY_FUNC2(Mswsock, ConnectEx)
 {
 	int iReturn;
 	BOOL bReturn;
-	DWORD dwLastError;
-	int iWSALastError;
+	DWORD dwLastError = 0;
+	int iWSALastError = 0;
 
 	const PXCH_HOST_PORT* pHostPortForProxiedConnection = name;
 	const PXCH_IP_PORT* pIpPortForDirectConnection = name;
@@ -1062,8 +1061,8 @@ PROXY_FUNC2(Ws2_32, WSAStartup)
 Ws2_32_WSAConnect_SIGN_WITH_PTEMPDATA(Ws2_32_OriginalWSAConnect)
 {
 	int iReturn;
-	int iWSALastError;
-	DWORD dwLastError;
+	int iWSALastError = 0;
+	DWORD dwLastError = 0;
 	PXCH_WS2_32_TEMP_DATA* pWs2_32_TempData = pTempData;
 
 	pWs2_32_TempData->iConnectReturn = iReturn = orig_fpWs2_32_WSAConnect(s, name, namelen, lpCallerData, lpCalleeData, lpSQOS, lpGQOS);
@@ -1078,8 +1077,8 @@ Ws2_32_WSAConnect_SIGN_WITH_PTEMPDATA(Ws2_32_OriginalWSAConnect)
 PROXY_FUNC2(Ws2_32, WSAConnect)
 {
 	int iReturn = 0;
-	DWORD dwLastError;
-	int iWSALastError;
+	DWORD dwLastError = 0;
+	int iWSALastError = 0;
 
 	const PXCH_HOST_PORT* pHostPortForProxiedConnection = name;
 	const PXCH_IP_PORT* pIpPortForDirectConnection = name;
@@ -1650,13 +1649,13 @@ PROXY_FUNC2(Ws2_32, FreeAddrInfoW)
 	}
 }
 
-// Hook FreeAddrInfoEx
+// Hook FreeAddrInfoExA
 
-PROXY_FUNC2(Ws2_32, FreeAddrInfoEx)
+PROXY_FUNC2(Ws2_32, FreeAddrInfoExA_)
 {
-	FUNCIPCLOGD(L"Ws2_32.dll FreeAddrInfoEx() called");
+	FUNCIPCLOGD(L"Ws2_32.dll FreeAddrInfoExA() called");
 
-	orig_fpWs2_32_FreeAddrInfoEx(pAddrInfoEx);
+	orig_fpWs2_32_FreeAddrInfoExA_(pAddrInfoEx);
 }
 
 

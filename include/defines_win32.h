@@ -60,6 +60,9 @@ typedef DWORD (WINAPI* FpGetCurrentProcessId)(VOID);
 typedef int (__cdecl* FpwsprintfA)(char* const _Buffer, char const* const _Format,...);
 typedef VOID (WINAPI* FpSleep)(DWORD);
 typedef VOID (WINAPI* FpExitThread)(DWORD);
+typedef BOOL (WINAPI* FpReleaseSemaphore)(HANDLE hSemaphore, DWORD lReleaseCount, LPDWORD lpPreviousCount);
+typedef BOOL (WINAPI* FpCloseHandle)(HANDLE h);
+typedef DWORD (WINAPI* FpWaitForSingleObject)(HANDLE hHandle, DWORD dwMilliseconds);
 
 #pragma pack(push, 1)
 typedef struct _PXCH_INJECT_REMOTE_DATA {
@@ -82,9 +85,14 @@ typedef struct _PXCH_INJECT_REMOTE_DATA {
 	WCHAR szHookDllModuleName[PXCH_MAX_DLL_FILE_NAME_BUFSIZE];
 
 	PXCH_UINT32 dwLastError;
-	PROXYCHAINS_CONFIG pxchConfig;
+	PXCH_UINT64 qwSemaphore1;
+	PXCH_UINT64 qwSemaphore2;
 
-	HANDLE hSemaphore;
+	PXCH_UINT32 dwZero;
+	PXCH_UINT32 dwTemp;
+
+	// pxchConfig must be the last member
+	PROXYCHAINS_CONFIG pxchConfig;
 
 } PXCH_INJECT_REMOTE_DATA;
 #pragma pack(pop)

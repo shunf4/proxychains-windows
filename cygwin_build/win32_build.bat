@@ -15,8 +15,8 @@
 @rem   version 2 along with this program. If not, see
 @rem   <http://www.gnu.org/licenses/>.
 
-"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\devenv.com" ..\proxychains.exe.sln /build "Debug^|x64"
-"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\devenv.com" ..\proxychains.exe.sln /build "Debug^|x86"
-"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\devenv.com" ..\proxychains.exe.sln /build "Release^|x64"
-"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\devenv.com" ..\proxychains.exe.sln /build "Release^|x86"
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\devenv.com" ..\proxychains.exe.sln /build "Debug^|x64" || pause
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\devenv.com" ..\proxychains.exe.sln /build "Debug^|x86" || pause
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\devenv.com" ..\proxychains.exe.sln /build "Release^|x64" || pause
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\devenv.com" ..\proxychains.exe.sln /build "Release^|x86" || pause
 

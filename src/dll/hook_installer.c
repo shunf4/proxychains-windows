@@ -42,7 +42,7 @@ void Win32HookWs2_32(void)
 	LPVOID pWs2_32_GetAddrInfoExW = NULL;
 	LPVOID pWs2_32_freeaddrinfo = NULL;
 	LPVOID pWs2_32_FreeAddrInfoW = NULL;
-	LPVOID pWs2_32_FreeAddrInfoEx = NULL;
+	LPVOID pWs2_32_FreeAddrInfoExA_ = NULL;
 	LPVOID pWs2_32_FreeAddrInfoExW = NULL;
 	LPVOID pWs2_32_getnameinfo = NULL;
 	LPVOID pWs2_32_GetNameInfoW = NULL;
@@ -58,32 +58,32 @@ void Win32HookWs2_32(void)
 		pWs2_32_WSAConnect = orig_fpWs2_32_WSAConnect;
 		pWs2_32_connect = orig_fpWs2_32_connect;
 
-		orig_fpWs2_32_gethostbyname   = (void*)GetProcAddress(hWs2_32, "gethostbyname");
-		orig_fpWs2_32_gethostbyaddr   = (void*)GetProcAddress(hWs2_32, "gethostbyaddr");
-		orig_fpWs2_32_getaddrinfo     = (void*)GetProcAddress(hWs2_32, "getaddrinfo");
-		orig_fpWs2_32_GetAddrInfoW    = (void*)GetProcAddress(hWs2_32, "GetAddrInfoW");
-		orig_fpWs2_32_GetAddrInfoExA  = (void*)GetProcAddress(hWs2_32, "GetAddrInfoExA");
-		orig_fpWs2_32_GetAddrInfoExW  = (void*)GetProcAddress(hWs2_32, "GetAddrInfoExW");
-		orig_fpWs2_32_freeaddrinfo    = (void*)GetProcAddress(hWs2_32, "freeaddrinfo");
-		orig_fpWs2_32_FreeAddrInfoW   = (void*)GetProcAddress(hWs2_32, "FreeAddrInfoW");
-		orig_fpWs2_32_FreeAddrInfoEx  = (void*)GetProcAddress(hWs2_32, "FreeAddrInfoEx");
-		orig_fpWs2_32_FreeAddrInfoExW = (void*)GetProcAddress(hWs2_32, "FreeAddrInfoExW");
-		orig_fpWs2_32_getnameinfo     = (void*)GetProcAddress(hWs2_32, "getnameinfo");
-		orig_fpWs2_32_GetNameInfoW    = (void*)GetProcAddress(hWs2_32, "GetNameInfoW");
+		orig_fpWs2_32_gethostbyname    = (void*)GetProcAddress(hWs2_32, "gethostbyname");
+		orig_fpWs2_32_gethostbyaddr    = (void*)GetProcAddress(hWs2_32, "gethostbyaddr");
+		orig_fpWs2_32_getaddrinfo      = (void*)GetProcAddress(hWs2_32, "getaddrinfo");
+		orig_fpWs2_32_GetAddrInfoW     = (void*)GetProcAddress(hWs2_32, "GetAddrInfoW");
+		orig_fpWs2_32_GetAddrInfoExA   = (void*)GetProcAddress(hWs2_32, "GetAddrInfoExA");
+		orig_fpWs2_32_GetAddrInfoExW   = (void*)GetProcAddress(hWs2_32, "GetAddrInfoExW");
+		orig_fpWs2_32_freeaddrinfo     = (void*)GetProcAddress(hWs2_32, "freeaddrinfo");
+		orig_fpWs2_32_FreeAddrInfoW    = (void*)GetProcAddress(hWs2_32, "FreeAddrInfoW");
+		orig_fpWs2_32_FreeAddrInfoExA_ = (void*)GetProcAddress(hWs2_32, "FreeAddrInfoExA");
+		orig_fpWs2_32_FreeAddrInfoExW  = (void*)GetProcAddress(hWs2_32, "FreeAddrInfoExW");
+		orig_fpWs2_32_getnameinfo      = (void*)GetProcAddress(hWs2_32, "getnameinfo");
+		orig_fpWs2_32_GetNameInfoW     = (void*)GetProcAddress(hWs2_32, "GetNameInfoW");
 
 		if (g_pPxchConfig->dwWillUseFakeIpAsRemoteDns) {
-			pWs2_32_gethostbyname   = orig_fpWs2_32_gethostbyname  ;
-			pWs2_32_gethostbyaddr   = orig_fpWs2_32_gethostbyaddr  ;
-			pWs2_32_getaddrinfo     = orig_fpWs2_32_getaddrinfo    ;
-			pWs2_32_GetAddrInfoW    = orig_fpWs2_32_GetAddrInfoW   ;
-			pWs2_32_GetAddrInfoExA  = orig_fpWs2_32_GetAddrInfoExA ;
-			pWs2_32_GetAddrInfoExW  = orig_fpWs2_32_GetAddrInfoExW ;
-			pWs2_32_freeaddrinfo    = orig_fpWs2_32_freeaddrinfo   ;
-			pWs2_32_FreeAddrInfoW   = orig_fpWs2_32_FreeAddrInfoW  ;
-			pWs2_32_FreeAddrInfoEx  = orig_fpWs2_32_FreeAddrInfoEx ;
-			pWs2_32_FreeAddrInfoExW = orig_fpWs2_32_FreeAddrInfoExW;
-			pWs2_32_getnameinfo     = orig_fpWs2_32_getnameinfo    ;
-			pWs2_32_GetNameInfoW    = orig_fpWs2_32_GetNameInfoW   ;
+			pWs2_32_gethostbyname    = orig_fpWs2_32_gethostbyname  ;
+			pWs2_32_gethostbyaddr    = orig_fpWs2_32_gethostbyaddr  ;
+			pWs2_32_getaddrinfo      = orig_fpWs2_32_getaddrinfo    ;
+			pWs2_32_GetAddrInfoW     = orig_fpWs2_32_GetAddrInfoW   ;
+			pWs2_32_GetAddrInfoExA   = orig_fpWs2_32_GetAddrInfoExA ;
+			pWs2_32_GetAddrInfoExW   = orig_fpWs2_32_GetAddrInfoExW ;
+			pWs2_32_freeaddrinfo     = orig_fpWs2_32_freeaddrinfo   ;
+			pWs2_32_FreeAddrInfoW    = orig_fpWs2_32_FreeAddrInfoW  ;
+			pWs2_32_FreeAddrInfoExA_ = orig_fpWs2_32_FreeAddrInfoExA_;
+			pWs2_32_FreeAddrInfoExW  = orig_fpWs2_32_FreeAddrInfoExW;
+			pWs2_32_getnameinfo      = orig_fpWs2_32_getnameinfo    ;
+			pWs2_32_GetNameInfoW     = orig_fpWs2_32_GetNameInfoW   ;
 		}
 
 		// CREATE_HOOK3_IFNOTNULL(Ws2_32, WSAStartup, pWs2_32_WSAStartup);
@@ -97,13 +97,13 @@ void Win32HookWs2_32(void)
 		CREATE_HOOK3_IFNOTNULL(Ws2_32, GetAddrInfoExW, pWs2_32_GetAddrInfoExW);
 		CREATE_HOOK3_IFNOTNULL(Ws2_32, freeaddrinfo, pWs2_32_freeaddrinfo);
 		CREATE_HOOK3_IFNOTNULL(Ws2_32, FreeAddrInfoW, pWs2_32_FreeAddrInfoW);
-		CREATE_HOOK3_IFNOTNULL(Ws2_32, FreeAddrInfoEx, pWs2_32_FreeAddrInfoEx);
+		CREATE_HOOK3_IFNOTNULL(Ws2_32, FreeAddrInfoExA_, pWs2_32_FreeAddrInfoExA_);
 		CREATE_HOOK3_IFNOTNULL(Ws2_32, FreeAddrInfoExW, pWs2_32_FreeAddrInfoExW);
 		CREATE_HOOK3_IFNOTNULL(Ws2_32, getnameinfo, pWs2_32_getnameinfo);
 		CREATE_HOOK3_IFNOTNULL(Ws2_32, GetNameInfoW, pWs2_32_GetNameInfoW);
 
 		if (orig_fpWs2_32_FreeAddrInfoW == NULL) orig_fpWs2_32_FreeAddrInfoW = orig_fpWs2_32_freeaddrinfo;
-		if (orig_fpWs2_32_FreeAddrInfoExW == NULL) orig_fpWs2_32_FreeAddrInfoExW = orig_fpWs2_32_FreeAddrInfoEx;
+		if (orig_fpWs2_32_FreeAddrInfoExW == NULL) orig_fpWs2_32_FreeAddrInfoExW = orig_fpWs2_32_FreeAddrInfoExW;
 
 		// Hook ConnectEx()
 #ifndef __CYGWIN__

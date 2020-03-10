@@ -179,7 +179,7 @@ PXCH_DLL_API void UninitHook(void);
 
 
 
-#define Ws2_32_FreeAddrInfoEx_SIGN(inside_identifier) void (__stdcall inside_identifier)(void* /* PADDRINFOEXA */ pAddrInfoEx)
+#define Ws2_32_FreeAddrInfoExA__SIGN(inside_identifier) void (__stdcall inside_identifier)(void* /* PADDRINFOEXA */ pAddrInfoEx)
 
 
 
@@ -254,8 +254,8 @@ DECLARE_HOOK_FUNC2(Ws2_32, freeaddrinfo);
 extern FP_ORIGINAL_FUNC2(Ws2_32, FreeAddrInfoW);
 DECLARE_HOOK_FUNC2(Ws2_32, FreeAddrInfoW);
 
-extern FP_ORIGINAL_FUNC2(Ws2_32, FreeAddrInfoEx);
-DECLARE_HOOK_FUNC2(Ws2_32, FreeAddrInfoEx);
+extern FP_ORIGINAL_FUNC2(Ws2_32, FreeAddrInfoExA_);
+DECLARE_HOOK_FUNC2(Ws2_32, FreeAddrInfoExA_);
 
 extern FP_ORIGINAL_FUNC2(Ws2_32, FreeAddrInfoExW);
 DECLARE_HOOK_FUNC2(Ws2_32, FreeAddrInfoExW);

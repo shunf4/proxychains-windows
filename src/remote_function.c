@@ -120,12 +120,14 @@ void* LoadHookDll_End(void)
 	return LoadHookDll;
 }
 
-#define PXCH_CYGWIN_ENTRY_DETOUR_TESTING 0
-void __cdecl CygwinEntryDetour(void)
+#define PXCH_ENTRY_DETOUR_TESTING 0
+void __cdecl EntryDetour(void)
 {
 	PXCH_UINT_MACHINE pStartMarker = PXCH_POINTER_PLACEHOLDER_STARTMARKER;
 	PXCH_INJECT_REMOTE_DATA* pRemoteData = (void*)PXCH_POINTER_PLACEHOLDER_PREMOTEDATA;
-	PXCH_UINT_MACHINE pReturnAddr;
+	register PXCH_UINT_MACHINE pReturnAddr;
+
+	(void)pStartMarker;
 
 	// MSVC ignores /Oy- (do not omit frame pointers), so we should call _alloca in it
 #ifndef __CYGWIN__
@@ -133,12 +135,16 @@ void __cdecl CygwinEntryDetour(void)
 		_alloca(0x20);
 #endif
 
-#if PXCH_CYGWIN_ENTRY_DETOUR_TESTING
+#if PXCH_ENTRY_DETOUR_TESTING
 	CAST_FUNC_ADDR(Sleep)(1000);
 #else
 	HMODULE hHookDllModule;
 	FARPROC fpInitFunc;
 	LPVOID pbCurrentlyInWinapiCall;
+	HANDLE hSemaphore1;
+	HANDLE hSemaphore2;
+	BOOL bReturn;
+	DWORD dwWaitResult;
 
 	DBGSTEP('A');
 
@@ -225,15 +231,60 @@ err_after_load_dll:
 	goto end;
 
 end:
-	// TODO: Release Semaphore
+	hSemaphore1 = (HANDLE)(uintptr_t)pRemoteData->qwSemaphore1;
+	bReturn = CAST_FUNC_ADDR(ReleaseSemaphore)(hSemaphore1, 1, NULL);
+	DBGSTEP('L' + bReturn);
+	if (!bReturn) {
+		pRemoteData->dwLastError = CAST_FUNC_ADDR(GetLastError)();
+		goto real_end;
+	}
+	bReturn = CAST_FUNC_ADDR(CloseHandle)(hSemaphore1);
+	DBGSTEP('N' + bReturn);
+	if (!bReturn) {
+		pRemoteData->dwLastError = CAST_FUNC_ADDR(GetLastError)();
+		goto real_end;
+	}
+
+real_end:
+	hSemaphore2 = (HANDLE)(uintptr_t)pRemoteData->qwSemaphore2;
+
+	dwWaitResult = CAST_FUNC_ADDR(WaitForSingleObject)(hSemaphore2, 3000);
+	switch (dwWaitResult)
+	{
+	case WAIT_OBJECT_0:
+		if (!CAST_FUNC_ADDR(ReleaseSemaphore)(hSemaphore2, 1, NULL)) {
+			pRemoteData->dwLastError = CAST_FUNC_ADDR(GetLastError)();
+		}
+		break;
+
+	case WAIT_ABANDONED:
+		pRemoteData->dwLastError = ERROR_ABANDONED_WAIT_0;
+		break;
+
+	case WAIT_TIMEOUT:
+		pRemoteData->dwLastError = ERROR_TIMEOUT;
+		break;
+
+	default:
+		pRemoteData->dwLastError = CAST_FUNC_ADDR(GetLastError)();
+		break;
+	}
+
+	DBGSTEP('P');
+
+	bReturn = CAST_FUNC_ADDR(CloseHandle)(hSemaphore2);
+
+	DBGSTEP('Q' + bReturn);
+
 #endif
 
 	pReturnAddr = 0;
-	pReturnAddr = pReturnAddr | PXCH_POINTER_PLACEHOLDER_PRETURNADDR;
+	pReturnAddr = pRemoteData->dwZero | PXCH_POINTER_PLACEHOLDER_PRETURNADDR;
+	pRemoteData->dwTemp = (PXCH_UINT32)(uint64_t)pReturnAddr;
 }
 
 
-void* CygwinEntryDetour_End(void)
+void* EntryDetour_End(void)
 {
-	return CygwinEntryDetour;
+	return EntryDetour;
 }

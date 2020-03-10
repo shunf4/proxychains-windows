@@ -108,22 +108,8 @@ close_ret:
 
 DWORD IpcClientRegisterChildProcess()
 {
-	/*REPORTED_CHILD_DATA ChildData;
-	PXCH_IPC_MSGBUF chMessageBuf;
-	PXCH_IPC_MSGBUF chRespMessageBuf;
-	DWORD cbMessageSize;
-	DWORD cbRespMessageSize;
-	DWORD dwLastError;
-
-	ChildData.dwPid = GetCurrentProcessId();
-	ChildData.pSavedPxchConfig = g_pPxchConfig;
-	ChildData.pSavedRemoteData = g_pRemoteData;
-
-	if ((dwLastError = ChildDataToMessage(chMessageBuf, &cbMessageSize, &ChildData)) != NO_ERROR) return dwLastError;
-	if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, (PXCH_UINT32*)&cbRespMessageSize)) != NO_ERROR) return dwLastError;
-
-	return 0;*/
-
+	// Report child process to master process;
+	// At the same time back up some global vars in case Cygwin fork() overwrites them
 	DWORD dwLastError;
 
 	HANDLE hMapFile;
@@ -153,6 +139,26 @@ DWORD IpcClientRegisterChildProcess()
 	pChildData->dwSavedTlsIndex = g_dwTlsIndex;
 	pChildData->pSavedHeapAllocatedPointers = g_arrHeapAllocatedPointers;
 
+	ORIGINAL_FUNC_BACKUP(CreateProcessA);
+	ORIGINAL_FUNC_BACKUP(CreateProcessW);
+	ORIGINAL_FUNC_BACKUP(CreateProcessAsUserW);
+
+	ORIGINAL_FUNC_BACKUP2(Ws2_32, WSAStartup);
+	ORIGINAL_FUNC_BACKUP2(Ws2_32, connect);
+	ORIGINAL_FUNC_BACKUP2(Ws2_32, WSAConnect);
+	ORIGINAL_FUNC_BACKUP2(Ws2_32, gethostbyname);
+	ORIGINAL_FUNC_BACKUP2(Ws2_32, gethostbyaddr);
+	ORIGINAL_FUNC_BACKUP2(Ws2_32, getaddrinfo);
+	ORIGINAL_FUNC_BACKUP2(Ws2_32, GetAddrInfoW);
+	ORIGINAL_FUNC_BACKUP2(Ws2_32, GetAddrInfoExA);
+	ORIGINAL_FUNC_BACKUP2(Ws2_32, GetAddrInfoExW);
+	ORIGINAL_FUNC_BACKUP2(Ws2_32, freeaddrinfo);
+	ORIGINAL_FUNC_BACKUP2(Ws2_32, FreeAddrInfoW);
+	ORIGINAL_FUNC_BACKUP2(Ws2_32, FreeAddrInfoExA_);
+	ORIGINAL_FUNC_BACKUP2(Ws2_32, FreeAddrInfoExW);
+	ORIGINAL_FUNC_BACKUP2(Ws2_32, getnameinfo);
+	ORIGINAL_FUNC_BACKUP2(Ws2_32, GetNameInfoW);
+
 	if ((dwLastError = ChildDataToMessage(chMessageBuf, (PXCH_UINT32*)&cbMessageSize, pChildData)) != NO_ERROR) return dwLastError;
 	if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, (PXCH_UINT32*)&cbRespMessageSize)) != NO_ERROR) return dwLastError;
 
@@ -180,20 +186,6 @@ err_mapviewoffile:
 PXCH_UINT32 RestoreChildData()
 {
 	// Restore child process essential data overwritten by Cygwin fork().
-
-	/*REPORTED_CHILD_DATA ChildData;
-	PXCH_IPC_MSGBUF chMessageBuf;
-	PXCH_IPC_MSGBUF chRespMessageBuf;
-	DWORD cbMessageSize;
-	DWORD cbRespMessageSize;
-	
-	ChildData.dwPid = GetCurrentProcessId();
-
-	if (ChildData.dwPid == g_pPxchConfig->dwMasterProcessId) return 0;
-
-	if ((dwLastError = QueryStorageToMessage(chMessageBuf, &cbMessageSize, ChildData.dwPid)) != NO_ERROR) return dwLastError;
-	if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) return dwLastError;
-	if ((dwLastError = MessageToChildData(&ChildData, chRespMessageBuf, cbRespMessageSize)) != NO_ERROR) return dwLastError;*/
 
 	PXCH_UINT32 dwLastError;
 
@@ -229,6 +221,26 @@ PXCH_UINT32 RestoreChildData()
 	hMapFileWhenCreated = pChildData->hMapFile;
 	g_dwCurrentProcessIdForVerify = pChildData->dwPid;
 	pMappedBufWhenCreated = pChildData->pMappedBuf;
+
+	ORIGINAL_FUNC_RESTORE(CreateProcessA);
+	ORIGINAL_FUNC_RESTORE(CreateProcessW);
+	ORIGINAL_FUNC_RESTORE(CreateProcessAsUserW);
+
+	ORIGINAL_FUNC_RESTORE2(Ws2_32, WSAStartup);
+	ORIGINAL_FUNC_RESTORE2(Ws2_32, connect);
+	ORIGINAL_FUNC_RESTORE2(Ws2_32, WSAConnect);
+	ORIGINAL_FUNC_RESTORE2(Ws2_32, gethostbyname);
+	ORIGINAL_FUNC_RESTORE2(Ws2_32, gethostbyaddr);
+	ORIGINAL_FUNC_RESTORE2(Ws2_32, getaddrinfo);
+	ORIGINAL_FUNC_RESTORE2(Ws2_32, GetAddrInfoW);
+	ORIGINAL_FUNC_RESTORE2(Ws2_32, GetAddrInfoExA);
+	ORIGINAL_FUNC_RESTORE2(Ws2_32, GetAddrInfoExW);
+	ORIGINAL_FUNC_RESTORE2(Ws2_32, freeaddrinfo);
+	ORIGINAL_FUNC_RESTORE2(Ws2_32, FreeAddrInfoW);
+	ORIGINAL_FUNC_RESTORE2(Ws2_32, FreeAddrInfoExA_);
+	ORIGINAL_FUNC_RESTORE2(Ws2_32, FreeAddrInfoExW);
+	ORIGINAL_FUNC_RESTORE2(Ws2_32, getnameinfo);
+	ORIGINAL_FUNC_RESTORE2(Ws2_32, GetNameInfoW);
 
 	IPCLOGV(L"g_pPxchConfig restored to %p", g_pPxchConfig);
 	IPCLOGV(L"g_pRemoteData restored to %p", g_pRemoteData);

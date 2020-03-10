@@ -23,6 +23,12 @@
 
 #define FP_ORIGINAL_FUNC(hooking_func_name) hooking_func_name##_SIGN(*orig_fp##hooking_func_name)
 
+#define ORIGINAL_FUNC_BACKUP_MEMBER(hooking_func_name) void* orig_fp##hooking_func_name
+
+#define ORIGINAL_FUNC_BACKUP(hooking_func_name) pChildData->orig_fp##hooking_func_name = orig_fp##hooking_func_name
+
+#define ORIGINAL_FUNC_RESTORE(hooking_func_name) orig_fp##hooking_func_name = pChildData->orig_fp##hooking_func_name
+
 #define DECLARE_HOOK_FUNC(hooking_func_name) PXCH_DLL_API hooking_func_name##_SIGN(Proxy##hooking_func_name)
 
 #define PROXY_FUNC(hooking_func_name) FP_ORIGINAL_FUNC(hooking_func_name); PXCH_DLL_API hooking_func_name##_SIGN(Proxy##hooking_func_name)
@@ -41,6 +47,12 @@
 
 
 #define FP_ORIGINAL_FUNC2(hooked_dll_hint, hooking_func_name) hooked_dll_hint##_##hooking_func_name##_SIGN(*orig_fp##hooked_dll_hint##_##hooking_func_name)
+
+#define ORIGINAL_FUNC_BACKUP_MEMBER2(hooked_dll_hint, hooking_func_name) void* orig_fp##hooked_dll_hint##_##hooking_func_name
+
+#define ORIGINAL_FUNC_BACKUP2(hooked_dll_hint, hooking_func_name) pChildData->orig_fp##hooked_dll_hint##_##hooking_func_name = orig_fp##hooked_dll_hint##_##hooking_func_name
+
+#define ORIGINAL_FUNC_RESTORE2(hooked_dll_hint, hooking_func_name) orig_fp##hooked_dll_hint##_##hooking_func_name = pChildData->orig_fp##hooked_dll_hint##_##hooking_func_name
 
 #define DECLARE_HOOK_FUNC2(hooked_dll_hint, hooking_func_name) PXCH_DLL_API hooked_dll_hint##_##hooking_func_name##_SIGN(Proxy##hooked_dll_hint##_##hooking_func_name)
 

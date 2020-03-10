@@ -116,7 +116,7 @@ int main()
         // Test Hostent
         PrintHostent(gethostbyname("www.baidu.com"));
         PrintHostent(gethostbyname("openwrt.reserved"));
-        PrintHostent(gethostbyname("registry.npmjs.org"));
+        //PrintHostent(gethostbyname("registry.npmjs.org"));
     }
 
     if (1)
@@ -124,7 +124,7 @@ int main()
         // Test GetAddrInfo
         GetAndPrintAddrInfo(L"ip.sb", L"80", NULL);
         GetAndPrintAddrInfo(L"openwrt.reserved", L"80", NULL);
-        GetAndPrintAddrInfo(L"registry.npmjs.org", L"80", NULL);
+        //GetAndPrintAddrInfo(L"registry.npmjs.org", L"80", NULL);
     }
 
     if (0)

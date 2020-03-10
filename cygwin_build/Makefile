@@ -110,8 +110,8 @@ debug : CFLAGS += -g -DDEBUG -D_DEBUG
 debug : DLL_CFLAGS += -g -DDEBUG -D_DEBUG
 debug : pre_debug $(ALL_EXECS_DEBUG)
 
-release : CFLAGS += -DPXCH_LOG_LEVEL=400
-release : DLL_CFLAGS += -DPXCH_LOG_LEVEL=400
+release : CFLAGS += -DPXCH_LOG_LEVEL=400 -O2
+release : DLL_CFLAGS += -DPXCH_LOG_LEVEL=400 -O2
 release : pre_release $(ALL_EXECS_RELEASE)
 
 pre_debug : MAKING_DEBUG MAKING_$(ARCHITECT) $(REMOTE_FUNC_BIN_HEADER_DEBUG)
@@ -144,11 +144,13 @@ $(DLL_OBJS) : %.o : $(SRC_PREFIX)%.c %.d
 
 $(DEPS) : 
 	
-$(HELPER_PATH_DEBUG) : proxychains_helper.o remote_function.o
-	$(CC) -o$@ $(filter %.c %.o %.a %.lib,$^) -Wl,-Bdynamic -lntdllcrt -lkernel32 -l$(CYGWIN_LIB)
+$(HELPER_PATH_DEBUG) : proxychains_helper.o $(SRC_PREFIX)remote_function.c remote_function.d
+	$(CC) $(filter-out -O2,$(CFLAGS)) -g $(DEPFLAGS_IN_PREREQ) -O0 -c -oremote_function.o $(SRC_PREFIX)remote_function.c
+	$(CC) -o$@ $(filter %.o %.a %.lib,$^) remote_function.o -Wl,-Bdynamic -lntdllcrt -lkernel32 -l$(CYGWIN_LIB)
 
-$(HELPER_PATH_RELEASE) : proxychains_helper.o remote_function.o
-	$(CC) -o$@ $(filter %.c %.o %.a %.lib,$^) -Wl,-Bdynamic -lntdllcrt -lkernel32 -l$(CYGWIN_LIB)
+$(HELPER_PATH_RELEASE) : proxychains_helper.o $(SRC_PREFIX)remote_function.c remote_function.d
+	$(CC) $(filter-out -O2,$(CFLAGS)) -g $(DEPFLAGS_IN_PREREQ) -O0 -c -oremote_function.o $(SRC_PREFIX)remote_function.c
+	$(CC) -o$@ $(filter %.o %.a %.lib,$^) remote_function.o -Wl,-Bdynamic -lntdllcrt -lkernel32 -l$(CYGWIN_LIB)
 
 $(REMOTE_FUNC_BIN_HEADER_DEBUG) : $(HELPER_PATH_DEBUG)
 	$(HELPER_PATH_DEBUG) --dump-functions > $@
@@ -158,15 +160,15 @@ $(REMOTE_FUNC_BIN_HEADER_RELEASE) : $(HELPER_PATH_RELEASE)
 	
 dll/hookdll_main.o : MADE_REMOTE_FUNC_BIN_HEADER
 
-MADE_REMOTE_FUNC_BIN_HEADER : proxychains_helper.o remote_function.o
+MADE_REMOTE_FUNC_BIN_HEADER : proxychains_helper.o $(SRC_PREFIX)remote_function.c
 	$(MAKE) -f $(MAKEFILE_PATH) $(REMOTE_FUNC_BIN_HEADER)
 	touch MADE_REMOTE_FUNC_BIN_HEADER
 	
 $(DLL_PATH_DEBUG) : ../minhook/libMinHook.a dll/hookdll_main.o dll/hook_connect_win32.o dll/hook_connect_win32.o dll/hook_connect_cygwin.o dll/hook_createprocess_win32.o dll/hook_installer.o dll/ipc_client_and_child_data.o dll/hookdll_util.o dll/hookdll_util_wsock.o dll/hookdll_util_ipc_message.o cygwin_strsafe/strsafe.o
-	$(CC) -shared -o$@ -Wl,--out-implib=$(DLL_IMPLIB_PATH_DEBUG),--output-def,$@.def $(LIB_DIR_LDFLAGS) $(filter %.c %.o %.a %.lib,$^) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lws2_32 -lshlwapi
+	$(CC) -shared -o$@ -Wl,--out-implib=$(DLL_IMPLIB_PATH_DEBUG),--output-def,$@.def $(LIB_DIR_LDFLAGS) $(filter %.o %.a %.lib,$^) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lws2_32 -lshlwapi
 	
 $(DLL_PATH_RELEASE) : ../minhook/libMinHook.a dll/hookdll_main.o dll/hook_connect_win32.o dll/hook_connect_win32.o dll/hook_connect_cygwin.o dll/hook_createprocess_win32.o dll/hook_installer.o dll/ipc_client_and_child_data.o dll/hookdll_util.o dll/hookdll_util_wsock.o dll/hookdll_util_ipc_message.o cygwin_strsafe/strsafe.o
-	$(CC) -shared -o$@ -Wl,--out-implib=$(DLL_IMPLIB_PATH_RELEASE),--output-def,$@.def $(LIB_DIR_LDFLAGS) $(filter %.c %.o %.a %.lib,$^) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lws2_32 -lshlwapi
+	$(CC) -shared -o$@ -Wl,--out-implib=$(DLL_IMPLIB_PATH_RELEASE),--output-def,$@.def $(LIB_DIR_LDFLAGS) $(filter %.o %.a %.lib,$^) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lws2_32 -lshlwapi
 
 #	-Wl,--export-all-symbols \
 #	-Wl,--enable-auto-import \
@@ -175,10 +177,10 @@ $(DLL_IMPLIB_PATH_DEBUG) : $(DLL_PATH_DEBUG)
 $(DLL_IMPLIB_PATH_RELEASE) : $(DLL_PATH_RELEASE)
 
 $(EXEC_PATH_DEBUG) : ../minhook/libMinHook.a exe/main.o exe/args_and_config.o exe/ipc_proc_bookkeeping.o stdlib_config_reader.o cygwin_strsafe/strsafe.o $(DLL_IMPLIB_PATH_DEBUG)
-	$(CC) -o$@ $(filter %.c %.o %.a %.lib,$^) $(LIB_DIR_LDFLAGS) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lkernel32 -lshlwapi -ladvapi32 -l$(CYGWIN_LIB) -lws2_32
+	$(CC) -o$@ $(filter %.o %.a %.lib,$^) $(LIB_DIR_LDFLAGS) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lkernel32 -lshlwapi -ladvapi32 -l$(CYGWIN_LIB) -lws2_32
 	
 $(EXEC_PATH_RELEASE) : ../minhook/libMinHook.a exe/main.o exe/args_and_config.o exe/ipc_proc_bookkeeping.o stdlib_config_reader.o cygwin_strsafe/strsafe.o $(DLL_IMPLIB_PATH_RELEASE)
-	$(CC) -o$@ $(filter %.c %.o %.a %.lib,$^) $(LIB_DIR_LDFLAGS) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lkernel32 -lshlwapi -ladvapi32 -l$(CYGWIN_LIB) -lws2_32
+	$(CC) -o$@ $(filter %.o %.a %.lib,$^) $(LIB_DIR_LDFLAGS) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lkernel32 -lshlwapi -ladvapi32 -l$(CYGWIN_LIB) -lws2_32
 
 .PHONY : clean_except_mark clean_include_profile_mark clean_include_arch_mark clean dist pre_debug pre_release
 
@@ -218,11 +220,23 @@ installd : debug
 	cp $(DLL_PATH_DEBUG) $(PREFIX)/bin/
 	cp $(HELPER_PATH_DEBUG) $(PREFIX)/bin/
 
-dist :
-	PXCH_VERSION=$$(gcc -dM -E - < ../include/version.h | grep PXCH_VERSION | sort | awk '{print $$3}' | head -c -1 | tr '\n' '.') $(MAKEFILE_DIR)dist.sh
+d :
+	PXCH_VERSION=$$(gcc -dM -E - < ../include/version.h | grep PXCH_VERSION | sort | awk '{print $$3}' | head -c -1 | tr '\n' '.') $(MAKEFILE_DIR)dist.sh --win32 --cygwin
 	
-distinstall :
-	PXCH_VERSION=$$(gcc -dM -E - < ../include/version.h | grep PXCH_VERSION | sort | awk '{print $$3}' | head -c -1 | tr '\n' '.') $(MAKEFILE_DIR)dist.sh --install
+di :
+	PXCH_VERSION=$$(gcc -dM -E - < ../include/version.h | grep PXCH_VERSION | sort | awk '{print $$3}' | head -c -1 | tr '\n' '.') $(MAKEFILE_DIR)dist.sh --win32 --cygwin --install
+
+wd :
+	PXCH_VERSION=$$(gcc -dM -E - < ../include/version.h | grep PXCH_VERSION | sort | awk '{print $$3}' | head -c -1 | tr '\n' '.') $(MAKEFILE_DIR)dist.sh --win32
+	
+wdi :
+	PXCH_VERSION=$$(gcc -dM -E - < ../include/version.h | grep PXCH_VERSION | sort | awk '{print $$3}' | head -c -1 | tr '\n' '.') $(MAKEFILE_DIR)dist.sh --win32 --install
+
+cd :
+	PXCH_VERSION=$$(gcc -dM -E - < ../include/version.h | grep PXCH_VERSION | sort | awk '{print $$3}' | head -c -1 | tr '\n' '.') $(MAKEFILE_DIR)dist.sh --cygwin
+	
+cdi :
+	PXCH_VERSION=$$(gcc -dM -E - < ../include/version.h | grep PXCH_VERSION | sort | awk '{print $$3}' | head -c -1 | tr '\n' '.') $(MAKEFILE_DIR)dist.sh --cygwin --install
 	
 distinstall_legacy:
 	$(MAKE) -f $(MAKEFILE_PATH) release

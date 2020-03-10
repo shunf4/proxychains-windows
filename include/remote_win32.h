@@ -20,13 +20,7 @@
 
 #define STRSAFE_NO_DEPRECATE
 #include "includes_win32.h"
-
-#if defined(_M_X64) || defined(__x86_64__)
-#define FUNCTION_SUFFIX_ARCH X64
-#else
-#define FUNCTION_SUFFIX_ARCH X86
-#endif
-
+#include "defines_generic.h"
 
 #if defined(_M_X64) || defined(__x86_64__)
 #define PXCH_POINTER_PLACEHOLDER_PREMOTEDATA (0xDEADBEEFFEEDFACEull)
@@ -41,8 +35,8 @@
 
 #define CAST_FUNC_ADDR_WITH_PTR_ARCH(pRemoteData, funcName, arch) ((Fp##funcName)(uintptr_t)((pRemoteData)->pxchConfig.FunctionPointers.fp##funcName##arch))
 #define CAST_FUNC_ADDR_WITH_PTR_ARCH_X(pRemoteData, funcName, arch) CAST_FUNC_ADDR_WITH_PTR_ARCH(pRemoteData, funcName, arch)
-#define CAST_FUNC_ADDR_WITH_PTR(pRemoteData, funcName) CAST_FUNC_ADDR_WITH_PTR_ARCH_X(pRemoteData, funcName, FUNCTION_SUFFIX_ARCH)
-#define CAST_FUNC_ADDR(funcName) CAST_FUNC_ADDR_WITH_PTR_ARCH_X(pRemoteData, funcName, FUNCTION_SUFFIX_ARCH)
+#define CAST_FUNC_ADDR_WITH_PTR(pRemoteData, funcName) CAST_FUNC_ADDR_WITH_PTR_ARCH_X(pRemoteData, funcName, PXCH_FUNCTION_SUFFIX_ARCH)
+#define CAST_FUNC_ADDR(funcName) CAST_FUNC_ADDR_WITH_PTR_ARCH_X(pRemoteData, funcName, PXCH_FUNCTION_SUFFIX_ARCH)
 
 #define PXCHDEBUG_ODS
 
@@ -67,5 +61,5 @@
 DWORD __stdcall LoadHookDll(LPVOID * pArg);
 void* LoadHookDll_End(void);
 
-void __cdecl CygwinEntryDetour(void);
-void* CygwinEntryDetour_End(void);
+void __cdecl EntryDetour(void);
+void* EntryDetour_End(void);

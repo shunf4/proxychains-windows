@@ -367,3 +367,5 @@ msys_build/**/*.bin
 win32_output/
 dist/
 include/remote_func_bin*.h
+
+**/*.lnk

@@ -20,6 +20,7 @@
 
 #include "defines_win32.h"
 #include "hookdll_util_ipc_generic.h"
+#include "hookdll_generic.h"
 
 #pragma pack(push, 1)
 typedef struct _REPORTED_CHILD_DATA {
@@ -30,6 +31,29 @@ typedef struct _REPORTED_CHILD_DATA {
 	PXCH_INJECT_REMOTE_DATA* pSavedRemoteData;
 	PXCH_UINT32 dwSavedTlsIndex;
 	void* /* UT_array* */ pSavedHeapAllocatedPointers;
+
+	ORIGINAL_FUNC_BACKUP_MEMBER(CreateProcessA);
+	ORIGINAL_FUNC_BACKUP_MEMBER(CreateProcessW);
+	ORIGINAL_FUNC_BACKUP_MEMBER(CreateProcessAsUserW);
+
+	ORIGINAL_FUNC_BACKUP_MEMBER2(Ws2_32, WSAStartup);
+	ORIGINAL_FUNC_BACKUP_MEMBER2(Ws2_32, connect);
+	ORIGINAL_FUNC_BACKUP_MEMBER2(Ws2_32, WSAConnect);
+	ORIGINAL_FUNC_BACKUP_MEMBER2(Ws2_32, gethostbyname);
+	ORIGINAL_FUNC_BACKUP_MEMBER2(Ws2_32, gethostbyaddr);
+	ORIGINAL_FUNC_BACKUP_MEMBER2(Ws2_32, getaddrinfo);
+	ORIGINAL_FUNC_BACKUP_MEMBER2(Ws2_32, GetAddrInfoW);
+	ORIGINAL_FUNC_BACKUP_MEMBER2(Ws2_32, GetAddrInfoExA);
+	ORIGINAL_FUNC_BACKUP_MEMBER2(Ws2_32, GetAddrInfoExW);
+	ORIGINAL_FUNC_BACKUP_MEMBER2(Ws2_32, freeaddrinfo);
+	ORIGINAL_FUNC_BACKUP_MEMBER2(Ws2_32, FreeAddrInfoW);
+	ORIGINAL_FUNC_BACKUP_MEMBER2(Ws2_32, FreeAddrInfoExA_);
+	ORIGINAL_FUNC_BACKUP_MEMBER2(Ws2_32, FreeAddrInfoExW);
+	ORIGINAL_FUNC_BACKUP_MEMBER2(Ws2_32, getnameinfo);
+	ORIGINAL_FUNC_BACKUP_MEMBER2(Ws2_32, GetNameInfoW);
+
+	ORIGINAL_FUNC_BACKUP_MEMBER2(Mswsock, ConnectEx);
+
 } REPORTED_CHILD_DATA;
 
 typedef struct _IPC_MSGHDR_CHILDDATA {

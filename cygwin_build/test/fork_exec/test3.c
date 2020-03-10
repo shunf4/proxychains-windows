@@ -10,7 +10,6 @@ int main(int argc, char*const*const argv, char*const*const envp)
 {
     pid_t child_pid;
     pid_t pid;
-    sleep(600);
     printf("\e[1;34mhi, my main address %p\e[m\n", &main);
     printf("\e[1;34mhi, my pid %d\e[m\n", getpid());
     return 0;

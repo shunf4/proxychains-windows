@@ -567,14 +567,14 @@ int wmain(int argc, WCHAR* wargv[])
 			break;
 
 		case WAIT_ABANDONED:
-			LOGC(L"Mutex abandoned!");
+			LOGC(L"Semaphore abandoned!");
 			Sleep(INFINITE);
 			exit(ERROR_ABANDONED_WAIT_0);
 			break;
 
 		default:
 			dwLastError = GetLastError();
-			LOGW(L"Wait for semaphore error: " WPRDW L", %ls", dwWaitResult, FormatErrorToStr(dwLastError));
+			LOGW(L"Wait for semaphore status: " WPRDW L"; error: %ls", dwWaitResult, FormatErrorToStr(dwLastError));
 			exit(dwLastError);
 		}
 	}
@@ -631,7 +631,11 @@ DWORD WINAPI CygwinSpawn(LPVOID lpParam)
 	if (child_pid == 0) {
 		child_pid = (pid_t)iReturn;
 	}
-	LOGI(L"Spawnvpe ret: %d; CYGPID: " WPRDW L"", iReturn, child_pid);
+#ifdef PXCH_CYWIN_USE_SPAWNVPE_INSTEAD_OF_FORK_EXEC
+	LOGI(L"spawnvpe ret: %d; CYGPID: " WPRDW L"", iReturn, child_pid);
+#else
+	LOGI(L"posix_spawnp ret: %d; CYGPID: " WPRDW L"", iReturn, child_pid);
+#endif
 
 	return iReturn < 0 ? ERROR_OPEN_FAILED : 0;
 }
@@ -699,14 +703,14 @@ int main(int argc, char* const argv[], char* const envp[])
 			break;
 
 		case WAIT_ABANDONED:
-			LOGC(L"Mutex abandoned!");
+			LOGC(L"Semaphore abandoned!");
 			Sleep(INFINITE);
 			exit(ERROR_ABANDONED_WAIT_0);
 			break;
 
 		default:
 			dwLastError = GetLastError();
-			LOGW(L"Wait for semaphore error: " WPRDW L", %ls", dwWaitResult, FormatErrorToStr(dwLastError));
+			LOGW(L"Wait for semaphore status: " WPRDW L"; error: %ls", dwWaitResult, FormatErrorToStr(dwLastError));
 			exit(dwLastError);
 		}
 	}

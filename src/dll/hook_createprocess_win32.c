@@ -44,7 +44,7 @@ BOOL bRet;
 	bRet = orig_fpCreateProcessA(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &processInformation);
 	dwLastError = GetLastError();
 
-	IPCLOGD(L"CreateProcessA: %S, %S, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s; Ret: %u Child winpid " WPRDW L", tid " WPRDW, lpApplicationName, lpCommandLine, (UINT64)lpProcessAttributes, (UINT64)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory, bRet, processInformation.dwProcessId, processInformation.dwThreadId);
+	IPCLOGD(L"CreateProcessA: %S, %S, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s; Ret: %u Child winpid " WPRDW L", tid " WPRDW, lpApplicationName, lpCommandLine, (UINT64)(uintptr_t)lpProcessAttributes, (UINT64)(uintptr_t)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory, bRet, processInformation.dwProcessId, processInformation.dwThreadId);
 
 	if (lpProcessInformation) {
 		CopyMemory(lpProcessInformation, &processInformation, sizeof(PROCESS_INFORMATION));
@@ -60,9 +60,11 @@ BOOL bRet;
 
 	IPCLOGV(L"CreateProcessA: Injected. " WPRDW, dwReturn);
 
+#if PXCH_USE_REMOTE_THREAD_INSTEAD_OF_ENTRY_DETOUR
 	if (!(dwCreationFlags & CREATE_SUSPENDED)) {
 		ResumeThread(processInformation.hThread);
 	}
+#endif
 
 	if (dwReturn != 0) goto err_inject;
 	IPCLOGD(L"I've Injected WINPID " WPRDW, processInformation.dwProcessId);
@@ -101,7 +103,7 @@ PROXY_FUNC(CreateProcessW)
 	bRet = orig_fpCreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &processInformation);
 	dwLastError = GetLastError();
 
-	IPCLOGD(L"CreateProcessW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s; Ret: %u Child winpid " WPRDW L", tid " WPRDW, lpApplicationName, lpCommandLine, (UINT64)lpProcessAttributes, (UINT64)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory, bRet, processInformation.dwProcessId, processInformation.dwThreadId);
+	IPCLOGD(L"CreateProcessW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s; Ret: %u Child winpid " WPRDW L", tid " WPRDW, lpApplicationName, lpCommandLine, (UINT64)(uintptr_t)lpProcessAttributes, (UINT64)(uintptr_t)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory, bRet, processInformation.dwProcessId, processInformation.dwThreadId);
 
 	if (lpProcessInformation) {
 		CopyMemory(lpProcessInformation, &processInformation, sizeof(PROCESS_INFORMATION));
@@ -117,9 +119,11 @@ PROXY_FUNC(CreateProcessW)
 
 	IPCLOGV(L"CreateProcessW: Injected. " WPRDW, dwReturn);
 
+#if PXCH_USE_REMOTE_THREAD_INSTEAD_OF_ENTRY_DETOUR
 	if (!(dwCreationFlags & CREATE_SUSPENDED)) {
 		ResumeThread(processInformation.hThread);
 	}
+#endif
 
 	if (dwReturn != 0) goto err_inject;
 	IPCLOGD(L"I've Injected WINPID " WPRDW, processInformation.dwProcessId);
@@ -155,7 +159,7 @@ PROXY_FUNC(CreateProcessAsUserW)
 
 	IPCLOGI(L"(In CreateProcessAsUserW) g_pRemoteData->dwDebugDepth = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
 
-	IPCLOGD(L"CreateProcessAsUserW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s", lpApplicationName, lpCommandLine, (UINT64)lpProcessAttributes, (UINT64)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory);
+	IPCLOGD(L"CreateProcessAsUserW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s", lpApplicationName, lpCommandLine, (UINT64)(uintptr_t)lpProcessAttributes, (UINT64)(uintptr_t)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory);
 
 	bRet = orig_fpCreateProcessAsUserW(hToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &processInformation);
 	dwLastError = GetLastError();
@@ -175,9 +179,11 @@ PROXY_FUNC(CreateProcessAsUserW)
 
 	IPCLOGV(L"CreateProcessAsUserW: Injected. " WPRDW, dwReturn);
 
+#if PXCH_USE_REMOTE_THREAD_INSTEAD_OF_ENTRY_DETOUR
 	if (!(dwCreationFlags & CREATE_SUSPENDED)) {
 		ResumeThread(processInformation.hThread);
 	}
+#endif
 
 	if (dwReturn != 0) goto err_inject;
 	IPCLOGD(L"CreateProcessAsUserW: I've Injected WINPID " WPRDW, processInformation.dwProcessId);

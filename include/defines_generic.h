@@ -55,6 +55,22 @@ typedef PXCH_UINT32 PXCH_UINT_MACHINE;
 #define IsDebug() (0)
 #endif
 
+#if defined(_M_X64) || defined(__x86_64__)
+#define IsX64() (1)
+#else
+#define IsX64() (0)
+#endif
+
+#if defined(_M_X64) || defined(__x86_64__)
+#define PXCH_FUNCTION_SUFFIX_ARCH X64
+#else
+#define PXCH_FUNCTION_SUFFIX_ARCH X86
+#endif
+
+#define PXCH_WITH_SUFFIX_ARCH_XX(func, arch) func##arch
+#define PXCH_WITH_SUFFIX_ARCH_X(func, arch) PXCH_WITH_SUFFIX_ARCH_XX(func, arch)
+#define PXCH_WITH_SUFFIX_ARCH(func) PXCH_WITH_SUFFIX_ARCH_X(func, PXCH_FUNCTION_SUFFIX_ARCH)
+
 // printf narrow string specifier
 // Only used in non-ipc log. When using ipc log, use "%ls" for wide string, and "%S" for narrow string
 #ifdef __CYGWIN__
@@ -343,6 +359,9 @@ typedef struct _PROXYCHAINS_CONFIG {
 		PXCH_UINT64 fpwsprintfAX64;
 		PXCH_UINT64 fpSleepX64;
 		PXCH_UINT64 fpExitThreadX64;
+		PXCH_UINT64 fpReleaseSemaphoreX64;
+		PXCH_UINT64 fpCloseHandleX64;
+		PXCH_UINT64 fpWaitForSingleObjectX64;
 
 		PXCH_UINT64 fpGetModuleHandleWX86;
 		PXCH_UINT64 fpLoadLibraryWX86;
@@ -354,6 +373,9 @@ typedef struct _PROXYCHAINS_CONFIG {
 		PXCH_UINT64 fpwsprintfAX86;
 		PXCH_UINT64 fpSleepX86;
 		PXCH_UINT64 fpExitThreadX86;
+		PXCH_UINT64 fpReleaseSemaphoreX86;
+		PXCH_UINT64 fpCloseHandleX86;
+		PXCH_UINT64 fpWaitForSingleObjectX86;
 	} FunctionPointers;
 	
 	PXCH_UINT32 cbProxyListOffset;

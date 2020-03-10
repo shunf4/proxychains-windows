@@ -46,15 +46,15 @@
 #define PXCH_CONFIG_PARSE_IP_PORT PXCH_CONFIG_PARSE_HEX L"[.:]"
 
 #if defined(_M_X64) || defined(__x86_64__)
-#define FUNCTION_SUFFIX_ARCH X64
+#define PXCH_FUNCTION_SUFFIX_ARCH X64
 #else
-#define FUNCTION_SUFFIX_ARCH X86
+#define PXCH_FUNCTION_SUFFIX_ARCH X86
 #endif
 
 #define ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, funcName, funcPtr, arch) (pPxchConfig)->FunctionPointers.fp##funcName##arch = (PXCH_UINT64)(uintptr_t)(funcPtr)
 #define ASSIGN_FUNC_ADDR_WITH_ARCH_X(pPxchConfig, funcName, funcPtr, arch) ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, funcName, funcPtr, arch)
-#define ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, funcName) ASSIGN_FUNC_ADDR_WITH_ARCH_X(pPxchConfig, funcName, &funcName, FUNCTION_SUFFIX_ARCH)
-#define ASSIGN_FUNC_ADDR(pPxchConfig, funcName, funcPtr) ASSIGN_FUNC_ADDR_WITH_ARCH_X(pPxchConfig, funcName, funcPtr, FUNCTION_SUFFIX_ARCH)
+#define ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, funcName) ASSIGN_FUNC_ADDR_WITH_ARCH_X(pPxchConfig, funcName, &funcName, PXCH_FUNCTION_SUFFIX_ARCH)
+#define ASSIGN_FUNC_ADDR(pPxchConfig, funcName, funcPtr) ASSIGN_FUNC_ADDR_WITH_ARCH_X(pPxchConfig, funcName, funcPtr, PXCH_FUNCTION_SUFFIX_ARCH)
 
 #define PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, funcName) LOGD(L"fp" PREFIX_L(#funcName) L"X64 = %p", (pPxchConfig)->FunctionPointers.fp##funcName##X64);LOGD(L"fp" PREFIX_L(#funcName) L"X86 = %p", (pPxchConfig)->FunctionPointers.fp##funcName##X86)
 
@@ -1130,6 +1130,9 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, wsprintfA          );
 	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, Sleep              );
 	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, ExitThread         );
+	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, ReleaseSemaphore   );
+	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, CloseHandle        );
+	ASSIGN_NATIVE_FUNC_ADDR(pPxchConfig, WaitForSingleObject);
 
 #if (defined(_M_X64) || defined(__x86_64__)) && !defined(__CYGWIN__)
 	{
@@ -1160,6 +1163,9 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 					ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, wsprintfA          , NULL, X86);
 					ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, Sleep              , NULL, X86);
 					ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, ExitThread         , NULL, X86);
+					ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, ReleaseSemaphore   , NULL, X86);
+					ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, CloseHandle        , NULL, X86);
+					ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, WaitForSingleObject, NULL, X86);
 					break;
 				}
 				switch (i) {
@@ -1173,6 +1179,9 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 				break; case 7: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, wsprintfA          , tmp, X86);
 				break; case 8: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, Sleep              , tmp, X86);
 				break; case 9: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, ExitThread         , tmp, X86);
+				break; case 10: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, ReleaseSemaphore  , tmp, X86);
+				break; case 11: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, CloseHandle       , tmp, X86);
+				break; case 12: ASSIGN_FUNC_ADDR_WITH_ARCH(pPxchConfig, WaitForSingleObject, tmp, X86);
 				bStop = TRUE; break;
 				default: bStop = TRUE; break;
 				}
@@ -1191,6 +1200,9 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 	PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, wsprintfA          );
 	PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, Sleep              );
 	PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, ExitThread         );
+	PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, ReleaseSemaphore   );
+	PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, CloseHandle        );
+	PRINT_FUNC_ADDR_OF_BOTH_ARCH(pPxchConfig, WaitForSingleObject);
 
 	return NO_ERROR;
 
