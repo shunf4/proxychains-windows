@@ -111,7 +111,6 @@ DWORD RemoteCopyExecute(const PROCESS_INFORMATION* pPi, DWORD dwCreationFlags, B
 	SIZE_T cbRead;
 	DWORD dwLastError;
 	DWORD dwRemoteDataSize = pRemoteData->dwSize;
-	int iShimatta = 0;	// 0: normal; 1: "Any CPU" binary found, re-write funccode of the correct machine type
 
 #if PXCH_USE_REMOTE_THREAD_INSTEAD_OF_ENTRY_DETOUR
 	g_bUseRemoteThreadInsteadOfEntryDetour = TRUE;
@@ -120,14 +119,6 @@ DWORD RemoteCopyExecute(const PROCESS_INFORMATION* pPi, DWORD dwCreationFlags, B
 #endif
 
 	pTargetBuf = NULL;
-
-	// if (bIsX86) {
-	// 	pRemoteFuncCode = PXCH_CONFIG_REMOTE_FUNC_X86(g_pPxchConfig);
-	// 	cbRemoteFuncCodeSize = g_pPxchConfig->cbRemoteFuncX86Size;
-	// } else {
-	// 	pRemoteFuncCode = PXCH_CONFIG_REMOTE_FUNC_X64(g_pPxchConfig);
-	// 	cbRemoteFuncCodeSize = g_pPxchConfig->cbRemoteFuncX64Size;
-	// }
 
 	if (bIsX86) {
 		pRemoteFuncCode = g_RemoteFuncX86;
@@ -350,7 +341,7 @@ shimatta:
 
 		if (!ReadProcessMemory(pPi->hProcess, &((IMAGE_DOS_HEADER*)pTargetImageBase)->e_lfanew, &cbLongFileAddressNew, sizeof(LONG), &cbRead) || cbRead != sizeof(LONG)) goto err_read_entry_detour;
 
-		if (bIsX86 && iShimatta == 0) {
+		if (bIsX86) {
 			pTargetImageNtHeaders32 = (void*)(pTargetImageBase + cbLongFileAddressNew);
 
 			if (!ReadProcessMemory(pPi->hProcess, &pTargetImageNtHeaders32->FileHeader.Machine, &wTargetMachine, sizeof(WORD), &cbRead) || cbRead != sizeof(WORD)) goto err_read_entry_detour;
@@ -363,13 +354,15 @@ shimatta:
 
 			if (!ReadProcessMemory(pPi->hProcess, &pTargetImageNtHeaders64->FileHeader.Machine, &wTargetMachine, sizeof(WORD), &cbRead) || cbRead != sizeof(WORD)) goto err_read_entry_detour;
 
-			// This program may be targeted at "Any CPU" like choco: https://github.com/chocolatey/choco/wiki/Troubleshooting#im-seeing-chocolatey--application--tool-using-32-bit-to-run-instead-of-x64-what-is-going-on
-			if (iShimatta) {
-			} else if (wTargetMachine == IMAGE_FILE_MACHINE_AMD64) {
+			
+			if (wTargetMachine == IMAGE_FILE_MACHINE_AMD64) {
 			} else if (wTargetMachine == IMAGE_FILE_MACHINE_I386) {
-				// bIsX86 = TRUE;
+				// This program may be targeted at "Any CPU" like choco: https://github.com/chocolatey/choco/wiki/Troubleshooting#im-seeing-chocolatey--application--tool-using-32-bit-to-run-instead-of-x64-what-is-going-on
+
+				// We've met executable which is targeted at "Any CPU" and runs in .NET CLR !!
+				// EntryDetour has no effect on this kind of binary, so we have to go back and choose CreateRemoteThread technique
+				// Note that there may be other "shimatta" binaries that is not targeted at "Any CPU", but we do not take them into account.
 				IPCLOGD(L"Shimatta!");
-				iShimatta++;
 				g_bUseRemoteThreadInsteadOfEntryDetour = TRUE;
 				goto shimatta;
 			} else goto err_unmatched_machine;
@@ -406,7 +399,7 @@ shimatta:
 
 		if (!WriteProcessMemory(pPi->hProcess, pTargetRemoteData, pRemoteData, dwRemoteDataSize, &cbWritten) || cbWritten != dwRemoteDataSize) goto err_write_entry_detour;
 
-		if (bIsX86 && iShimatta == 0) {
+		if (bIsX86) {
 			DWORD pTargetRemoteDataCast32 = (DWORD)(uintptr_t)pTargetRemoteData;
 			DWORD pTargetOriginalEntryCast32 = (DWORD)(uintptr_t)pTargetOriginalEntry;
 
