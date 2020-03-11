@@ -68,7 +68,7 @@ directory and run `make`.
 
 # Install
 
-Copy `proxychains*.exe`, `[cyg]proxychains_hook*.dll`
+Copy `proxychains*.exe`, `[cyg/msys-]proxychains_hook*.dll`
  to some directory included in your `PATH`
 environment variable. Also create the needed configuration file in correct
 place. See "Configuration".
@@ -121,7 +121,7 @@ Run `proxychains -h` for more command line argument options.
 
 ## About Cygwin/Msys2 and Busybox
 
-**Cygwin is supported again since 0.6.0!**
+**Cygwin is fully supported since 0.6.0!**
 
 Switching the DLL injection technique from `CreateRemoteThread()`
 to modifying the target process' entry point, proxychains.exe
@@ -136,8 +136,6 @@ replace its `busybox.exe` with
 See [DevNotes](DEVNOTES.md).
 
 # To-do and Known Issues
-
-(Development will be suspended for some time)
 
 - [X] ~~Get rid of Offending&Matching host key confirmation when
       proxifying git/SSH, probably using a FQDN hash function~~
