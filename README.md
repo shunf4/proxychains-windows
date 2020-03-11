@@ -142,6 +142,9 @@ See [DevNotes](DEVNOTES.md).
 
 - [ ] Remote DNS resolving based on UDP associate
 - [ ] Hook `sendto()`, coping with applications which do TCP fast open
+- [X] Detect .NET CLR programs that is AnyCPU&prefers 32-bit/targeted x86
+      /targeted x64. (These are "shimatta" programs, which must be
+      injected by `CreateRemoteThread()`) (fixed in 0.6.2)
 - [X] `ResumeThread()` in case of error during injection (fixed in 0.6.1)
 - [X] Fix choco `err_unmatched_machine` (fixed in 0.6.1)
 - [X] Get rid of Offending&Matching host key confirmation when 

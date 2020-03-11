@@ -246,6 +246,7 @@ shimatta:
 		IMAGE_NT_HEADERS32* pTargetImageNtHeaders32 = NULL;
 		IMAGE_NT_HEADERS64* pTargetImageNtHeaders64 = NULL;
 		WORD wTargetMachine;
+		DWORD dwCLRRuntimeHeaderOffset;
 		DWORD dwTargetOffsetOfEntryPoint;
 		HANDLE hSemaphore1;
 		HANDLE hSemaphore2;
@@ -348,23 +349,45 @@ shimatta:
 
 			if (wTargetMachine != IMAGE_FILE_MACHINE_I386) goto err_unmatched_machine;
 
+			// https://upload.wikimedia.org/wikipedia/commons/1/1b/Portable_Executable_32_bit_Structure_in_SVG_fixed.svg
+			// CLRRuntimeHeader: 32-bit: 0xE8, 64bit: 0xF8
+			if (!ReadProcessMemory(pPi->hProcess, (char*)pTargetImageNtHeaders32 + 0xE8, &dwCLRRuntimeHeaderOffset, sizeof(DWORD), &cbRead) || cbRead != sizeof(DWORD)) goto err_read_entry_detour;
+
+			if (dwCLRRuntimeHeaderOffset) {
+				// See below
+				IPCLOGD(L"Shimatta!");
+				g_bUseRemoteThreadInsteadOfEntryDetour = TRUE;
+				goto shimatta;
+			}
+
 			if (!ReadProcessMemory(pPi->hProcess, &pTargetImageNtHeaders32->OptionalHeader.AddressOfEntryPoint, &dwTargetOffsetOfEntryPoint, sizeof(DWORD), &cbRead) || cbRead != sizeof(DWORD)) goto err_read_entry_detour;
 		} else {
 			pTargetImageNtHeaders64 = (void*)(pTargetImageBase + cbLongFileAddressNew);
 
 			if (!ReadProcessMemory(pPi->hProcess, &pTargetImageNtHeaders64->FileHeader.Machine, &wTargetMachine, sizeof(WORD), &cbRead) || cbRead != sizeof(WORD)) goto err_read_entry_detour;
 
+			// This program may be targeted at "Any CPU" like choco: https://github.com/chocolatey/choco/wiki/Troubleshooting#im-seeing-chocolatey--application--tool-using-32-bit-to-run-instead-of-x64-what-is-going-on
+
+			// We may meet with executable which runs in .NET CLR !! (Shimatta!!)
+			// EntryDetour has no effect on this kind of binary, so we have to go back and choose CreateRemoteThread technique
 			
 			if (wTargetMachine == IMAGE_FILE_MACHINE_AMD64) {
-			} else if (wTargetMachine == IMAGE_FILE_MACHINE_I386) {
-				// This program may be targeted at "Any CPU" like choco: https://github.com/chocolatey/choco/wiki/Troubleshooting#im-seeing-chocolatey--application--tool-using-32-bit-to-run-instead-of-x64-what-is-going-on
+				if (!ReadProcessMemory(pPi->hProcess, (char*)pTargetImageNtHeaders64 + 0xF8, &dwCLRRuntimeHeaderOffset, sizeof(DWORD), &cbRead) || cbRead != sizeof(DWORD)) goto err_read_entry_detour;
 
-				// We've met executable which is targeted at "Any CPU" and runs in .NET CLR !!
-				// EntryDetour has no effect on this kind of binary, so we have to go back and choose CreateRemoteThread technique
-				// Note that there may be other "shimatta" binaries that is not targeted at "Any CPU", but we do not take them into account.
-				IPCLOGD(L"Shimatta!");
-				g_bUseRemoteThreadInsteadOfEntryDetour = TRUE;
-				goto shimatta;
+				if (dwCLRRuntimeHeaderOffset) {
+					IPCLOGD(L"Shimatta!");
+					g_bUseRemoteThreadInsteadOfEntryDetour = TRUE;
+					goto shimatta;
+				}
+			} else if (wTargetMachine == IMAGE_FILE_MACHINE_I386) {
+				// This is very likely to be a "shimatta"
+				if (!ReadProcessMemory(pPi->hProcess, (char*)pTargetImageNtHeaders64 + 0xE8, &dwCLRRuntimeHeaderOffset, sizeof(DWORD), &cbRead) || cbRead != sizeof(DWORD)) goto err_read_entry_detour;
+
+				if (dwCLRRuntimeHeaderOffset) {
+					IPCLOGD(L"Shimatta!");
+					g_bUseRemoteThreadInsteadOfEntryDetour = TRUE;
+					goto shimatta;
+				}
 			} else goto err_unmatched_machine;
 
 			if (!ReadProcessMemory(pPi->hProcess, &pTargetImageNtHeaders64->OptionalHeader.AddressOfEntryPoint, &dwTargetOffsetOfEntryPoint, sizeof(DWORD), &cbRead) || cbRead != sizeof(DWORD)) goto err_read_entry_detour;
