@@ -38,7 +38,9 @@ Proxychains.exe 在 Windows 10 x64 1909 (18363.418)、Windows 7 x64 SP1、Window
 
 # 安装
 
-把生成的 `proxychains*.exe`、 `[cyg/msys-]proxychains_hook*.dll` 复制到 `PATH` 环境变量包含的某个目录下。另外你还需要在正确的位置创建配置文件。参见“配置”。
+把生成的 `proxychains*.exe`、 `[cyg/msys-]proxychains_hook*.dll` 复制到 `PATH` 环境变量包含的某个目录下。你可以把主程序（如 `proxychains_win32_x64.exe`）改为你自己喜欢的名字，如 `proxychains.exe`。
+
+最后你还需要在正确的位置创建配置文件。参见“配置”。
 
 # 配置
 
@@ -80,9 +82,9 @@ Proxychains.exe 按照以下顺序寻找配置：
 
 自从将 DLL 注入的方法从 `CreateRemoteThread()` 改为修改目标进程的入口点之后，proxychains.exe 现在支持完美地强制代理 Cygwin/Msys2 进程了（即使从 Win32 构建版本来调用也是这样）。详见 [DevNotes](DEVNOTES.md)。
 
-如果你想要强制代理 [MinGit busybox 版本](https://github.com/git-for-windows/git/releases/)，请将 `busybox.exe` 换成[我修改的这个版本](https://github.com/shunf4/busybox-w32)。详见 [DevNotes](DEVNOTES.md)
+如果你想要强制代理 [MinGit busybox 版本](https://github.com/git-for-windows/git/releases/)，请将 `busybox.exe` 换成[我修改的这个版本](https://github.com/shunf4/busybox-w32)。详见 [DevNotes](DEVNOTES.md)。
 
-# To-do 以及已知的问题
+# To-Do 以及已知的问题
 
 详见英文文档。
 
