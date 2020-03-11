@@ -16,11 +16,7 @@ Proxychains.exe 在 Windows 10 x64 1909 (18363.418)、Windows 7 x64 SP1、Window
 
 警告：此程序是基于 Hack 的，并且处于开发早期阶段。使用过程中可能会发生任何意外状况。被运行的程序可能会崩溃、无法工作、产生意想不到的运行结果等等。谨慎使用。
 
-警告：此程序可能用于绕过审查。此举在某些国家或地区可能是危险、不符合法律的。
-
-**请在用于正式用途前，确保本程序和代理正常工作。**
-
-比如，你可以通过连接到一些查询本机 IP 的服务如 ifconfig.me ，确保你未暴露你的真实 IP 地址。
+警告：此程序可能用于绕过审查。此举在某些国家或地区可能是危险、不符合法律的。 **请在用于正式用途前，确保本程序和代理正常工作。** 比如，你可以通过连接到一些查询本机 IP 的服务如 ifconfig.me ，确保你未暴露你的真实 IP 地址。 
 
 **请在确保清楚你要执行的操作及其后果后使用本程序。**
 
@@ -42,9 +38,7 @@ Proxychains.exe 在 Windows 10 x64 1909 (18363.418)、Windows 7 x64 SP1、Window
 
 # 安装
 
-*目前仅推荐 Win32 版本，因为 Cygwin 的 Shell 被 Proxychains.exe 运行后会出现奇怪的行为。详见英文文档。*
-
-把生成的 `proxychains*.exe`、 `[cyg]proxychains_hook*.dll` 复制到 `PATH` 环境变量包含的某个目录下。另外你还需要在正确的位置创建配置文件。参见“配置”。
+把生成的 `proxychains*.exe`、 `[cyg/msys-]proxychains_hook*.dll` 复制到 `PATH` 环境变量包含的某个目录下。另外你还需要在正确的位置创建配置文件。参见“配置”。
 
 # 配置
 
@@ -82,9 +76,11 @@ Proxychains.exe 按照以下顺序寻找配置：
 
 ## 关于 Cygwin/Msys2
 
-*目前仅推荐 Win32 版本，因为 Cygwin 的 Shell 被 Proxychains.exe 运行后会出现奇怪的行为。详见英文文档。*
+**Cygwin 自 0.6.0 开始完全得到支持！**
 
-Win32 和 Cygwin 程序都以同样的方式用 Win32 API 来实现注入和 Hook，只有很小的差别（例如，Cygwin 程序是用 `posix_spawn` 而不是 `CreateProcessW` 来运行的）。但是，Cygwin 同样在 Win32 API 的框架下使用了大量的 Hack 来达到 UNIX 风格的用户操作效果，这很有可能与 proxychains.exe 相冲突（特别是调用 `fork()` 和 `exec()` 函数时）。请参阅“To-do 以及已知的问题”。也许一个基于 `LD_LIBRARY_PATH` 的方案更适合 Cygwin。
+自从将 DLL 注入的方法从 `CreateRemoteThread()` 改为修改目标进程的入口点之后，proxychains.exe 现在支持完美地强制代理 Cygwin/Msys2 进程了（即使从 Win32 构建版本来调用也是这样）。详见 [DevNotes](DEVNOTES.md)。
+
+如果你想要强制代理 [MinGit busybox 版本](https://github.com/git-for-windows/git/releases/)，请将 `busybox.exe` 换成[我修改的这个版本](https://github.com/shunf4/busybox-w32)。详见 [DevNotes](DEVNOTES.md)
 
 # To-do 以及已知的问题
 
@@ -136,7 +132,7 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## Minhook
+## MinHook
 
 https://github.com/TsudaKageyu/minhook
 
