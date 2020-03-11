@@ -153,7 +153,19 @@ VOID CALLBACK ChildProcessExitedCallback(
 	ChildProcessExitedCallbackWorker(lpParameter, TimerOrWaitFired);
 }
 
-DWORD RegisterNewChildProcess(const REPORTED_CHILD_DATA* pChildData)
+void AddChildProcessToTable(tab_per_process_t* Entry)
+{
+	tab_per_process_t* ReplacedEntry;
+
+	PXCH_DO_IN_CRITICAL_SECTION_RETURN_VOID{
+		HASH_REPLACE(hh, g_tabPerProcess, Data, sizeof(pid_key_t), Entry, ReplacedEntry);
+		if (ReplacedEntry) {
+			HeapFree(GetProcessHeap(), 0, ReplacedEntry);
+		}
+	}
+}
+
+DWORD RegisterNewChildProcess(const PXCH_CHILD_DATA* pChildData)
 {
 	DWORD dwReturn;
 	tab_per_process_t* Entry;
@@ -187,17 +199,15 @@ after_open_process:
 	Entry->hProcess = hChildHandle;
 	Entry->Ips = NULL;
 	LOGV(L"After Entry->Data = *pChildData;");
-	{
-		PXCH_DO_IN_CRITICAL_SECTION_RETURN_DWORD{
-			HASH_ADD(hh, g_tabPerProcess, Data, sizeof(pid_key_t), Entry);
-		}
-	}
+	AddChildProcessToTable(Entry);
 	LOGV(L"After HASH_ADD");
-	LOGI(L"Registered child pid " WPRDW, pChildData->dwPid);
+	LOGD(L"Registered child pid " WPRDW, pChildData->dwPid);
 	PrintTablePerProcess();
+
+	return NO_ERROR;
 }
 
-DWORD QueryChildStorage(REPORTED_CHILD_DATA* pChildData)
+DWORD QueryChildStorage(PXCH_CHILD_DATA* pChildData)
 {
 	PXCH_DO_IN_CRITICAL_SECTION_RETURN_DWORD{
 		tab_per_process_t* Entry;
@@ -502,7 +512,7 @@ DWORD HandleMessage(int i, PXCH_IPC_INSTANCE* pipc)
 	}
 
 	if (MsgIsType(CHILDDATA, pMsg)) {
-		REPORTED_CHILD_DATA ChildData;
+		PXCH_CHILD_DATA ChildData;
 		LOGV(L"Message is CHILDDATA");
 		MessageToChildData(&ChildData, pMsg, pipc->cbRead);
 		LOGD(L"Child process winpid " WPRDW L" created.", ChildData.dwPid);
@@ -513,7 +523,7 @@ DWORD HandleMessage(int i, PXCH_IPC_INSTANCE* pipc)
 	}
 
 	if (MsgIsType(QUERYSTORAGE, pMsg)) {
-		REPORTED_CHILD_DATA ChildData = { 0 };
+		PXCH_CHILD_DATA ChildData = { 0 };
 		LOGV(L"Message is QUERYSTORAGE");
 		MessageToQueryStorage(&ChildData.dwPid, pMsg, pipc->cbRead);
 		QueryChildStorage(&ChildData);

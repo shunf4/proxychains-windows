@@ -157,7 +157,7 @@ PROXY_FUNC(CreateProcessAsUserW)
 	// For cygwin: cygwin fork() will duplicate the data in child process, including pointer g_*.
 	RestoreChildData();
 
-	IPCLOGI(L"(In CreateProcessAsUserW) g_pRemoteData->dwDebugDepth = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
+	IPCLOGD(L"(In CreateProcessAsUserW) g_pRemoteData->dwDebugDepth = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
 
 	IPCLOGD(L"CreateProcessAsUserW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s", lpApplicationName, lpCommandLine, (UINT64)(uintptr_t)lpProcessAttributes, (UINT64)(uintptr_t)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory);
 

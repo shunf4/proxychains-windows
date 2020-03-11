@@ -42,55 +42,6 @@ HANDLE g_hIpcServerSemaphore;
 
 DWORD HandleMessage(int i, PXCH_IPC_INSTANCE* pipc);
 
-void StdVwprintf_NotImported(DWORD dwStdHandle, const WCHAR* fmt, va_list args)
-{
-	HANDLE h;
-	STRSAFE_LPWSTR pEnd = g_szFwprintfWbuf;
-	int iBufSize;
-	DWORD cbWritten;
-
-	g_szFwprintfWbuf[0] = L'\0';
-	g_szFwprintfBuf[0] = '\0';
-
-#ifdef __CYGWIN__
-	pEnd = g_szFwprintfWbuf + newlib_vswprintf(g_szFwprintfWbuf, PXCH_MAX_FWPRINTF_BUFSIZE, fmt, args);
-#else
-	StringCchVPrintfExW(g_szFwprintfWbuf, PXCH_MAX_FWPRINTF_BUFSIZE, &pEnd, NULL, 0, fmt, args);
-#endif
-
-	if (pEnd < g_szFwprintfWbuf) pEnd = g_szFwprintfWbuf;
-
-	if (g_szFwprintfWbuf[PXCH_MAX_FWPRINTF_BUFSIZE - 2]) g_szFwprintfWbuf[PXCH_MAX_FWPRINTF_BUFSIZE - 2] = L'\n';
-	g_szFwprintfWbuf[PXCH_MAX_FWPRINTF_BUFSIZE - 1] = L'\0';
-	iBufSize = WideCharToMultiByte(CP_ACP, 0, g_szFwprintfWbuf, (int)(pEnd - g_szFwprintfWbuf), g_szFwprintfBuf, PXCH_MAX_FWPRINTF_BUFSIZE, NULL, NULL);
-	g_szFwprintfBuf[PXCH_MAX_FWPRINTF_BUFSIZE - 1] = '\0';
-
-	h = GetStdHandle(dwStdHandle);
-	if (h && h != INVALID_HANDLE_VALUE) WriteFile(h, g_szFwprintfBuf, iBufSize, &cbWritten, NULL);
-}
-
-
-void StdWprintf_NotImported(DWORD dwStdHandle, const WCHAR* fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-	StdVwprintf_NotImported(dwStdHandle, fmt, args);
-    va_end(args);
-}
-
-
-void StdFlush_NotImported(DWORD dwStdHandle)
-{
-	HANDLE h;
-
-	h = GetStdHandle(dwStdHandle);
-	if (h && h != INVALID_HANDLE_VALUE) FlushFileBuffers(h);
-}
-
-#define StdVwprintf StdVwprintf_NotImported
-#define StdWprintf StdWprintf_NotImported
-#define StdFlush StdFlush_NotImported
-
 DWORD ConnectToNewClient(HANDLE hPipe, LPOVERLAPPED lpo)
 {
 	BOOL bConnected;
@@ -663,8 +614,8 @@ int main(int argc, char* const argv[], char* const envp[])
 	setvbuf(stderr, NULL, _IOFBF, 65536);
 	szLocale = setlocale(LC_ALL, "");
 	(void)szLocale;
-	// WriteFile() executed inside StdWprintf() in DLL won't work??? This is a (deprecated) workaround.
-	if (0) {
+	// WriteFile() executed inside StdWprintf() in DLL won't work??? This is a workaround.
+	if (1) {
 		DWORD cbWritten;
 		WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), "", 0, &cbWritten, NULL);
 		FlushFileBuffers(GetStdHandle(STD_OUTPUT_HANDLE));
@@ -726,7 +677,7 @@ int main(int argc, char* const argv[], char* const envp[])
 
 	if (g_tabPerProcess == NULL) {
 		LOGI(L"No child process registered. Injection might not have succeeded.");
-		// IF_CYGWIN_EXIT(1);
+		IF_CYGWIN_EXIT(1);
 	}
 
 	signal(SIGINT, handle_sigint);

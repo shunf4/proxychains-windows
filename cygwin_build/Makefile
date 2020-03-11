@@ -110,8 +110,8 @@ debug : CFLAGS += -g -DDEBUG -D_DEBUG
 debug : DLL_CFLAGS += -g -DDEBUG -D_DEBUG
 debug : pre_debug $(ALL_EXECS_DEBUG)
 
-release : CFLAGS += -DPXCH_LOG_LEVEL=400 -O2
-release : DLL_CFLAGS += -DPXCH_LOG_LEVEL=400 -O2
+release : CFLAGS += -O2
+release : DLL_CFLAGS += -O2
 release : pre_release $(ALL_EXECS_RELEASE)
 
 pre_debug : MAKING_DEBUG MAKING_$(ARCHITECT) $(REMOTE_FUNC_BIN_HEADER_DEBUG)

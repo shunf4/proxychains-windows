@@ -183,11 +183,11 @@ DWORD RemoteCopyExecute(const PROCESS_INFORMATION* pPi, BOOL bIsWow64, BOOL bIsX
 		IPCLOGV(L"CreateProcessW: After WaitForSingleObject(). " WPRDW, 0);
 		dwReturn = -1;
 		if (!GetExitCodeThread(hRemoteThread, &dwReturn)) {
-			IPCLOGE(L"GetExitCodeThread() Error: %ls", FormatErrorToStr(GetLastError()));
+			IPCLOGW(L"GetExitCodeThread() Error: %ls", FormatErrorToStr(GetLastError()));
 		}
 
 		if (dwReturn != 0) {
-			IPCLOGE(L"Error: Remote thread exit code: %#lx", dwReturn);
+			IPCLOGW(L"Error: Remote thread exit code: %#lx", dwReturn);
 		}
 
 		// Copy back data
@@ -196,29 +196,29 @@ DWORD RemoteCopyExecute(const PROCESS_INFORMATION* pPi, BOOL bIsWow64, BOOL bIsX
 
 		// Validate return value
 		if (dwReturn != pRemoteData->dwLastError) {
-			IPCLOGE(L"Error: Remote thread exit code does not match the error code stored in remote data memory! Exit code:" WPRDW L" <=> Data Memory: %ls", dwReturn, FormatErrorToStr(pRemoteData->dwLastError));
+			IPCLOGW(L"Error: Remote thread exit code does not match the error code stored in remote data memory! Exit code:" WPRDW L" <=> Data Memory: %ls", dwReturn, FormatErrorToStr(pRemoteData->dwLastError));
 		}
 
 		return 0;
 		
 	err_create_remote_thread:
 		dwLastError = GetLastError();
-		IPCLOGE(L"CreateRemoteThread() Failed: %ls", FormatErrorToStr(dwLastError));
+		IPCLOGW(L"CreateRemoteThread() Failed: %ls", FormatErrorToStr(dwLastError));
 		goto ret_free;
 
 	err_wait:
 		dwLastError = GetLastError();
-		IPCLOGE(L"WaitForSingleObject() Failed: " WPRDW L", %ls", dwReturn, FormatErrorToStr(dwLastError));
+		IPCLOGW(L"WaitForSingleObject() Failed: " WPRDW L", %ls", dwReturn, FormatErrorToStr(dwLastError));
 		goto ret_close;
 	
 	err_read_data_remote_thread:
 		dwLastError = GetLastError();
-		IPCLOGE(L"ReadProcessMemory() Failed to read data(" WPRDW L"/" WPRDW L"): %ls", cbRead, dwRemoteDataSize, FormatErrorToStr(dwLastError));
+		IPCLOGW(L"ReadProcessMemory() Failed to read data(" WPRDW L"/" WPRDW L"): %ls", cbRead, dwRemoteDataSize, FormatErrorToStr(dwLastError));
 		goto ret_close;
 
 	err_write_data_remote_thread:
 		dwLastError = GetLastError();
-		IPCLOGE(L"WriteProcessMemory() Failed to write data: %ls", FormatErrorToStr(dwLastError));
+		IPCLOGW(L"WriteProcessMemory() Failed to write data: %ls", FormatErrorToStr(dwLastError));
 		goto ret_free;
 
 	ret_close:
@@ -460,64 +460,64 @@ DWORD RemoteCopyExecute(const PROCESS_INFORMATION* pPi, BOOL bIsWow64, BOOL bIsX
 
 	err_load_dll_entry_detour:
 		dwLastError = GetLastError();
-		IPCLOGE(L"LoadLibraryW() Failed: %ls", FormatErrorToStr(dwLastError));
+		IPCLOGW(L"LoadLibraryW() Failed: %ls", FormatErrorToStr(dwLastError));
 		goto ret_free;
 
 	err_query:
 		dwLastError = GetLastError();
-		IPCLOGE(L"NtQueryInformationProcess()/NtQueryInformationThread() Failed: %ls", FormatErrorToStr(dwLastError));
+		IPCLOGW(L"NtQueryInformationProcess()/NtQueryInformationThread() Failed: %ls", FormatErrorToStr(dwLastError));
 		goto ret_free;
 
 	err_get_ctx:
 		dwLastError = GetLastError();
-		IPCLOGE(L"GetThreadContext() Failed: %ls", FormatErrorToStr(dwLastError));
+		IPCLOGW(L"GetThreadContext() Failed: %ls", FormatErrorToStr(dwLastError));
 		goto ret_free;
 
 	err_reg_ppeb_not_equal:
 		dwLastError = ERROR_NOT_SUPPORTED;
-		IPCLOGE(L"pTargetPeb != TargetCtx.Rdx/Ebx. Unable to inject into this process.");
+		IPCLOGW(L"pTargetPeb != TargetCtx.Rdx/Ebx. Unable to inject into this process.");
 		goto ret_free;
 
 	err_reg_entry_not_equal:
 		dwLastError = ERROR_NOT_SUPPORTED;
-		IPCLOGE(L"pOriginalEntry != TargetCtx.Rcx/Eax. Unable to inject into this process.");
+		IPCLOGW(L"pOriginalEntry != TargetCtx.Rcx/Eax. Unable to inject into this process.");
 		goto ret_free;
 
 	err_read_entry_detour:
 		dwLastError = GetLastError();
-		IPCLOGE(L"ReadProcessMemory() Failed: %ls", FormatErrorToStr(dwLastError));
+		IPCLOGW(L"ReadProcessMemory() Failed: %ls", FormatErrorToStr(dwLastError));
 		goto ret_free;
 
 	err_unmatched_machine:
 		dwLastError = ERROR_NOT_SUPPORTED;
-		IPCLOGE(L"Unmatched executable platform type!");
+		IPCLOGW(L"Unmatched executable platform type!");
 		goto ret_free;
 
 	err_create_semaphore:
 		dwLastError = GetLastError();
-		IPCLOGE(L"CreateSemaphore() Failed: %ls", FormatErrorToStr(dwLastError));
+		IPCLOGW(L"CreateSemaphore() Failed: %ls", FormatErrorToStr(dwLastError));
 		CloseHandle(hSemaphore1);
 		CloseHandle(hSemaphore2);
 		goto ret_free;
 
 	err_dup_semaphore:
 		dwLastError = GetLastError();
-		IPCLOGE(L"DuplicateHandle() Failed: %ls", FormatErrorToStr(dwLastError));
+		IPCLOGW(L"DuplicateHandle() Failed: %ls", FormatErrorToStr(dwLastError));
 		goto ret_close_sema;
 
 	err_write_entry_detour:
 		dwLastError = GetLastError();
-		IPCLOGE(L"WriteProcessMemory() Failed: %ls", FormatErrorToStr(dwLastError));
+		IPCLOGW(L"WriteProcessMemory() Failed: %ls", FormatErrorToStr(dwLastError));
 		goto ret_close_sema;
 
 	err_read_entry_detour_close_sema:
 		dwLastError = GetLastError();
-		IPCLOGE(L"ReadProcessMemory() Failed: %ls", FormatErrorToStr(dwLastError));
+		IPCLOGW(L"ReadProcessMemory() Failed: %ls", FormatErrorToStr(dwLastError));
 		goto ret_close_sema;
 
 	err_set_ctx:
 		dwLastError = GetLastError();
-		IPCLOGE(L"SetThreadContext() Failed: %ls", FormatErrorToStr(dwLastError));
+		IPCLOGW(L"SetThreadContext() Failed: %ls", FormatErrorToStr(dwLastError));
 		goto ret_close_sema;
 
 	ret_close_sema:
@@ -529,12 +529,12 @@ DWORD RemoteCopyExecute(const PROCESS_INFORMATION* pPi, BOOL bIsWow64, BOOL bIsX
 
 err_alloc:
 	dwLastError = GetLastError();
-	IPCLOGE(L"VirtualAllocEx() Failed: %ls", FormatErrorToStr(dwLastError));
+	IPCLOGW(L"VirtualAllocEx() Failed: %ls", FormatErrorToStr(dwLastError));
 	return dwLastError;
 
 err_write_code:
 	dwLastError = GetLastError();
-	IPCLOGE(L"WriteProcessMemory() Failed to write code(cbWritten = %zu, cbRemoteFuncCodeSize = %zu): %ls", cbWritten, cbRemoteFuncCodeSize, FormatErrorToStr(dwLastError));
+	IPCLOGW(L"WriteProcessMemory() Failed to write code(cbWritten = %zu, cbRemoteFuncCodeSize = %zu): %ls", cbWritten, cbRemoteFuncCodeSize, FormatErrorToStr(dwLastError));
 	goto ret_free;
 
 ret_free:
@@ -550,7 +550,7 @@ DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi)
 	DWORD dwReturn;
 	DWORD dwExtraSize = PXCH_CONFIG_EXTRA_SIZE_G;
 	BOOL bIsX86;
-	BOOL bIsWow64 = 7;
+	BOOL bIsWow64 = FALSE;
 
 	hProcess = pPi->hProcess;
 	if (!IsWow64Process(hProcess, &bIsWow64)) goto err_wow64;
@@ -565,14 +565,14 @@ DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi)
 	// Another method to inject X64 -> X86: https://github.com/OpenWireSec/metasploit/blob/master/external/source/meterpreter/source/common/arch/win/i386/base_inject.c
 	if (bIsX86) {
 		if (g_pPxchConfig->FunctionPointers.fpGetModuleHandleWX86 == 0) {
-			IPCLOGD(L"Child is an X86(Win32) process (%u %u); function address missing: won't inject", g_SystemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL, bIsWow64);
+			IPCLOGW(L"Child is an X86(Win32) process (%u %u); function address missing: won't inject", g_SystemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL, bIsWow64);
 			return NO_ERROR;
 		} else {
 			IPCLOGD(L"Child is an X86(Win32) process (%u %u).", g_SystemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL, bIsWow64);
 		}
 	} else {
 		if (g_pPxchConfig->FunctionPointers.fpGetModuleHandleWX64 == 0) {
-			IPCLOGD(L"Child is an X64 process; function address missing: won't inject");
+			IPCLOGW(L"Child is an X64 process; function address missing: won't inject");
 			return NO_ERROR;
 		} else {
 			IPCLOGD(L"Child is an X64 process.");
@@ -616,13 +616,13 @@ DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi)
 	IPCLOGV(L"CreateProcessW: After RemoteCopyExecute. " WPRDW, 0);
 
 	if (pRemoteData->dwEverExecuted == 0) {
-		IPCLOGE(L"Error: Remote thread/entry detour never executed!");
+		IPCLOGW(L"Error: Remote thread/entry detour never executed!");
 		dwReturn = ERROR_FUNCTION_NOT_CALLED;
 		// goto error;
 	}
 
 	if (pRemoteData->dwLastError != 0) {
-		IPCLOGE(L"Error: Remote thread error: %ls!", FormatErrorToStr(pRemoteData->dwLastError));
+		IPCLOGW(L"Error: Remote thread error: %ls!", FormatErrorToStr(pRemoteData->dwLastError));
 		dwReturn = pRemoteData->dwLastError;
 		goto error;
 	}
@@ -632,7 +632,7 @@ DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi)
 
 err_wow64:
 	dwLastError = GetLastError();
-	IPCLOGE(L"IsWow64Process() Failed: %ls", FormatErrorToStr(dwLastError));
+	IPCLOGW(L"IsWow64Process() Failed: %ls", FormatErrorToStr(dwLastError));
 	return dwLastError;
 
 error:
@@ -693,12 +693,12 @@ PXCH_DLL_API DWORD __stdcall InitHook(PXCH_INJECT_REMOTE_DATA* pRemoteData)
 	
 	ODBGSTRLOGD(L"InitHook: after MH_EnableHook");
 
-	dwLastError = IpcClientRegisterChildProcess();
+	dwLastError = IpcClientRegisterChildProcessAndBackupChildData();
 
 	if (dwLastError) {
-		ODBGSTRLOGD(L"InitHook: after IpcClientRegisterChildProcess, IPC Failed");
+		ODBGSTRLOGD(L"InitHook: after IpcClientRegisterChildProcessAndBackupChildData, IPC Failed");
 	} else {
-		ODBGSTRLOGD(L"InitHook: after IpcClientRegisterChildProcess, IPC Succeed");
+		ODBGSTRLOGD(L"InitHook: after IpcClientRegisterChildProcessAndBackupChildData, IPC Succeed");
 	}
 
 	IPCLOGD(L"I'm WINPID " WPRDW L" Hooked!", log_pid);

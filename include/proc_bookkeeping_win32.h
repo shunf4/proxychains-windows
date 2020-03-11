@@ -81,7 +81,7 @@ typedef struct _ip_dl_element_t {
 } IpNode;
 
 typedef struct {
-	REPORTED_CHILD_DATA Data;
+	PXCH_CHILD_DATA Data;
 	IpNode* Ips;
 	HANDLE hProcess;
 

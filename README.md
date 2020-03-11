@@ -36,22 +36,16 @@ not work, producing unwanted results etc. Be careful when working with this
 tool.
 
 WARNING: this program can be used to circumvent censorship.
-doing so can be VERY DANGEROUS in certain countries.
+doing so can be VERY DANGEROUS in certain countries. ALWAYS MAKE
+SURE THAT PROXYCHAINS.EXE WORKS AS EXPECTED BEFORE USING IT FOR
+ANYTHING SERIOUS. This involves both the program and the proxy
+that you're going to use. For example, you can connect to some
+"what is my ip" service like ifconfig.me to make sure that it's
+not using your real ip.
 
-ALWAYS MAKE SURE THAT PROXYCHAINS.EXE WORKS AS EXPECTED
-BEFORE USING IT FOR ANYTHING SERIOUS.
-
-This involves both the program and the proxy that you're going to
-use.
-
-For example, you can connect to some "what is my ip" service
-like ifconfig.me to make sure that it's not using your real ip.
-
-ONLY USE PROXYCHAINS.EXE IF YOU KNOW WHAT YOU'RE DOING.
-
-THE AUTHORS AND MAINTAINERS OF PROXYCHAINS DO NOT TAKE ANY
-RESPONSIBILITY FOR ANY ABUSE OR MISUSE OF THIS SOFTWARE AND
-THE RESULTING CONSEQUENCES.
+ONLY USE PROXYCHAINS.EXE IF YOU KNOW WHAT YOU'RE DOING. THE AUTHORS
+AND MAINTAINERS OF PROXYCHAINS DO NOT TAKE ANY RESPONSIBILITY FOR
+ANY ABUSE OR MISUSE OF THIS SOFTWARE AND THE RESULTING CONSEQUENCES.
 
 # Build
 
@@ -68,17 +62,11 @@ file generated under `win32_output/`.
 
 ## Cygwin/Msys2 Build
 
-*Note: using Cygwin/Msys2 version is no longer encourged.
-See [About Cygwin/Msys2](#about-cygwinmsys2).*
-
 Install Cygwin/Msys2 and various build tool packages (gcc, w32api-headers,
 w32api-runtime etc). Run bash, switch to `cygwin_build` / `msys_build`
 directory and run `make`.
 
 # Install
-
-*Note: using Cygwin/Msys2 version is no longer encourged.
-See [About Cygwin/Msys2](#about-cygwinmsys2).*
 
 Copy `proxychains*.exe`, `[cyg]proxychains_hook*.dll`
  to some directory included in your `PATH`
@@ -131,64 +119,31 @@ Run `proxychains -h` for more command line argument options.
 - Main program terminates all descendant processes when it receives a SIGINT
   (Ctrl-C).
 
-## About Cygwin/Msys2
+## About Cygwin/Msys2 and Busybox
 
-*Note: using Cygwin/Msys2 version is no longer encourged due to weird
-behaviour(hang) of its shells when `CreateRemoteThread()`'ed by
-proxychains.exe. Cygwin Sucks.*
+**Cygwin is supported again since 0.6.0!**
 
-*If you want to proxify something that calls `git` (like `npm`,
-`go get`, `git` itself, etc), do not use git-for-windows which
-is based on an Msys2 environment. Instead, use
+Switching the DLL injection technique from `CreateRemoteThread()`
+to modifying the target process' entry point, proxychains.exe
+now supports proxifying Cygwin/Msys2 process perfectly.
+(Even when you call them with Win32 version of proxychains.exe).
+See [DevNotes](DEVNOTES.md).
+
+If you want to proxify
 [MinGit busybox variant](https://github.com/git-for-windows/git/releases/),
-and replace its `busybox.exe` with
-~~[this version](https://frippery.org/busybox/)~~
-[this version modified by me](https://github.com/shunf4/busybox-w32).*
-
- > The git-for-windows fork of busybox-w32 shipped with MinGit-busybox
- > also hangs when executing a shell script with pipe "|" creation, when
- > its `CreateProcessW()` is hooked. The reason is, its `win32/process.c`
- > is heavily modified compared to original version; it has a flaw in the
- > process creating function `mingw_spawnve()`, in which
- > `exit_process_on_signal()` is called. Then `exit_process_on_signal()`
- > calls `cull_exited_processes()`, which closes all handles related to
- > currently known exited process. However `shell/ash.c` still USES these
- > handles to do child process waiting in `waitpid_child`. This brings
- > about erroneous results, finally leading to an infinite waiting loop.
- > My fork fixes this flaw.
-
-*Now you have wholly-win32, pure and neat git environment, ready to be
-proxified.*
-
-Both Win32 and Cygwin programs are injected and hooked using Win32 API in a
-same way, with only a few differences (for example, cygwin programs are run
-by `posix_spawn` instead of `CreateProcessW`).
-However, Cygwin also used lots of hacks inside Win32 API framework
-to achieve a UNIX style of manipulation, which is very possible to conflict
-with proxychains.exe (especially `fork()` and `exec()` called by some
-programs). See "To-do and Known Issues". 
-
-~~Perhaps solution based on
-`LD_LIBRARY_PATH` is better for Cygwin.~~ Not feasible. Cygwin will not
-follow this kind of instruction of dynamic linking order(???).
+replace its `busybox.exe` with
+[this version modified by me](https://github.com/shunf4/busybox-w32).
+See [DevNotes](DEVNOTES.md).
 
 # To-do and Known Issues
 
 (Development will be suspended for some time)
 
-- [ ] Get rid of Offending&Matching host key confirmation when
-      proxifying git/SSH, probably using a FQDN hash function
-- [ ] Try to fix hang when executing `git clone https://` and
-      `git submodule update --init --recursive` (This is partially
-      resolved by using MinGit-busybox with replaced busybox;
-      see [About Cygwin/Msys2](#about-cygwinmsys2).)
-- [ ] ~~Try to fix frequent failure of `proxychains bash` under Cygwin~~
-      (Won't fix)
+- [X] ~~Get rid of Offending&Matching host key confirmation when
+      proxifying git/SSH, probably using a FQDN hash function~~
+      fixed in 0.6.0
 - [ ] Remote DNS resolving based on UDP associate
 - [ ] Hook `sendto()`, coping with applications which do TCP fast open
-- [X] ~~Dynamic selection of 32-bit DLL and 64-bit DLL~~ ~~Fixed in 0.4~~
-      Finally fixed in ~~0.4.3~~ ~~0.4.4~~ 0.4.5
-- [X] ~~Resolve race condition in `StdWprintf()`~~ Fixed in 0.4.5
 
 # Licensing
 
@@ -236,7 +191,7 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## Minhook
+## MinHook
 
 https://github.com/TsudaKageyu/minhook
 

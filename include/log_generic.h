@@ -60,20 +60,24 @@ PXCH_DLL_API extern wchar_t log_ods_buf_early[PXCH_LOG_ODS_BUFSIZE];
 
 #ifdef _DEBUG
 #define ODBGSTRLOGD_WITH_EARLY_BUF(fmt, ...) do { \
-	StringCchPrintfW(log_ods_buf_early, PXCH_LOG_ODS_BUFSIZE, fmt, ##__VA_ARGS__); OutputDebugStringW(log_ods_buf_early); \
+	if ((g_pPxchConfig && g_pPxchConfig->dwLogLevel < PXCH_LOG_LEVEL_DEBUG) || (!g_pPxchConfig && !IsDebug())) break; \
+	StringCchPrintfW(log_ods_buf_early, PXCH_LOG_ODS_BUFSIZE, fmt, ##__VA_ARGS__); \
+	OutputDebugStringW(log_ods_buf_early); \
 } while(0)
 #else
 #define ODBGSTRLOGD_WITH_EARLY_BUF(fmt, ...)
 #endif
 
 #define ODBGSTRLOG_FORCE_WITH_EARLY_BUF(fmt, ...) do { \
-	StringCchPrintfW(log_ods_buf_early, PXCH_LOG_ODS_BUFSIZE, fmt, ##__VA_ARGS__); OutputDebugStringW(log_ods_buf_early); \
+	StringCchPrintfW(log_ods_buf_early, PXCH_LOG_ODS_BUFSIZE, fmt, ##__VA_ARGS__); \
+	OutputDebugStringW(log_ods_buf_early); \
 } while(0)
 
 #if PXCH_LOG_LEVEL_ENABLED >= PXCH_LOG_LEVEL_DEBUG
 #define ODBGSTRLOGD(fmt, ...) do { \
 	if ((g_pPxchConfig && g_pPxchConfig->dwLogLevel < PXCH_LOG_LEVEL_DEBUG) || (!g_pPxchConfig && !IsDebug())) break; \
-	StringCchPrintfW(log_ods_buf, PXCH_LOG_ODS_BUFSIZE, fmt, ##__VA_ARGS__); OutputDebugStringW(log_ods_buf); \
+	StringCchPrintfW(log_ods_buf, PXCH_LOG_ODS_BUFSIZE, fmt, ##__VA_ARGS__); \
+	OutputDebugStringW(log_ods_buf); \
 } while(0)
 #else
 #define ODBGSTRLOGD(...)
@@ -82,7 +86,8 @@ PXCH_DLL_API extern wchar_t log_ods_buf_early[PXCH_LOG_ODS_BUFSIZE];
 #if PXCH_LOG_LEVEL_ENABLED >= PXCH_LOG_LEVEL_VERBOSE
 #define ODBGSTRLOGV(fmt, ...) do { \
 	if ((g_pPxchConfig && g_pPxchConfig->dwLogLevel < PXCH_LOG_LEVEL_VERBOSE) || (!g_pPxchConfig && !IsDebug())) break; \
-	StringCchPrintfW(log_ods_buf, PXCH_LOG_ODS_BUFSIZE, fmt, ##__VA_ARGS__); OutputDebugStringW(log_ods_buf); \
+	StringCchPrintfW(log_ods_buf, PXCH_LOG_ODS_BUFSIZE, fmt, ##__VA_ARGS__); \
+	OutputDebugStringW(log_ods_buf); \
 } while(0)
 #else
 #define ODBGSTRLOGV(...)

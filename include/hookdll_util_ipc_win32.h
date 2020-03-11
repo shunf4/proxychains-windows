@@ -23,7 +23,7 @@
 #include "hookdll_generic.h"
 
 #pragma pack(push, 1)
-typedef struct _REPORTED_CHILD_DATA {
+typedef struct _PXCH_CHILD_DATA {
 	PXCH_UINT32 dwPid;
 	HANDLE hMapFile;
 	LPCVOID pMappedBuf;
@@ -54,11 +54,11 @@ typedef struct _REPORTED_CHILD_DATA {
 
 	ORIGINAL_FUNC_BACKUP_MEMBER2(Mswsock, ConnectEx);
 
-} REPORTED_CHILD_DATA;
+} PXCH_CHILD_DATA;
 
 typedef struct _IPC_MSGHDR_CHILDDATA {
 	UINT32 dwTag;
-	REPORTED_CHILD_DATA ChildData;
+	PXCH_CHILD_DATA ChildData;
 } PXCH_IPC_MSGHDR_CHILDDATA;
 
 typedef struct _IPC_MSGHDR_QUERYSTORAGE {
@@ -67,8 +67,8 @@ typedef struct _IPC_MSGHDR_QUERYSTORAGE {
 } PXCH_IPC_MSGHDR_QUERYSTORAGE;
 #pragma pack(pop)
 
-PXCH_DLL_API PXCH_UINT32 ChildDataToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, const REPORTED_CHILD_DATA* pChildData);
-PXCH_DLL_API PXCH_UINT32 MessageToChildData(REPORTED_CHILD_DATA* pChildData, CPXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize);
+PXCH_DLL_API PXCH_UINT32 ChildDataToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, const PXCH_CHILD_DATA* pChildData);
+PXCH_DLL_API PXCH_UINT32 MessageToChildData(PXCH_CHILD_DATA* pChildData, CPXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize);
 
 PXCH_DLL_API PXCH_UINT32 QueryStorageToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, PXCH_UINT32 dwChildPid);
 PXCH_DLL_API PXCH_UINT32 MessageToQueryStorage(PXCH_UINT32* pdwChildPid, CPXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize);

@@ -106,7 +106,7 @@ close_ret:
 }
 
 
-DWORD IpcClientRegisterChildProcess()
+DWORD IpcClientRegisterChildProcessAndBackupChildData()
 {
 	// Report child process to master process;
 	// At the same time back up some global vars in case Cygwin fork() overwrites them
@@ -114,7 +114,7 @@ DWORD IpcClientRegisterChildProcess()
 
 	HANDLE hMapFile;
 	WCHAR szFileMappingName[PXCH_MAX_FILEMAPPING_BUFSIZE];
-	REPORTED_CHILD_DATA* pChildData;
+	PXCH_CHILD_DATA* pChildData;
 	DWORD dwCurrentProcessId;
 
 	PXCH_IPC_MSGBUF chMessageBuf;
@@ -125,10 +125,10 @@ DWORD IpcClientRegisterChildProcess()
 	dwCurrentProcessId = GetCurrentProcessId();
 
 	if (FAILED(StringCchPrintfW(szFileMappingName, _countof(szFileMappingName), L"%ls" WPRDW, g_szChildDataSavingFileMappingPrefix, dwCurrentProcessId))) goto err_sprintf;
-	hMapFile = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(REPORTED_CHILD_DATA), szFileMappingName);
+	hMapFile = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(PXCH_CHILD_DATA), szFileMappingName);
 	if (hMapFile == NULL) goto err_filemapping;
 
-	pChildData = MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(REPORTED_CHILD_DATA));
+	pChildData = MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(PXCH_CHILD_DATA));
 	if (pChildData == NULL) goto err_mapviewoffile;
 
 	pChildData->dwPid = dwCurrentProcessId;
@@ -193,7 +193,7 @@ PXCH_UINT32 RestoreChildData()
 	HANDLE hMapFileWhenCreated;
 	LPCVOID pMappedBufWhenCreated;
 	WCHAR szFileMappingName[PXCH_MAX_FILEMAPPING_BUFSIZE];
-	REPORTED_CHILD_DATA* pChildData;
+	PXCH_CHILD_DATA* pChildData;
 	DWORD dwRealCurrentProcessId;
 
 	if ((dwRealCurrentProcessId = GetCurrentProcessId()) == g_dwCurrentProcessIdForVerify) return 0;
@@ -206,11 +206,11 @@ PXCH_UINT32 RestoreChildData()
 	g_bSystemInfoInitialized = FALSE;
 
 	if (FAILED(StringCchPrintfW(szFileMappingName, _countof(szFileMappingName), L"%ls" WPRDW, g_szChildDataSavingFileMappingPrefix, dwRealCurrentProcessId))) goto err_sprintf;
-	// hMapFile = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READONLY, 0, sizeof(REPORTED_CHILD_DATA), szFileMappingName);
+	// hMapFile = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READONLY, 0, sizeof(PXCH_CHILD_DATA), szFileMappingName);
 	hMapFile = OpenFileMappingW(FILE_MAP_READ, FALSE, szFileMappingName);
 	if (hMapFile == NULL) goto err_filemapping;
 
-	pChildData = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, sizeof(REPORTED_CHILD_DATA));
+	pChildData = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, sizeof(PXCH_CHILD_DATA));
 	if (pChildData == NULL) goto err_mapviewoffile;
 
 	if (pChildData->dwPid != dwRealCurrentProcessId || pChildData->pSavedPxchConfig == NULL || pChildData->pSavedRemoteData == NULL) goto err_data_invalid;

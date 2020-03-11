@@ -47,22 +47,22 @@ PXCH_DLL_API PXCH_UINT32 MessageToWstr(wchar_t* szWstr, CPXCH_IPC_MSGBUF chMessa
 }
 
 
-PXCH_DLL_API PXCH_UINT32 ChildDataToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, const REPORTED_CHILD_DATA* pChildData)
+PXCH_DLL_API PXCH_UINT32 ChildDataToMessage(PXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32* pcbMessageSize, const PXCH_CHILD_DATA* pChildData)
 {
 	PXCH_IPC_MSGHDR_CHILDDATA* pHdr = (PXCH_IPC_MSGHDR_CHILDDATA*)chMessageBuf;
 
 	pHdr->dwTag = PXCH_IPC_MSGTYPE_CHILDDATA;
-	CopyMemory(&pHdr->ChildData, pChildData, sizeof(REPORTED_CHILD_DATA));
+	CopyMemory(&pHdr->ChildData, pChildData, sizeof(PXCH_CHILD_DATA));
 	*pcbMessageSize = sizeof(PXCH_IPC_MSGHDR_CHILDDATA);
 	return 0;
 }
 
 
-PXCH_DLL_API PXCH_UINT32 MessageToChildData(REPORTED_CHILD_DATA* pChildData, CPXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize)
+PXCH_DLL_API PXCH_UINT32 MessageToChildData(PXCH_CHILD_DATA* pChildData, CPXCH_IPC_MSGBUF chMessageBuf, PXCH_UINT32 cbMessageSize)
 {
 	const PXCH_IPC_MSGHDR_CHILDDATA* pHdr = (const PXCH_IPC_MSGHDR_CHILDDATA*)chMessageBuf;
 	if (!MsgIsType(CHILDDATA, chMessageBuf)) return ERROR_INVALID_PARAMETER;
-	if (pChildData) CopyMemory(pChildData, &pHdr->ChildData, sizeof(REPORTED_CHILD_DATA));
+	if (pChildData) CopyMemory(pChildData, &pHdr->ChildData, sizeof(PXCH_CHILD_DATA));
 	return 0;
 }
 
