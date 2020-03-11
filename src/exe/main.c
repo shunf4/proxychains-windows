@@ -461,7 +461,7 @@ int wmain(int argc, WCHAR* wargv[])
 	DWORD dwError;
 	DWORD dwTid;
 	STARTUPINFO startupInfo = { 0 };
-	PROCESS_INFORMATION processInformation = { 0 };
+	PROCESS_INFORMATION ProcessInformation = { 0 };
 	PROXYCHAINS_CONFIG TempProxychainsConfig;
 	int iCommandStart;
 	const char* szLocale;
@@ -531,11 +531,11 @@ int wmain(int argc, WCHAR* wargv[])
 	}
 
 	LOGD(L"szCommandLine: %ls", g_pPxchConfig->szCommandLine);
-	if (!ProxyCreateProcessW(NULL, g_pPxchConfig->szCommandLine, 0, 0, 0, 0, 0, 0, &startupInfo, &processInformation)) goto err_get;
+	if (!ProxyCreateProcessW(NULL, g_pPxchConfig->szCommandLine, 0, 0, 0, 0, 0, 0, &startupInfo, &ProcessInformation)) goto err_get;
 
 	if (g_tabPerProcess == NULL) {
 		LOGI(L"No child process registered. Injection might not have succeeded.");
-		WaitForSingleObject(processInformation.hProcess, INFINITE);
+		WaitForSingleObject(ProcessInformation.hProcess, INFINITE);
 		IF_WIN32_EXIT(1);
 	} else {
 		SetConsoleCtrlHandler(CtrlHandler, TRUE);

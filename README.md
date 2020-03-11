@@ -140,10 +140,12 @@ See [DevNotes](DEVNOTES.md).
 
 # To-do and Known Issues
 
-- [X] ~~Get rid of Offending&Matching host key confirmation when 
-proxifying git/SSH, probably using a FQDN hash function~~ fixed in 0.6.0
 - [ ] Remote DNS resolving based on UDP associate
 - [ ] Hook `sendto()`, coping with applications which do TCP fast open
+- [X] `ResumeThread()` in case of error during injection (fixed in 0.6.1)
+- [X] Fix choco `err_unmatched_machine` (fixed in 0.6.1)
+- [X] Get rid of Offending&Matching host key confirmation when 
+proxifying git/SSH, probably using a FQDN hash function (fixed in 0.6.0)
 
 # Licensing
 

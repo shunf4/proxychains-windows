@@ -29,7 +29,7 @@ PXCH_DLL_API void StdFlush(DWORD dwStdHandle);
 DWORD IpcClientRegisterChildProcessAndBackupChildData();
 PXCH_UINT32 RestoreChildData();
 
-DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi);
+DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi, DWORD dwCreationFlags);
 
 #ifdef PXCH_INCLUDE_WINSOCK_UTIL
 #include <WinSock2.h>

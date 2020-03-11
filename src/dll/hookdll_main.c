@@ -95,20 +95,31 @@ FpNtQueryInformationThread fpNtQueryInformationThread;
 // To verify that this process has its original data (not overwritten with those of parent by fork())
 PXCH_DLL_API DWORD g_dwCurrentProcessIdForVerify;
 
-DWORD RemoteCopyExecute(const PROCESS_INFORMATION* pPi, BOOL bIsWow64, BOOL bIsX86, PXCH_INJECT_REMOTE_DATA* pRemoteData)
+BOOL g_bUseRemoteThreadInsteadOfEntryDetour;
+
+DWORD RemoteCopyExecute(const PROCESS_INFORMATION* pPi, DWORD dwCreationFlags, BOOL bIsWow64, BOOL bIsX86, PXCH_INJECT_REMOTE_DATA* pRemoteData)
 {
 	void* pTargetBuf;
 	const void* pRemoteFuncCode;
 	const void* pEntryDetourCode;
 	char* pTargetRemoteFuncCode;
-	char* pTargetEntryDetourCode;
-	void* pTargetRemoteData;
+	char* pTargetEntryDetourCode = NULL;
+	void* pTargetRemoteData = NULL;
 	SIZE_T cbRemoteFuncCodeSize;
 	SIZE_T cbEntryDetourCodeSize;
 	SIZE_T cbWritten;
 	SIZE_T cbRead;
 	DWORD dwLastError;
 	DWORD dwRemoteDataSize = pRemoteData->dwSize;
+	int iShimatta = 0;	// 0: normal; 1: "Any CPU" binary found, re-write funccode of the correct machine type
+
+#if PXCH_USE_REMOTE_THREAD_INSTEAD_OF_ENTRY_DETOUR
+	g_bUseRemoteThreadInsteadOfEntryDetour = TRUE;
+#else
+	g_bUseRemoteThreadInsteadOfEntryDetour = FALSE;
+#endif
+
+	pTargetBuf = NULL;
 
 	// if (bIsX86) {
 	// 	pRemoteFuncCode = PXCH_CONFIG_REMOTE_FUNC_X86(g_pPxchConfig);
@@ -117,6 +128,7 @@ DWORD RemoteCopyExecute(const PROCESS_INFORMATION* pPi, BOOL bIsWow64, BOOL bIsX
 	// 	pRemoteFuncCode = PXCH_CONFIG_REMOTE_FUNC_X64(g_pPxchConfig);
 	// 	cbRemoteFuncCodeSize = g_pPxchConfig->cbRemoteFuncX64Size;
 	// }
+
 	if (bIsX86) {
 		pRemoteFuncCode = g_RemoteFuncX86;
 		pEntryDetourCode = g_EntryDetourX86;
@@ -129,18 +141,19 @@ DWORD RemoteCopyExecute(const PROCESS_INFORMATION* pPi, BOOL bIsWow64, BOOL bIsX
 		cbEntryDetourCodeSize = sizeof(g_EntryDetourX64) - 1;
 	}
 
-	if (!cbRemoteFuncCodeSize) return ERROR_NOT_SUPPORTED;
-	if (!cbEntryDetourCodeSize) return ERROR_NOT_SUPPORTED;
+	if (!cbRemoteFuncCodeSize) goto err_not_supported;
+	if (!cbEntryDetourCodeSize) goto err_not_supported;
 
-	IPCLOGV(L"CreateProcessW: Before VirtualAllocEx. %lld", (long long)cbRemoteFuncCodeSize);
+	if (!pTargetBuf) {
 
-	// Allocate memory (code + data) in remote process
-	pTargetBuf = NULL;
-	// pTargetBuf = (void*)0x40000000;
-	pTargetBuf = VirtualAllocEx(pPi->hProcess, pTargetBuf, cbRemoteFuncCodeSize + cbEntryDetourCodeSize + dwRemoteDataSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-	if (!pTargetBuf) goto err_alloc;
+		IPCLOGV(L"CreateProcessW: Before VirtualAllocEx. %lld", (long long)cbRemoteFuncCodeSize);
 
-	IPCLOGV(L"CreateProcessW: After VirtualAllocEx. %p", pTargetBuf);
+		// Allocate memory (code + data) in remote process
+		pTargetBuf = VirtualAllocEx(pPi->hProcess, pTargetBuf, cbRemoteFuncCodeSize + cbEntryDetourCodeSize + dwRemoteDataSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+		if (!pTargetBuf) goto err_alloc;
+
+		IPCLOGV(L"CreateProcessW: After VirtualAllocEx. %p", pTargetBuf);
+	}
 
 	// Write code
 	IPCLOGV(L"RemoteFuncCode bin data: %ls", DumpMemory(pRemoteFuncCode, 16));
@@ -153,17 +166,19 @@ DWORD RemoteCopyExecute(const PROCESS_INFORMATION* pPi, BOOL bIsWow64, BOOL bIsX
 	IPCLOGV(L"CreateProcessW: After Write Code. " WPRDW, cbWritten);
 
 	// We will write data later
-	pTargetRemoteData = (char *)pTargetBuf + cbRemoteFuncCodeSize + cbEntryDetourCodeSize;
+	if (!pTargetRemoteData) {
+		pTargetRemoteData = (char *)pTargetBuf + cbRemoteFuncCodeSize + cbEntryDetourCodeSize;
+	}
 
-#if PXCH_USE_REMOTE_THREAD_INSTEAD_OF_ENTRY_DETOUR
-	{
+shimatta:
+	if (g_bUseRemoteThreadInsteadOfEntryDetour) {
 		DWORD dwReturn;
 		HANDLE hRemoteThread;
 		DWORD dwRemoteTid;
 		IPCLOGV(L"CreateProcessW: Before CreateRemoteThread. " WPRDW, 0);
 
 		// Create remote thread in target process to execute the code
-		hRemoteThread = CreateRemoteThread(pPi->hProcess, NULL, 0, pTargetRemoteFuncCode, pTargetRemoteData, CREATE_SUSPENDED, &dwRemoteTid);
+		hRemoteThread = CreateRemoteThread(pPi->hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)pTargetRemoteFuncCode, pTargetRemoteData, CREATE_SUSPENDED, &dwRemoteTid);
 		IPCLOGV(L"CreateProcessW: After CreateRemoteThread(). Tid: " WPRDW, dwRemoteTid);
 		if (!hRemoteThread) goto err_create_remote_thread;
 
@@ -224,9 +239,7 @@ DWORD RemoteCopyExecute(const PROCESS_INFORMATION* pPi, BOOL bIsWow64, BOOL bIsX
 	ret_close:
 		CloseHandle(hRemoteThread);
 		goto ret_free;
-	}
-#else // PXCH_USE_REMOTE_THREAD_INSTEAD_OF_ENTRY_DETOUR
-	{
+	} else {
 		NTSTATUS NtStatusQuery;
 		PROCESS_BASIC_INFORMATION Pbi;
 		THREAD_BASIC_INFORMATION Tbi;
@@ -265,9 +278,7 @@ DWORD RemoteCopyExecute(const PROCESS_INFORMATION* pPi, BOOL bIsWow64, BOOL bIsX
 			}
 		}
 
-		if (fpNtQueryInformationProcess == (void*)MAXUINT_PTR || fpNtQueryInformationThread == (void*)MAXUINT_PTR) {
-			return ERROR_NOT_SUPPORTED;
-		}
+		if (fpNtQueryInformationProcess == (void*)MAXUINT_PTR || fpNtQueryInformationThread == (void*)MAXUINT_PTR) goto err_not_supported_entry_detour;
 
 		NtStatusQuery = (*fpNtQueryInformationProcess)(pPi->hProcess, ProcessBasicInformation, &Pbi, sizeof(PROCESS_BASIC_INFORMATION), NULL);
 	
@@ -296,7 +307,7 @@ DWORD RemoteCopyExecute(const PROCESS_INFORMATION* pPi, BOOL bIsWow64, BOOL bIsX
 
 #if defined(_M_X64) || defined(__x86_64__)
 		if (bIsWow64) {
-			IPCLOGD(L"pTargetPeb: %p, TargetCtx.Rax - Rdx: %p %p %p %p, " PXCH_TARGETWOW64CTX_INVALID_PREFIX "TargetWow64Ctx.Eax - Edx: %p %p %p %p.", pTargetPeb, (void*)(uintptr_t)TargetCtx.Rax, (void*)(uintptr_t)TargetCtx.Rbx, (void*)(uintptr_t)TargetCtx.Rcx, (void*)(uintptr_t)TargetCtx.Rdx, (void*)(uintptr_t)TargetWow64Ctx.Eax, (void*)(uintptr_t)TargetWow64Ctx.Ebx, (void*)(uintptr_t)TargetWow64Ctx.Ecx, (void*)(uintptr_t)TargetWow64Ctx.Edx);
+			IPCLOGD(L"pTargetPeb: %p, TargetCtx.Rax - Rdx: %p %p %p %p, " PXCH_TARGETWOW64CTX_INVALID_PREFIX L"TargetWow64Ctx.Eax - Edx: %p %p %p %p.", pTargetPeb, (void*)(uintptr_t)TargetCtx.Rax, (void*)(uintptr_t)TargetCtx.Rbx, (void*)(uintptr_t)TargetCtx.Rcx, (void*)(uintptr_t)TargetCtx.Rdx, (void*)(uintptr_t)TargetWow64Ctx.Eax, (void*)(uintptr_t)TargetWow64Ctx.Ebx, (void*)(uintptr_t)TargetWow64Ctx.Ecx, (void*)(uintptr_t)TargetWow64Ctx.Edx);
 
 			if (TargetCtx.SegCs != 0x23 /* WOW64_CS32 */) {
 				// Now target is in x64 mode, get stored Wow registers
@@ -339,7 +350,7 @@ DWORD RemoteCopyExecute(const PROCESS_INFORMATION* pPi, BOOL bIsWow64, BOOL bIsX
 
 		if (!ReadProcessMemory(pPi->hProcess, &((IMAGE_DOS_HEADER*)pTargetImageBase)->e_lfanew, &cbLongFileAddressNew, sizeof(LONG), &cbRead) || cbRead != sizeof(LONG)) goto err_read_entry_detour;
 
-		if (bIsX86) {
+		if (bIsX86 && iShimatta == 0) {
 			pTargetImageNtHeaders32 = (void*)(pTargetImageBase + cbLongFileAddressNew);
 
 			if (!ReadProcessMemory(pPi->hProcess, &pTargetImageNtHeaders32->FileHeader.Machine, &wTargetMachine, sizeof(WORD), &cbRead) || cbRead != sizeof(WORD)) goto err_read_entry_detour;
@@ -352,7 +363,16 @@ DWORD RemoteCopyExecute(const PROCESS_INFORMATION* pPi, BOOL bIsWow64, BOOL bIsX
 
 			if (!ReadProcessMemory(pPi->hProcess, &pTargetImageNtHeaders64->FileHeader.Machine, &wTargetMachine, sizeof(WORD), &cbRead) || cbRead != sizeof(WORD)) goto err_read_entry_detour;
 
-			if (wTargetMachine != IMAGE_FILE_MACHINE_AMD64) goto err_unmatched_machine;
+			// This program may be targeted at "Any CPU" like choco: https://github.com/chocolatey/choco/wiki/Troubleshooting#im-seeing-chocolatey--application--tool-using-32-bit-to-run-instead-of-x64-what-is-going-on
+			if (iShimatta) {
+			} else if (wTargetMachine == IMAGE_FILE_MACHINE_AMD64) {
+			} else if (wTargetMachine == IMAGE_FILE_MACHINE_I386) {
+				// bIsX86 = TRUE;
+				IPCLOGD(L"Shimatta!");
+				iShimatta++;
+				g_bUseRemoteThreadInsteadOfEntryDetour = TRUE;
+				goto shimatta;
+			} else goto err_unmatched_machine;
 
 			if (!ReadProcessMemory(pPi->hProcess, &pTargetImageNtHeaders64->OptionalHeader.AddressOfEntryPoint, &dwTargetOffsetOfEntryPoint, sizeof(DWORD), &cbRead) || cbRead != sizeof(DWORD)) goto err_read_entry_detour;
 		}
@@ -386,7 +406,7 @@ DWORD RemoteCopyExecute(const PROCESS_INFORMATION* pPi, BOOL bIsWow64, BOOL bIsX
 
 		if (!WriteProcessMemory(pPi->hProcess, pTargetRemoteData, pRemoteData, dwRemoteDataSize, &cbWritten) || cbWritten != dwRemoteDataSize) goto err_write_entry_detour;
 
-		if (bIsX86) {
+		if (bIsX86 && iShimatta == 0) {
 			DWORD pTargetRemoteDataCast32 = (DWORD)(uintptr_t)pTargetRemoteData;
 			DWORD pTargetOriginalEntryCast32 = (DWORD)(uintptr_t)pTargetOriginalEntry;
 
@@ -458,6 +478,10 @@ DWORD RemoteCopyExecute(const PROCESS_INFORMATION* pPi, BOOL bIsWow64, BOOL bIsX
 		CloseHandle(hSemaphore2);
 		return 0;
 
+	err_not_supported_entry_detour:
+		dwLastError = ERROR_NOT_SUPPORTED;
+		goto ret_free;
+
 	err_load_dll_entry_detour:
 		dwLastError = GetLastError();
 		IPCLOGW(L"LoadLibraryW() Failed: %ls", FormatErrorToStr(dwLastError));
@@ -490,7 +514,7 @@ DWORD RemoteCopyExecute(const PROCESS_INFORMATION* pPi, BOOL bIsWow64, BOOL bIsX
 
 	err_unmatched_machine:
 		dwLastError = ERROR_NOT_SUPPORTED;
-		IPCLOGW(L"Unmatched executable platform type!");
+		IPCLOGW(L"Unmatched executable platform type! %hu", (unsigned short)wTargetMachine);
 		goto ret_free;
 
 	err_create_semaphore:
@@ -525,12 +549,15 @@ DWORD RemoteCopyExecute(const PROCESS_INFORMATION* pPi, BOOL bIsWow64, BOOL bIsX
 		CloseHandle(hSemaphore2);
 		goto ret_free;
 	}
-#endif // PXCH_USE_REMOTE_THREAD_INSTEAD_OF_ENTRY_DETOUR
+
+err_not_supported:
+	dwLastError = ERROR_NOT_SUPPORTED;
+	goto ret_resume;
 
 err_alloc:
 	dwLastError = GetLastError();
 	IPCLOGW(L"VirtualAllocEx() Failed: %ls", FormatErrorToStr(dwLastError));
-	return dwLastError;
+	goto ret_resume;
 
 err_write_code:
 	dwLastError = GetLastError();
@@ -539,10 +566,18 @@ err_write_code:
 
 ret_free:
 	VirtualFreeEx(pPi->hProcess, pTargetBuf, 0, MEM_RELEASE);
+	goto ret_resume;
+
+ret_resume:
+	if (!g_bUseRemoteThreadInsteadOfEntryDetour) {
+		if (!(dwCreationFlags & CREATE_SUSPENDED)) {
+			ResumeThread(pPi->hThread);
+		}
+	}
 	return dwLastError;
 }
 
-DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi)
+DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi, DWORD dwCreationFlags)
 {
 	HANDLE hProcess;
 	PXCH_INJECT_REMOTE_DATA* pRemoteData;
@@ -610,7 +645,7 @@ DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi)
 
 	IPCLOGV(L"CreateProcessW: After StringCchCopy. " WPRDW, 0);
 
-	dwReturn = RemoteCopyExecute(pPi, bIsWow64, bIsX86, pRemoteData);
+	dwReturn = RemoteCopyExecute(pPi, dwCreationFlags, bIsWow64, bIsX86, pRemoteData);
 
 	if (dwReturn != 0) goto error;
 	IPCLOGV(L"CreateProcessW: After RemoteCopyExecute. " WPRDW, 0);

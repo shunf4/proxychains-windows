@@ -32,7 +32,7 @@ PROXY_FUNC(CreateProcessA)
 BOOL bRet;
 	DWORD dwLastError;
 	DWORD dwReturn = 0;
-	PROCESS_INFORMATION processInformation;
+	PROCESS_INFORMATION ProcessInformation;
 
 	g_bCurrentlyInWinapiCall = TRUE;
 
@@ -41,13 +41,13 @@ BOOL bRet;
 
 	IPCLOGD(L"(In CreateProcessA) g_pRemoteData->dwDebugDepth = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
 
-	bRet = orig_fpCreateProcessA(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &processInformation);
+	bRet = orig_fpCreateProcessA(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &ProcessInformation);
 	dwLastError = GetLastError();
 
-	IPCLOGD(L"CreateProcessA: %S, %S, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s; Ret: %u Child winpid " WPRDW L", tid " WPRDW, lpApplicationName, lpCommandLine, (UINT64)(uintptr_t)lpProcessAttributes, (UINT64)(uintptr_t)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory, bRet, processInformation.dwProcessId, processInformation.dwThreadId);
+	IPCLOGD(L"CreateProcessA: %S, %S, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s; Ret: %u Child winpid " WPRDW L", tid " WPRDW, lpApplicationName, lpCommandLine, (UINT64)(uintptr_t)lpProcessAttributes, (UINT64)(uintptr_t)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory, bRet, ProcessInformation.dwProcessId, ProcessInformation.dwThreadId);
 
 	if (lpProcessInformation) {
-		CopyMemory(lpProcessInformation, &processInformation, sizeof(PROCESS_INFORMATION));
+		CopyMemory(lpProcessInformation, &ProcessInformation, sizeof(PROCESS_INFORMATION));
 	}
 
 	IPCLOGV(L"CreateProcessA: Copied.");
@@ -56,18 +56,18 @@ BOOL bRet;
 	IPCLOGV(L"CreateProcessA: After jmp to err_orig.");
 	IPCLOGV(L"CreateProcessA: Before InjectTargetProcess.");
 
-	dwReturn = InjectTargetProcess(&processInformation);
+	dwReturn = InjectTargetProcess(&ProcessInformation, dwCreationFlags);
 
 	IPCLOGV(L"CreateProcessA: Injected. " WPRDW, dwReturn);
 
-#if PXCH_USE_REMOTE_THREAD_INSTEAD_OF_ENTRY_DETOUR
-	if (!(dwCreationFlags & CREATE_SUSPENDED)) {
-		ResumeThread(processInformation.hThread);
+	if (g_bUseRemoteThreadInsteadOfEntryDetour) {
+		if (!(dwCreationFlags & CREATE_SUSPENDED)) {
+			ResumeThread(ProcessInformation.hThread);
+		}
 	}
-#endif
 
 	if (dwReturn != 0) goto err_inject;
-	IPCLOGD(L"I've Injected WINPID " WPRDW, processInformation.dwProcessId);
+	IPCLOGD(L"I've Injected WINPID " WPRDW, ProcessInformation.dwProcessId);
 
 	g_bCurrentlyInWinapiCall = FALSE;
 	return 1;
@@ -79,7 +79,7 @@ err_orig:
 	return bRet;
 
 err_inject:
-	IPCLOGE(L"Injecting WINPID " WPRDW L" Error: %ls", processInformation.dwProcessId, FormatErrorToStr(dwReturn));
+	IPCLOGE(L"Injecting WINPID " WPRDW L" Error: %ls", ProcessInformation.dwProcessId, FormatErrorToStr(dwReturn));
 	// TODO: remove this line
 	SetLastError(dwReturn);
 	g_bCurrentlyInWinapiCall = FALSE;
@@ -91,7 +91,7 @@ PROXY_FUNC(CreateProcessW)
 	BOOL bRet;
 	DWORD dwLastError;
 	DWORD dwReturn = 0;
-	PROCESS_INFORMATION processInformation;
+	PROCESS_INFORMATION ProcessInformation;
 
 	g_bCurrentlyInWinapiCall = TRUE;
 
@@ -100,13 +100,13 @@ PROXY_FUNC(CreateProcessW)
 
 	IPCLOGD(L"(In CreateProcessW) g_pRemoteData->dwDebugDepth = " WPRDW, g_pRemoteData ? g_pRemoteData->dwDebugDepth : -1);
 
-	bRet = orig_fpCreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &processInformation);
+	bRet = orig_fpCreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &ProcessInformation);
 	dwLastError = GetLastError();
 
-	IPCLOGD(L"CreateProcessW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s; Ret: %u Child winpid " WPRDW L", tid " WPRDW, lpApplicationName, lpCommandLine, (UINT64)(uintptr_t)lpProcessAttributes, (UINT64)(uintptr_t)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory, bRet, processInformation.dwProcessId, processInformation.dwThreadId);
+	IPCLOGD(L"CreateProcessW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s; Ret: %u Child winpid " WPRDW L", tid " WPRDW, lpApplicationName, lpCommandLine, (UINT64)(uintptr_t)lpProcessAttributes, (UINT64)(uintptr_t)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory, bRet, ProcessInformation.dwProcessId, ProcessInformation.dwThreadId);
 
 	if (lpProcessInformation) {
-		CopyMemory(lpProcessInformation, &processInformation, sizeof(PROCESS_INFORMATION));
+		CopyMemory(lpProcessInformation, &ProcessInformation, sizeof(PROCESS_INFORMATION));
 	}
 
 	IPCLOGV(L"CreateProcessW: Copied.");
@@ -115,18 +115,18 @@ PROXY_FUNC(CreateProcessW)
 	IPCLOGV(L"CreateProcessW: After jmp to err_orig.");
 	IPCLOGV(L"CreateProcessW: Before InjectTargetProcess.");
 
-	dwReturn = InjectTargetProcess(&processInformation);
+	dwReturn = InjectTargetProcess(&ProcessInformation, dwCreationFlags);
 
 	IPCLOGV(L"CreateProcessW: Injected. " WPRDW, dwReturn);
 
-#if PXCH_USE_REMOTE_THREAD_INSTEAD_OF_ENTRY_DETOUR
-	if (!(dwCreationFlags & CREATE_SUSPENDED)) {
-		ResumeThread(processInformation.hThread);
+	if (g_bUseRemoteThreadInsteadOfEntryDetour) {
+		if (!(dwCreationFlags & CREATE_SUSPENDED)) {
+			ResumeThread(ProcessInformation.hThread);
+		}
 	}
-#endif
 
 	if (dwReturn != 0) goto err_inject;
-	IPCLOGD(L"I've Injected WINPID " WPRDW, processInformation.dwProcessId);
+	IPCLOGD(L"I've Injected WINPID " WPRDW, ProcessInformation.dwProcessId);
 
 	g_bCurrentlyInWinapiCall = FALSE;
 	return 1;
@@ -138,7 +138,7 @@ err_orig:
 	return bRet;
 
 err_inject:
-	IPCLOGE(L"Injecting WINPID " WPRDW L" Error: %ls", processInformation.dwProcessId, FormatErrorToStr(dwReturn));
+	IPCLOGE(L"Injecting WINPID " WPRDW L" Error: %ls", ProcessInformation.dwProcessId, FormatErrorToStr(dwReturn));
 	// TODO: remove this line
 	SetLastError(dwReturn);
 	g_bCurrentlyInWinapiCall = FALSE;
@@ -150,7 +150,7 @@ PROXY_FUNC(CreateProcessAsUserW)
 	BOOL bRet;
 	DWORD dwLastError;
 	DWORD dwReturn = 0;
-	PROCESS_INFORMATION processInformation;
+	PROCESS_INFORMATION ProcessInformation;
 
 	g_bCurrentlyInWinapiCall = TRUE;
 
@@ -161,13 +161,13 @@ PROXY_FUNC(CreateProcessAsUserW)
 
 	IPCLOGD(L"CreateProcessAsUserW: %ls, %ls, lpProcessAttributes: %#llx, lpThreadAttributes: %#llx, bInheritHandles: %d, dwCreationFlags: %#lx, lpCurrentDirectory: %s", lpApplicationName, lpCommandLine, (UINT64)(uintptr_t)lpProcessAttributes, (UINT64)(uintptr_t)lpThreadAttributes, bInheritHandles, dwCreationFlags, lpCurrentDirectory);
 
-	bRet = orig_fpCreateProcessAsUserW(hToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &processInformation);
+	bRet = orig_fpCreateProcessAsUserW(hToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags | CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, &ProcessInformation);
 	dwLastError = GetLastError();
 
-	IPCLOGV(L"CreateProcessAsUserW: Created.(%u) Child process id: " WPRDW, bRet, processInformation.dwProcessId);
+	IPCLOGV(L"CreateProcessAsUserW: Created.(%u) Child process id: " WPRDW, bRet, ProcessInformation.dwProcessId);
 
 	if (lpProcessInformation) {
-		CopyMemory(lpProcessInformation, &processInformation, sizeof(PROCESS_INFORMATION));
+		CopyMemory(lpProcessInformation, &ProcessInformation, sizeof(PROCESS_INFORMATION));
 	}
 
 	IPCLOGV(L"CreateProcessAsUserW: Copied.");
@@ -175,18 +175,18 @@ PROXY_FUNC(CreateProcessAsUserW)
 
 	IPCLOGV(L"CreateProcessAsUserW: After jmp to err_orig.");
 	IPCLOGV(L"CreateProcessAsUserW: Before InjectTargetProcess.");
-	dwReturn = InjectTargetProcess(&processInformation);
+	dwReturn = InjectTargetProcess(&ProcessInformation, dwCreationFlags);
 
 	IPCLOGV(L"CreateProcessAsUserW: Injected. " WPRDW, dwReturn);
 
-#if PXCH_USE_REMOTE_THREAD_INSTEAD_OF_ENTRY_DETOUR
-	if (!(dwCreationFlags & CREATE_SUSPENDED)) {
-		ResumeThread(processInformation.hThread);
+	if (g_bUseRemoteThreadInsteadOfEntryDetour) {
+		if (!(dwCreationFlags & CREATE_SUSPENDED)) {
+			ResumeThread(ProcessInformation.hThread);
+		}
 	}
-#endif
 
 	if (dwReturn != 0) goto err_inject;
-	IPCLOGD(L"CreateProcessAsUserW: I've Injected WINPID " WPRDW, processInformation.dwProcessId);
+	IPCLOGD(L"CreateProcessAsUserW: I've Injected WINPID " WPRDW, ProcessInformation.dwProcessId);
 
 	g_bCurrentlyInWinapiCall = FALSE;
 	return 1;
@@ -198,7 +198,7 @@ err_orig:
 	return bRet;
 
 err_inject:
-	IPCLOGE(L"Injecting WINPID " WPRDW L" Error: %ls", processInformation.dwProcessId, FormatErrorToStr(dwReturn));
+	IPCLOGE(L"Injecting WINPID " WPRDW L" Error: %ls", ProcessInformation.dwProcessId, FormatErrorToStr(dwReturn));
 	SetLastError(dwReturn);
 	g_bCurrentlyInWinapiCall = FALSE;
 	return 1;

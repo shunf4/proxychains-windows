@@ -23,6 +23,7 @@
 #include "ut_helpers.h"
 
 extern BOOL g_bSystemInfoInitialized;
+extern BOOL g_bUseRemoteThreadInsteadOfEntryDetour;
 extern SYSTEM_INFO g_SystemInfo;
 
 #define PXCH_INITHOOK_SYMBOL_NAME_X64 "InitHook"
