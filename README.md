@@ -140,6 +140,7 @@ See [DevNotes](DEVNOTES.md).
 
 # To-do and Known Issues
 
+- [ ] Tell the user if command line is bad under Cygwin
 - [ ] Remote DNS resolving based on UDP associate
 - [ ] Hook `sendto()`, coping with applications which do TCP fast open
 - [X] Detect .NET CLR programs that is AnyCPU&prefers 32-bit/targeted x86
