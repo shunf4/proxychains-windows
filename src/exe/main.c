@@ -564,7 +564,7 @@ void handle_sigchld(int sig)
 	KillAllAndExit();
 }
 
-#define PXCH_CYWIN_USE_SPAWNVPE_INSTEAD_OF_FORK_EXEC 0
+#define PXCH_CYGWIN_USE_SPAWNVPE_INSTEAD_OF_FORK_EXEC 0
 DWORD WINAPI CygwinSpawn(LPVOID lpParam)
 {
 	void** ctx = lpParam;
@@ -573,7 +573,7 @@ DWORD WINAPI CygwinSpawn(LPVOID lpParam)
 	char*const* envp = ctx[1];
 	int iReturn = 0;
 
-#if PXCH_CYWIN_USE_SPAWNVPE_INSTEAD_OF_FORK_EXEC
+#if PXCH_CYGWIN_USE_SPAWNVPE_INSTEAD_OF_FORK_EXEC
 	iReturn = spawnvpe(_P_NOWAIT, (const char*)*p_argv_command_start, (const char*const*)p_argv_command_start, (const char*const*)envp);
 #else
 	iReturn = posix_spawnp(&child_pid, *p_argv_command_start, NULL, NULL, p_argv_command_start, envp);
@@ -582,7 +582,7 @@ DWORD WINAPI CygwinSpawn(LPVOID lpParam)
 	if (child_pid == 0) {
 		child_pid = (pid_t)iReturn;
 	}
-#ifdef PXCH_CYWIN_USE_SPAWNVPE_INSTEAD_OF_FORK_EXEC
+#if PXCH_CYGWIN_USE_SPAWNVPE_INSTEAD_OF_FORK_EXEC
 	LOGI(L"spawnvpe ret: %d; CYGPID: " WPRDW L"", iReturn, child_pid);
 #else
 	LOGI(L"posix_spawnp ret: %d; CYGPID: " WPRDW L"", iReturn, child_pid);
