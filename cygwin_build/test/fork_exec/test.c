@@ -1,5 +1,6 @@
+#define _GNU_SOURCE
 #include <stdio.h>
-#include <unistd.h>
+#include <sys/unistd.h>
 #include <stdlib.h>
 #include <time.h>
 #include <spawn.h>
@@ -27,7 +28,7 @@ int main(int argc, char*const*const argv, char*const*const envp)
 
 		if (child_pid == 0) {
 			// Child
-			ret = execve(argv[1], argv + 1, envp);
+			ret = execvpe(argv[1], argv + 1, envp);
 		} else {
 			waitpid(-1, &ret, 0);
 			printf("waitpid() ends\n");

@@ -276,6 +276,9 @@ real_end:
 
 	DBGSTEP('Q' + bReturn);
 
+	// Set strace._active = 1
+	// *(unsigned char*)(uintptr_t)(0x1802600a0) = 1;
+
 #endif
 
 	pReturnAddr = 0;

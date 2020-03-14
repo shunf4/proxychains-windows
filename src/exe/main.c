@@ -381,10 +381,10 @@ void KillAllAndExit()
 			HASH_DELETE(hh, g_tabPerProcess, current);
 			h = OpenProcess(SYNCHRONIZE | PROCESS_TERMINATE, TRUE, current->Data.dwPid);
 			if ((h != NULL || h != INVALID_HANDLE_VALUE) && TerminateProcess(h, 0)) {
-				LOGW(L"Killed WINPID " WPRDW, current->Data.dwPid);
+				LOGD(L"Killed WINPID " WPRDW, current->Data.dwPid);
 			}
 			else {
-				LOGW(L"Unable to kill WINPID " WPRDW, current->Data.dwPid);
+				LOGD(L"Unable to kill WINPID " WPRDW, current->Data.dwPid);
 			}
 			HeapFree(GetProcessHeap(), 0, current);
 		}
@@ -564,7 +564,7 @@ void handle_sigchld(int sig)
 	KillAllAndExit();
 }
 
-// #define PXCH_CYWIN_USE_SPAWNVPE_INSTEAD_OF_FORK_EXEC
+#define PXCH_CYWIN_USE_SPAWNVPE_INSTEAD_OF_FORK_EXEC 0
 DWORD WINAPI CygwinSpawn(LPVOID lpParam)
 {
 	void** ctx = lpParam;
@@ -573,7 +573,7 @@ DWORD WINAPI CygwinSpawn(LPVOID lpParam)
 	char*const* envp = ctx[1];
 	int iReturn = 0;
 
-#ifdef PXCH_CYWIN_USE_SPAWNVPE_INSTEAD_OF_FORK_EXEC
+#if PXCH_CYWIN_USE_SPAWNVPE_INSTEAD_OF_FORK_EXEC
 	iReturn = spawnvpe(_P_NOWAIT, (const char*)*p_argv_command_start, (const char*const*)p_argv_command_start, (const char*const*)envp);
 #else
 	iReturn = posix_spawnp(&child_pid, *p_argv_command_start, NULL, NULL, p_argv_command_start, envp);

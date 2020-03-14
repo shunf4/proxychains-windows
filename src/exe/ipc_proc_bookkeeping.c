@@ -101,11 +101,11 @@ DWORD ChildProcessExitedCallbackWorker(PVOID lpParameter, BOOLEAN TimerOrWaitFir
 		if (TempEntry) {
 			HASH_DELETE(hh, g_tabPerProcess, Entry);
 		} else {
-			LOGW(L"Error trying to delete entry associated with winpid " WPRDW L": not found", Entry->Data.dwPid);
+			LOGD(L"Error trying to delete entry associated with winpid " WPRDW L": not found", Entry->Data.dwPid);
 			goto straight_end;
 		}
 		if (!GetExitCodeProcess(Entry->hProcess, &dwExitCode)) {
-			LOGW(L"GetExitCodeProcess() error: %ls", FormatErrorToStr(GetLastError()));
+			LOGD(L"GetExitCodeProcess() error: %ls", FormatErrorToStr(GetLastError()));
 		}
 		LOGD(L"Child process winpid " WPRDW L" exited (%#010x).", Entry->Data.dwPid, dwExitCode);
 

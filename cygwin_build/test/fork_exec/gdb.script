@@ -1,0 +1,11 @@
+set confirm off
+add-symbol-file D:/work/cygwin-build/cygwin-install/lib/debug/usr/bin/cygwin1.dbg
+l dll_crt0_1
+p &strace._active
+p strace._active
+# b 845
+# l main
+# run
+# set strace._active=1
+# continue
+quit
