@@ -64,12 +64,12 @@ typedef LONG KPRIORITY;
 
 typedef struct _THREAD_BASIC_INFORMATION
 {
-    NTSTATUS                ExitStatus;
-    PVOID                   TebBaseAddress;
-    CLIENT_ID               ClientId;
-    KAFFINITY               AffinityMask;
-    KPRIORITY               Priority;
-    KPRIORITY               BasePriority;
+	NTSTATUS                ExitStatus;
+	PVOID                   TebBaseAddress;
+	CLIENT_ID               ClientId;
+	KAFFINITY               AffinityMask;
+	KPRIORITY               Priority;
+	KPRIORITY               BasePriority;
 } THREAD_BASIC_INFORMATION, *PTHREAD_BASIC_INFORMATION;
 
 typedef struct _WOW64_THREAD_UNKNOWN_STRUCT

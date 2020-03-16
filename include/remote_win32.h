@@ -45,8 +45,8 @@
 #define DBGCHR_GP(ch) do { if (g_pRemoteData) CAST_FUNC_ADDR_WITH_PTR(g_pRemoteData, OutputDebugStringA)(g_pRemoteData->chDebugOutputStepData + ((ch) - 'A') * 2); } while(0)
 #define DBGSTR_GP(str) do { if (g_pRemoteData) CAST_FUNC_ADDR_WITH_PTR(g_pRemoteData, OutputDebugStringA)(str); } while(0)
 #define DBGSTEPX(ch) do { \
-    pRemoteData->chDebugOutputBuf[pRemoteData->cbDebugOutputCharOffset] = ch; \
-    CAST_FUNC_ADDR(OutputDebugStringA)(pRemoteData->chDebugOutputBuf); \
+	pRemoteData->chDebugOutputBuf[pRemoteData->cbDebugOutputCharOffset] = ch; \
+	CAST_FUNC_ADDR(OutputDebugStringA)(pRemoteData->chDebugOutputBuf); \
 } while(0)
 #define DBGSTEP(ch) DBGSTEPX(ch)
 // #define DBGSTEP(ch) do {  } while(0)

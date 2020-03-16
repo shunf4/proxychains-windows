@@ -72,7 +72,7 @@ typedef struct _IPC_MSGHDR_HOSTNAMEANDIPS {
 	// C2S:
 	//   wTag == HOSTNAME && szValue[0] != L'\0' :
 	//     Client registers hostname, retreiving fake ips;
-    //   else: Client retrieves hostname provided fake ip/resolved ip.
+	//   else: Client retrieves hostname provided fake ip/resolved ip.
 	// S2C:
 	//   wTag == HOSTNAME && szValue[0] != L'\0' :
 	//     Server can't find fake ip/resolved ip provided by client, returning it as-is;

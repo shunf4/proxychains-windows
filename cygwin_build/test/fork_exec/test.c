@@ -15,15 +15,15 @@ static int static_var;
 
 int main(int argc, char*const*const argv, char*const*const envp)
 {
-    int ret;
-    pid_t child_pid;
-    int i;
+	int ret;
+	pid_t child_pid;
+	int i;
 
-    printf("parent ptr %p %p %p\n", &ret, &global_var_data, &static_var);
-    printf("parent pid %d\n", getpid());
-    //sleep(1);
+	printf("parent ptr %p %p %p\n", &ret, &global_var_data, &static_var);
+	printf("parent pid %d\n", getpid());
+	//sleep(1);
 
-    for (i = 0; i < 1; i++) {
+	for (i = 0; i < 1; i++) {
 		child_pid = fork();
 
 		if (child_pid == 0) {
@@ -35,5 +35,5 @@ int main(int argc, char*const*const argv, char*const*const envp)
 			fflush(stdout);
 		}
 	}
-    return 0;
+	return 0;
 }

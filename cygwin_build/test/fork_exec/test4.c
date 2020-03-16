@@ -11,5 +11,5 @@ int main(int argc, char*const*const argv, char*const*const envp)
 {
 	const char* my_argv[] = {"./_test3", NULL};
 	spawnvpe(_P_NOWAIT, "./_test3", my_argv, (const char*const*)envp);
-    return 0;
+	return 0;
 }

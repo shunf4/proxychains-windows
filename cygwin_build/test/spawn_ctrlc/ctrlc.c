@@ -15,13 +15,13 @@ void handle_sigint(int sig)
 
 int main(int argc, char*const*const argv, char*const*const envp)
 {
-    int ret;
-    pid_t child_pid;
+	int ret;
+	pid_t child_pid;
 
-    signal(SIGINT, handle_sigint);
+	signal(SIGINT, handle_sigint);
 
-    SHRT_MAX
+	SHRT_MAX
 
-    pause();
-    return 0;
+	pause();
+	return 0;
 }

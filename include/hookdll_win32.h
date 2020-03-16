@@ -145,29 +145,29 @@ PXCH_DLL_API void UninitHook(void);
 
 
 #define Ws2_32_GetAddrInfoExA_SIGN(inside_identifier) int (__stdcall inside_identifier)(\
-    const char* pName,\
-    const char* pServiceName,\
-    PXCH_UINT32 dwNameSpace,\
-    void*/* LPGUID */ lpNspId,\
-    const void* /* const ADDRINFOEXA * */ hints,\
-    void*/* PADDRINFOEXA * */ ppResult,\
-    void* /* struct timeval * */ timeout,\
-    void* /* LPOVERLAPPED */ lpOverlapped,\
-    void* /* LPLOOKUPSERVICE_COMPLETION_ROUTINE */ lpCompletionRoutine,\
+	const char* pName,\
+	const char* pServiceName,\
+	PXCH_UINT32 dwNameSpace,\
+	void*/* LPGUID */ lpNspId,\
+	const void* /* const ADDRINFOEXA * */ hints,\
+	void*/* PADDRINFOEXA * */ ppResult,\
+	void* /* struct timeval * */ timeout,\
+	void* /* LPOVERLAPPED */ lpOverlapped,\
+	void* /* LPLOOKUPSERVICE_COMPLETION_ROUTINE */ lpCompletionRoutine,\
 	void* /* LPHANDLE */ lpHandle)
 
 
 
 #define Ws2_32_GetAddrInfoExW_SIGN(inside_identifier) int (__stdcall inside_identifier)(\
-    const wchar_t* pName,\
-    const wchar_t* pServiceName,\
-    PXCH_UINT32 dwNameSpace,\
-    void*/* LPGUID */ lpNspId,\
-    const void* /* const ADDRINFOEXW * */ hints,\
-    void*/* PADDRINFOEXW * */ ppResult,\
-    void* /* struct timeval * */ timeout,\
-    void* /* LPOVERLAPPED */ lpOverlapped,\
-    void* /* LPLOOKUPSERVICE_COMPLETION_ROUTINE */ lpCompletionRoutine,\
+	const wchar_t* pName,\
+	const wchar_t* pServiceName,\
+	PXCH_UINT32 dwNameSpace,\
+	void*/* LPGUID */ lpNspId,\
+	const void* /* const ADDRINFOEXW * */ hints,\
+	void*/* PADDRINFOEXW * */ ppResult,\
+	void* /* struct timeval * */ timeout,\
+	void* /* LPOVERLAPPED */ lpOverlapped,\
+	void* /* LPLOOKUPSERVICE_COMPLETION_ROUTINE */ lpCompletionRoutine,\
 	void* /* LPHANDLE */ lpHandle)
 
 

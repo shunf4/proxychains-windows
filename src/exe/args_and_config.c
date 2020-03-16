@@ -104,39 +104,39 @@ static inline BOOL CharInSet(const WCHAR* pStart, const WCHAR* pCharset)
 	for (pSet = pCharset; *pSet; pSet++) {
 		if (*pStart == *pSet) return TRUE;
 	}
-    return FALSE;
+	return FALSE;
 }
 
 static inline WCHAR* ConsumeStringUntilSet(WCHAR* pStart, WCHAR* pEndOptional, const WCHAR* pCharset)
 {
-    WCHAR* p;
-    const WCHAR* pSet;
-    for (p = pStart; *p && (!pEndOptional || p <= pEndOptional); p++) {
-        for (pSet = pCharset; *pSet; pSet++) {
-            if (*p == *pSet) return p;
-        }
-    }
-    return p;
+	WCHAR* p;
+	const WCHAR* pSet;
+	for (p = pStart; *p && (!pEndOptional || p <= pEndOptional); p++) {
+		for (pSet = pCharset; *pSet; pSet++) {
+			if (*p == *pSet) return p;
+		}
+	}
+	return p;
 }
 
 static inline WCHAR* ConsumeStringInSet(WCHAR* pStart, WCHAR* pEndOptional, const WCHAR* pCharset)
 {
-    WCHAR* p;
-    const WCHAR* pSet;
-    BOOL bContain;
+	WCHAR* p;
+	const WCHAR* pSet;
+	BOOL bContain;
 
-    for (p = pStart; *p && (!pEndOptional || p <= pEndOptional); p++) {
-        bContain = FALSE;
-        for (pSet = pCharset; *pSet; pSet++) {
-            if (*p == *pSet) {
-                bContain = TRUE;
-                break;
-            }
-        }
-        if (bContain) continue;
-        return p;
-    }
-    return p;
+	for (p = pStart; *p && (!pEndOptional || p <= pEndOptional); p++) {
+		bContain = FALSE;
+		for (pSet = pCharset; *pSet; pSet++) {
+			if (*p == *pSet) {
+				bContain = TRUE;
+				break;
+			}
+		}
+		if (bContain) continue;
+		return p;
+	}
+	return p;
 }
 
 static int StringToAddress(LPWSTR AddressString, LPSOCKADDR lpAddress, int iAddressLength)
@@ -622,7 +622,7 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 	if (!PathFileExistsW(pPxchConfig->szMinHookDllPathX86)) StringCchCopyW(pPxchConfig->szMinHookDllPathX86, PXCH_MAX_DLL_PATH_BUFSIZE, g_szMinHookDllFileNameX86);
 
 #ifdef __CYGWIN__
-    StringCchCopyW(pPxchConfig->szHostsFilePath, _countof(pPxchConfig->szHostsFilePath), L"/etc/hosts");
+	StringCchCopyW(pPxchConfig->szHostsFilePath, _countof(pPxchConfig->szHostsFilePath), L"/etc/hosts");
 #else
 	SHGetFolderPathAndSubDirW(NULL, CSIDL_SYSTEM, NULL, 0, L"drivers", pPxchConfig->szHostsFilePath);
 	if (FAILED(StringCchCatW(pPxchConfig->szHostsFilePath, _countof(pPxchConfig->szHostsFilePath), L"\\etc\\hosts"))) goto err_general;

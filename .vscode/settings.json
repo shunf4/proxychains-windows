@@ -63,5 +63,6 @@
         "process.h": "c",
         "winternl.h": "c",
         "remote_func_bin_x86.h": "c"
-    }
+    },
+    "editor.insertSpaces": false
 }

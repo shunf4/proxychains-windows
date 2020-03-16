@@ -20,17 +20,17 @@ void handle_sigint(int sig)
 
 int main(int argc, char*const*const argv, char*const*const envp)
 {
-    int ret;
-    pid_t child_pid;
+	int ret;
+	pid_t child_pid;
 
-    signal(SIGINT, handle_sigint);
-    signal(SIGCHLD, handle_sigchld);
+	signal(SIGINT, handle_sigint);
+	signal(SIGCHLD, handle_sigchld);
 
-    ret = posix_spawnp(&child_pid, argv[1], NULL, NULL, &argv[1], envp);
-    printf("spawn ret: %d; pid: %d\n", ret, child_pid);
-    // waitpid(-1, &ret, 0);
-    // printf("waitpid() ends\n");
-    pause();
-    printf("pause() ends\n");
-    return 0;
+	ret = posix_spawnp(&child_pid, argv[1], NULL, NULL, &argv[1], envp);
+	printf("spawn ret: %d; pid: %d\n", ret, child_pid);
+	// waitpid(-1, &ret, 0);
+	// printf("waitpid() ends\n");
+	pause();
+	printf("pause() ends\n");
+	return 0;
 }
