@@ -139,7 +139,10 @@ DWORD ChildProcessExitedCallbackWorker(PVOID lpParameter, BOOLEAN TimerOrWaitFir
 		if (g_tabPerProcess == NULL) {
 			LOGI(L"All Windows descendant process exited.");
 			HeapUnlock(GetProcessHeap());	// go out of critical section
-			IF_WIN32_STYLE_EXIT(0);
+
+			// We return the exit code of the last exited process now.
+			// Maybe the exit code of the direct child process is better?
+			IF_WIN32_STYLE_EXIT(dwExitCode);
 		}
 	}
 }

@@ -140,8 +140,8 @@ See [DevNotes](DEVNOTES.md).
 
 # To-do and Known Issues
 
-- [ ] Tell the user if command line is bad under Cygwin
-- [ ] Inherit exit code of direct child
+- [ ] Properly handle "fork-and-exit" child process ? (In this case the
+descendant processes' dns queries would never succeed)
 - [ ] Remote DNS resolving based on UDP associate
 - [ ] Hook `sendto()`, coping with applications which do TCP fast open
 - [X] Detect .NET CLR programs that is AnyCPU&prefers 32-bit/targeted x86
@@ -151,6 +151,8 @@ See [DevNotes](DEVNOTES.md).
 - [X] Fix choco `err_unmatched_machine` (fixed in 0.6.1)
 - [X] Get rid of Offending&Matching host key confirmation when 
 proxifying git/SSH, probably using a FQDN hash function (fixed in 0.6.0)
+- [X] Tell the user if command line is bad under Cygwin (fixed in 0.6.4)
+- [X] Inherit exit code of direct child (fixed in 0.6.4)
 
 # Licensing
 
@@ -222,11 +224,9 @@ are met:
     documentation and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
-LIMITED
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
 TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-HOLDER
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER
 OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
 EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
 PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR

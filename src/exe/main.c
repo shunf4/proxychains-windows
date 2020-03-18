@@ -161,11 +161,29 @@ DWORD WINAPI ServerLoop(LPVOID lpVoid)
 		dwWait = WaitForMultipleObjects(PXCH_IPC_INSTANCE_NUM, hEvents, FALSE, 100);
 		if (dwWait == WAIT_TIMEOUT) {
 			BOOL bChild = FALSE;
-			int iChildPid = 0;
-			while ((iChildPid = waitpid((pid_t)(-1), 0, WNOHANG)) > 0) { bChild = TRUE; break; }
+			int iChildPid;
+			int iChildPidTmp;
+			int iChildStatus;
+			int iChildStatusTmp;
+			BOOL bChildExitedNormally;
+			int iChildExitStatus;
+
+			while ((iChildPidTmp = waitpid((pid_t)(-1), &iChildStatusTmp, WNOHANG)) > 0) {
+				bChild = TRUE;
+				iChildStatus = iChildStatusTmp;
+				iChildPid = iChildPidTmp;
+			}
+
 			if (bChild) {
-				LOGI(L"Cygwin child process %d exited (between WaitForMultipleObjects()). Master exiting", iChildPid);
-				IF_CYGWIN_EXIT(0);
+				bChildExitedNormally = WIFEXITED(iChildStatus);
+				iChildExitStatus = WEXITSTATUS(iChildStatus);
+
+				if (iChildExitStatus == 127) {
+					LOGE(L"Cygwin child process pid %d exited %ls(%d) (between WaitForMultipleObjects()). YOUR COMMAND LINE MAY HAVE ERROR. Master exiting", iChildPid, bChildExitedNormally ? L"normally" : L"ABNORMALLY", iChildExitStatus);
+				} else {
+					LOGI(L"Cygwin child process pid %d exited %ls(%d) (between WaitForMultipleObjects()). Master exiting", iChildPid, bChildExitedNormally ? L"normally" : L"ABNORMALLY", iChildExitStatus);
+				}
+				IF_CYGWIN_EXIT(iChildExitStatus);
 			}
 			continue;
 		}
@@ -367,7 +385,7 @@ void PrintUsage(const WCHAR* szArgv0, BOOL bError)
 	}
 }
 
-void KillAllAndExit()
+void KillAllDescendant()
 {
 	// Once hooked, a cygwin program cannot handle Ctrl-C signal.
 	// Thus we have to implement this to kill everything forked
@@ -388,9 +406,6 @@ void KillAllAndExit()
 			}
 			HeapFree(GetProcessHeap(), 0, current);
 		}
-		
-		HeapUnlock(GetProcessHeap());	// go out of critical section
-		exit(0);
 	}
 }
 
@@ -399,7 +414,10 @@ void handle_sigint(int sig)
 	LOGW(L"[PX:Ctrl-C]");
 	fflush(stderr);
 
-	KillAllAndExit();
+#ifndef __CYGWIN__
+	KillAllDescendant();
+	exit(STATUS_CONTROL_C_EXIT);
+#endif
 }
 
 BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
@@ -536,7 +554,7 @@ int wmain(int argc, WCHAR* wargv[])
 	if (g_tabPerProcess == NULL) {
 		LOGI(L"No child process registered. Injection might not have succeeded.");
 		WaitForSingleObject(ProcessInformation.hProcess, INFINITE);
-		IF_WIN32_EXIT(1);
+		IF_WIN32_EXIT(127);
 	} else {
 		SetConsoleCtrlHandler(CtrlHandler, TRUE);
 		Sleep(INFINITE);
@@ -559,9 +577,32 @@ err_args:
 
 void handle_sigchld(int sig)
 {
-	while (waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
-	LOGI(L"Cygwin child process exited.");
-	KillAllAndExit();
+	BOOL bChild = FALSE;
+	int iChildPid;
+	int iChildPidTmp;
+	int iChildStatus;
+	int iChildStatusTmp;
+	BOOL bChildExitedNormally;
+	int iChildExitStatus;
+
+	while ((iChildPidTmp = waitpid((pid_t)(-1), &iChildStatusTmp, WNOHANG)) > 0) {
+		bChild = TRUE;
+		iChildStatus = iChildStatusTmp;
+		iChildPid = iChildPidTmp;
+	}
+
+	if (bChild) {
+		bChildExitedNormally = WIFEXITED(iChildStatus);
+		iChildExitStatus = WEXITSTATUS(iChildStatus);
+
+		if (iChildExitStatus == 127) {
+			LOGE(L"Cygwin child process pid %d exited %ls(%d). YOUR COMMAND LINE MAY HAVE ERROR.", iChildPid, bChildExitedNormally ? L"normally" : L"ABNORMALLY", iChildExitStatus);
+		} else {
+			LOGI(L"Cygwin child process pid %d exited %ls(%d).", iChildPid, bChildExitedNormally ? L"normally" : L"ABNORMALLY", iChildExitStatus);
+		}
+		// KillAllDescendant();
+		exit(iChildExitStatus);
+	}
 }
 
 #define PXCH_CYGWIN_USE_SPAWNVPE_INSTEAD_OF_FORK_EXEC 0
@@ -677,7 +718,7 @@ int main(int argc, char* const argv[], char* const envp[])
 
 	if (g_tabPerProcess == NULL) {
 		LOGI(L"No child process registered. Injection might not have succeeded.");
-		IF_CYGWIN_EXIT(1);
+		IF_CYGWIN_EXIT(127);
 	}
 
 	signal(SIGINT, handle_sigint);
