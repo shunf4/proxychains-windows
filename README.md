@@ -140,6 +140,8 @@ See [DevNotes](DEVNOTES.md).
 
 # To-do and Known Issues
 
+- [ ] Add an option to totally prevent "DNS leak" ? (Do name lookup on
+SOCKS5 server only)
 - [ ] Properly handle "fork-and-exit" child process ? (In this case the
 descendant processes' dns queries would never succeed)
 - [ ] Remote DNS resolving based on UDP associate
