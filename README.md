@@ -140,6 +140,7 @@ See [DevNotes](DEVNOTES.md).
 
 # To-do and Known Issues
 
+- [ ] Correctly handle conf and hosts that start with BOM
 - [ ] Add an option to totally prevent "DNS leak" ? (Do name lookup on
 SOCKS5 server only)
 - [ ] Properly handle "fork-and-exit" child process ? (In this case the
