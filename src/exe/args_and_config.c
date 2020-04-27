@@ -232,6 +232,7 @@ static int OptionGetIpPortValue(PXCH_IP_PORT* pIpPort, PXCH_UINT32* pdwPrefixLen
 	WCHAR* pStartPrefix;
 	WCHAR* pAfterPrefix;
 	WCHAR cSaved;
+	int iResult;
 	
 	pAfterIpPort = ConsumeStringInSet(pStart, pEndOptional, PXCH_CONFIG_PARSE_IP_PORT);
 
@@ -242,14 +243,14 @@ static int OptionGetIpPortValue(PXCH_IP_PORT* pIpPort, PXCH_UINT32* pdwPrefixLen
 
 	cSaved = *pAfterIpPort;
 	*pAfterIpPort = L'\0';
-
 	ZeroMemory(pIpPort, sizeof(PXCH_IP_PORT));
-	if (StringToAddress(pStart, (LPSOCKADDR)pIpPort, sizeof(PXCH_IP_PORT))) {
+	iResult = StringToAddress(pStart, (LPSOCKADDR)pIpPort, sizeof(PXCH_IP_PORT));
+	*pAfterIpPort = cSaved;
+	if (iResult) {
 		pszParseErrorMessage = L"Invalid IP address";
 		return -1;
 	}
 
-	*pAfterIpPort = cSaved;
 	if (*pAfterIpPort == L'/') {
 		PXCH_IP_PORT PrefixIpPort;
 		long lPrefix = -1;
@@ -271,12 +272,13 @@ static int OptionGetIpPortValue(PXCH_IP_PORT* pIpPort, PXCH_UINT32* pdwPrefixLen
 			return -1;
 		}
 
-		cSaved = *pAfterPrefix;
-		*pAfterPrefix = L'\0';
-
-		ZeroMemory(&PrefixIpPort, sizeof(PXCH_IP_PORT));
 		if (OptionGetNumberValue(&lPrefix, pStartPrefix, pAfterPrefix, 0, 128, FALSE)) {
-			if (StringToAddress(pStartPrefix, (LPSOCKADDR)&PrefixIpPort, sizeof(PXCH_IP_PORT))) {
+			cSaved = *pAfterPrefix;
+			*pAfterPrefix = L'\0';
+			ZeroMemory(&PrefixIpPort, sizeof(PXCH_IP_PORT));
+			iResult = StringToAddress(pStartPrefix, (LPSOCKADDR)&PrefixIpPort, sizeof(PXCH_IP_PORT));
+			*pAfterPrefix = cSaved;
+			if (iResult) {
 				pszParseErrorMessage = L"Invalid CIDR prefix";
 				return -1;
 			} else {
@@ -310,13 +312,12 @@ static int OptionGetIpPortValue(PXCH_IP_PORT* pIpPort, PXCH_UINT32* pdwPrefixLen
 				}
 			}
 		} else {
-			if (PrefixIpPort.CommonHeader.wTag == PXCH_HOST_TYPE_IPV4 && lPrefix > 32) {
+			if (pIpPort->CommonHeader.wTag == PXCH_HOST_TYPE_IPV4 && lPrefix > 32) {
 				pszParseErrorMessage = L"Prefix length exceeds 32 for an IPv4 address";
 				return -1;
 			}
 		}
 
-		*pAfterPrefix = cSaved;
 		*pdwPrefixLength = (PXCH_UINT32)lPrefix;
 	} else {
 		pAfterPrefix = pAfterIpPort;

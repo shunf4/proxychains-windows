@@ -446,6 +446,7 @@ int Ws2_32_LoopSend(void* pTempData, PXCH_UINT_PTR s, const char* SendBuf, int i
 
 		iReturn = send(s, pSendBuf, iRemaining, 0);
 		if (iReturn == SOCKET_ERROR) goto err_send;
+		if (iReturn == 0) goto err_send_zerobytes;
 		if (iReturn < iLength) {
 			FUNCIPCLOGD(L"send() only sent %d/%d bytes", iReturn, iLength);
 		}
@@ -461,6 +462,10 @@ int Ws2_32_LoopSend(void* pTempData, PXCH_UINT_PTR s, const char* SendBuf, int i
 	SetLastError(NO_ERROR);
 	WSASetLastError(NO_ERROR);
 	return 0;
+
+err_send_zerobytes:
+	FUNCIPCLOGW(L"send() sends zero bytes!");
+	goto err_return;
 
 err_send_unexpected:
 	FUNCIPCLOGW(L"send() occurs unexpected error!");
@@ -513,6 +518,7 @@ int Ws2_32_LoopRecv(void* pTempData, PXCH_UINT_PTR s, char* RecvBuf, int iLength
 
 		iReturn = recv(s, pRecvBuf, iRemaining, 0);
 		if (iReturn == SOCKET_ERROR) goto err_recv;
+		if (iReturn == 0) goto err_recv_closed;
 		if (iReturn < iLength) {
 			FUNCIPCLOGD(L"recv() only received %d/%d bytes", iReturn, iLength);
 		}
@@ -528,6 +534,10 @@ int Ws2_32_LoopRecv(void* pTempData, PXCH_UINT_PTR s, char* RecvBuf, int iLength
 	SetLastError(NO_ERROR);
 	WSASetLastError(NO_ERROR);
 	return 0;
+
+err_recv_closed:
+	FUNCIPCLOGW(L"recv() receives zero bytes, connection closed!");
+	goto err_return;
 
 err_recv_unexpected:
 	FUNCIPCLOGW(L"recv() occurs unexpected error!");

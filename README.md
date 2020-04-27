@@ -140,13 +140,18 @@ See [DevNotes](DEVNOTES.md).
 
 # To-do and Known Issues
 
-- [ ] Correctly handle conf and hosts that start with BOM
 - [ ] Add an option to totally prevent "DNS leak" ? (Do name lookup on
 SOCKS5 server only)
 - [ ] Properly handle "fork-and-exit" child process ? (In this case the
 descendant processes' dns queries would never succeed)
 - [ ] Remote DNS resolving based on UDP associate
 - [ ] Hook `sendto()`, coping with applications which do TCP fast open
+- [x] Connection closure should be correctly handled in
+      `Ws2_32_LoopRecv` and `Ws2_32_LoopSend` (fixed in 0.6.5)
+- [x] A large part of socks5 server name possibly lost when parsing
+      configuration (fixed in 0.6.5)
+- [x] Correctly handle conf and hosts that start with BOM (fixed in
+      0.6.5)
 - [X] Detect .NET CLR programs that is AnyCPU&prefers 32-bit/targeted x86
       /targeted x64. (These are "shimatta" programs, which must be
       injected by `CreateRemoteThread()`) (fixed in 0.6.2)

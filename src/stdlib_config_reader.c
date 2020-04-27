@@ -58,6 +58,7 @@ PXCH_UINT32 OpenConfigurationFile(PROXYCHAINS_CONFIG* pPxchConfig)
 	int i;
 	int iReturn;
 	DWORD dwLastError;
+	wint_t chFirst;
 
 	CloseConfigurationFile();
 
@@ -110,12 +111,17 @@ PXCH_UINT32 OpenConfigurationFile(PROXYCHAINS_CONFIG* pPxchConfig)
 
 validate_config_path:
 	for (i = 0; i < _countof(szConfigPathOptions) && szConfigPathOptions[i]; i++) {
-		if ((fPxchConfig = fopen(szConfigPathOptions[i], "r")) != NULL) {
+		if ((fPxchConfig = fopen(szConfigPathOptions[i], "r,ccs=UTF-8")) != NULL) {
 			break;
 		}
 	}
 
 	if (!fPxchConfig) goto err_not_found;
+
+	chFirst = fgetwc(fPxchConfig);
+	if (chFirst != WEOF && chFirst != 0xFEFF /* Unicode/UTF-16 BOM */) {
+		ungetwc(chFirst, fPxchConfig);
+	}
 
 	StringCchPrintfW(pPxchConfig->szConfigPath, _countof(pPxchConfig->szConfigPath), L"%S", szConfigPathOptions[i]);
 	LOGI(L"Configuration file: %ls", pPxchConfig->szConfigPath);
@@ -139,12 +145,18 @@ err_general:
 PXCH_UINT32 OpenHostsFile(const WCHAR* szHostsFilePath)
 {
 	char szHostsFilePathNarrow[MAX_PATH * 2];
+	wint_t chFirst;
 
 	if (FAILED(StringCchPrintfA(szHostsFilePathNarrow, _countof(szHostsFilePathNarrow), "%ls", szHostsFilePath))) goto err_bufovf;
 
 	CloseHostsFile();
 
-	if ((fHosts = fopen(szHostsFilePathNarrow, "r")) == NULL) goto err_not_found;
+	// ccs=UTF-8 seems only work under Windows. Under cygwin, everything is assumed to be UTF-8
+	if ((fHosts = fopen(szHostsFilePathNarrow, "r,ccs=UTF-8")) == NULL) goto err_not_found;
+	chFirst = fgetwc(fHosts);
+	if (chFirst != WEOF && chFirst != 0xFEFF /* Unicode/UTF-16 BOM */) {
+		ungetwc(chFirst, fHosts);
+	}
 	return NO_ERROR;
 
 err_not_found:
@@ -203,6 +215,7 @@ PXCH_UINT32 HostsFileReadLine(unsigned long long* pullHostsLineNum, wchar_t* chB
 
 	ullHostsLineNum++;
 	*pullHostsLineNum = ullHostsLineNum;
+
 	pBuf = fgetws(chBuf, (int)cbBufSize, fHosts);
 
 	if (pBuf == NULL) {
@@ -254,7 +267,14 @@ long ConfigurationTellPos()
 
 void ConfigurationRewind()
 {
+	wint_t chFirst;
+
 	rewind(fPxchConfig);
+
+	chFirst = fgetwc(fPxchConfig);
+	if (chFirst != WEOF && chFirst != 0xFEFF /* Unicode/UTF-16 BOM */) {
+		ungetwc(chFirst, fPxchConfig);
+	}
 	ullConfigurationLineNum = 0;
 }
 
@@ -265,6 +285,13 @@ long HostsTellPos()
 
 void HostsRewind()
 {
+	wint_t chFirst;
+
 	rewind(fHosts);
+
+	chFirst = fgetwc(fHosts);
+	if (chFirst != WEOF && chFirst != 0xFEFF /* Unicode/UTF-16 BOM */) {
+		ungetwc(chFirst, fHosts);
+	}
 	ullHostsLineNum = 0;
 }
