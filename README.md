@@ -26,7 +26,7 @@ have [Visual C++ Redistributable for Visual Studio 2015](https://www.microsoft.c
 installed.
 
 **WARNING: DNS LEAK IS INEVITABLE IN CURRENT VERSION. DO NOT USE IF YOU
-WANT ANONIMITY!**
+WANT ANONYMITY!**
 
 WARNING: this program works only on dynamically linked programs. Also 
 both proxychains.exe and the program to call must be the same platform 
