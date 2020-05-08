@@ -25,6 +25,9 @@ x64 SP1, Windows XP x86 SP3 and Cygwin 64-bit 3.1.2. Target OS should
 have [Visual C++ Redistributable for Visual Studio 2015](https://www.microsoft.com/en-us/download/details.aspx?id=48145) 
 installed.
 
+**WARNING: DNS LEAK IS INEVITABLE IN CURRENT VERSION. DO NOT USE IF YOU
+WANT ANONIMITY!**
+
 WARNING: this program works only on dynamically linked programs. Also 
 both proxychains.exe and the program to call must be the same platform 
 and architecture (use proxychains_x86.exe to call x86 program, 
