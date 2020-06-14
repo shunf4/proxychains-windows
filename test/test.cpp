@@ -49,9 +49,9 @@ void GetAndPrintAddrInfo(PCWSTR pNodeName, PCWSTR pServiceName, const ADDRINFOW*
         fwprintf(stderr, L"getaddrinfo failed: %d\n", iReturn);
     }
 
-    dwLen = _countof(szIpStrWBuf);
     i = 0;
     for (ADDRINFOW* pAddrInfoW = arrAddrResults; pAddrInfoW; pAddrInfoW = pAddrInfoW->ai_next, i++) {
+        dwLen = _countof(szIpStrWBuf);
         WSAAddressToStringW(pAddrInfoW->ai_addr, (DWORD)pAddrInfoW->ai_addrlen, NULL, szIpStrWBuf, &dwLen);
 
         wprintf(L"addrs[%d]\naddr: %ls\naddrlen: %u\ncanonname: %ls\nfamily: %d\nflags: %d\nprotocol: %d\nsocktype: %d\n\n", i, szIpStrWBuf, (unsigned)pAddrInfoW->ai_addrlen, pAddrInfoW->ai_canonname, pAddrInfoW->ai_family, pAddrInfoW->ai_flags, pAddrInfoW->ai_protocol, pAddrInfoW->ai_socktype);
@@ -111,7 +111,7 @@ int main()
         wprintf(L"%S\n", szIpStrNarrowBuf2);
     }
 
-    if (0)
+    if (1)
     {
         // Test Hostent
         PrintHostent(gethostbyname("www.baidu.com"));
@@ -122,7 +122,7 @@ int main()
     if (1)
     {
         // Test GetAddrInfo
-        GetAndPrintAddrInfo(L"ip.sb", L"80", NULL);
+        GetAndPrintAddrInfo(L"t.cn", L"443", NULL);
         GetAndPrintAddrInfo(L"openwrt.reserved", L"80", NULL);
         //GetAndPrintAddrInfo(L"registry.npmjs.org", L"80", NULL);
     }

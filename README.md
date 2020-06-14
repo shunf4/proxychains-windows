@@ -25,8 +25,7 @@ x64 SP1, Windows XP x86 SP3 and Cygwin 64-bit 3.1.2. Target OS should
 have [Visual C++ Redistributable for Visual Studio 2015](https://www.microsoft.com/en-us/download/details.aspx?id=48145) 
 installed.
 
-**WARNING: DNS LEAK IS INEVITABLE IN CURRENT VERSION. DO NOT USE IF YOU
-WANT ANONYMITY!**
+**WARNING: ANONYMITY IS NOT GUARANTEED!**
 
 WARNING: this program works only on dynamically linked programs. Also 
 both proxychains.exe and the program to call must be the same platform 
@@ -143,12 +142,18 @@ See [DevNotes](DEVNOTES.md).
 
 # To-do and Known Issues
 
-- [ ] Add an option to totally prevent "DNS leak" ? (Do name lookup on
-SOCKS5 server only)
+[ConEmu](https://github.com/Maximus5/ConEmu)
+[prevents](https://github.com/Maximus5/ConEmu/blob/9629fa82c8a4c817f3b6faa2161a0a9eec9285c4/src/ConEmuHk/hkProcess.cpp#L497)
+its descendant processes to do `SetThreadContext()`. This means
+proxychains.exe is in no way compatible with terminals based on ConEmu
+(like cmder).
+
 - [ ] Properly handle "fork-and-exit" child process ? (In this case the
 descendant processes' dns queries would never succeed)
 - [ ] Remote DNS resolving based on UDP associate
 - [ ] Hook `sendto()`, coping with applications which do TCP fast open
+- [X] Add an option to totally prevent "DNS leak" ? (Do name lookup on
+SOCKS5 server only) (fixed in 0.6.6)
 - [x] Connection closure should be correctly handled in
       `Ws2_32_LoopRecv` and `Ws2_32_LoopSend` (fixed in 0.6.5)
 - [x] A large part of socks5 server name possibly lost when parsing

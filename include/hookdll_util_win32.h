@@ -27,7 +27,7 @@ PXCH_DLL_API void StdVwprintf(DWORD dwStdHandle, const WCHAR* fmt, va_list args)
 PXCH_DLL_API void StdFlush(DWORD dwStdHandle);
 
 DWORD IpcClientRegisterChildProcessAndBackupChildData();
-PXCH_UINT32 RestoreChildData();
+PXCH_UINT32 RestoreChildDataIfNecessary();
 
 DWORD InjectTargetProcess(const PROCESS_INFORMATION* pPi, DWORD dwCreationFlags);
 

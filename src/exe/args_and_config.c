@@ -62,12 +62,12 @@
 #define wcsncasecmp _wcsnicmp
 #endif
 
-#define WSTR_EQUAL(str, strend, literal) ((wcsncmp(str, literal, _countof(literal) - 1) == 0) ? (strend == str + _countof(literal) - 1) : FALSE)
-#define WSTR_EQUAL_I(str, strend, literal) ((wcsncasecmp(str, literal, _countof(literal) - 1) == 0) ? (strend == str + _countof(literal) - 1) : FALSE)
+#define WSTR_EQUAL(str, strend, strLiteral) ((wcsncmp(str, strLiteral, _countof(strLiteral) - 1) == 0) ? (strend == str + _countof(strLiteral) - 1) : FALSE)
+#define WSTR_EQUAL_I(str, strend, strLiteral) ((wcsncasecmp(str, strLiteral, _countof(strLiteral) - 1) == 0) ? (strend == str + _countof(strLiteral) - 1) : FALSE)
 
 static const WCHAR* pszParseErrorMessage;
 
-// stdlib_config_reader.c
+// impl: stdlib_config_reader.c
 PXCH_UINT32 OpenConfigurationFile(PROXYCHAINS_CONFIG* pPxchConfig);
 PXCH_UINT32 OpenHostsFile(const WCHAR* szHostsFilePath);
 PXCH_UINT32 ConfigurationFileReadLine(unsigned long long* pullLineNum, wchar_t* chBuf, size_t cbBufSize);
@@ -485,7 +485,7 @@ void PrintConfiguration(PROXYCHAINS_CONFIG* pPxchConfig)
 	LOGD(L"WillUseFakeIpWhenHostnameNotMatched: " WPRDW, pPxchConfig->dwWillUseFakeIpWhenHostnameNotMatched);
 	LOGD(L"WillMapResolvedIpToHost: " WPRDW, pPxchConfig->dwWillMapResolvedIpToHost);
 	LOGD(L"WillLookupForHostByResolvedIp: " WPRDW, pPxchConfig->dwWillLookupForHostByResolvedIp);
-	LOGD(L"WillForceResolveByHostsFile: " WPRDW, pPxchConfig->dwWillForceResolveByHostsFile);
+	LOGD(L"WillResolveLocallyIfMatchHosts: " WPRDW, pPxchConfig->dwWillResolveLocallyIfMatchHosts);
 	LOGD(L"WillFirstTunnelUseIpv4: " WPRDW, pPxchConfig->dwWillFirstTunnelUseIpv4);
 	LOGD(L"WillFirstTunnelUseIpv6: " WPRDW, pPxchConfig->dwWillFirstTunnelUseIpv6);
 	LOGD(L"WillGenFakeIpUsingHashedHostname: " WPRDW, pPxchConfig->dwWillGenFakeIpUsingHashedHostname);
@@ -649,7 +649,7 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 	pPxchConfig->dwWillUseFakeIpWhenHostnameNotMatched = TRUE;
 	pPxchConfig->dwWillMapResolvedIpToHost = FALSE;
 	pPxchConfig->dwWillLookupForHostByResolvedIp = FALSE;
-	pPxchConfig->dwWillForceResolveByHostsFile = TRUE;
+	pPxchConfig->dwWillResolveLocallyIfMatchHosts = TRUE;
 	pPxchConfig->dwWillUseUdpAssociateAsRemoteDns = FALSE;
 	pPxchConfig->dwWillUseFakeIpAsRemoteDns = FALSE;
 	pPxchConfig->dwWillGenFakeIpUsingHashedHostname = TRUE;
@@ -765,9 +765,10 @@ DWORD LoadConfiguration(PROXYCHAINS_CONFIG** ppPxchConfig, PROXYCHAINS_CONFIG* p
 		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"search_for_host_by_resolved_ip")) {
 			if (OptionGetNumberValueAfterOptionName(&lValue, sOptionNameEnd, NULL, 0, 1) == -1) goto err_invalid_config_with_msg;
 			pPxchConfig->dwWillLookupForHostByResolvedIp = lValue;
-		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"force_resolve_by_hosts_file")) {
+		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"resolve_locally_if_match_hosts")
+			|| WSTR_EQUAL(sOption, sOptionNameEnd, L"force_resolve_by_hosts_file")) {
 			if (OptionGetNumberValueAfterOptionName(&lValue, sOptionNameEnd, NULL, 0, 1) == -1) goto err_invalid_config_with_msg;
-			pPxchConfig->dwWillForceResolveByHostsFile = lValue;
+			pPxchConfig->dwWillResolveLocallyIfMatchHosts = lValue;
 		} else if (WSTR_EQUAL(sOption, sOptionNameEnd, L"first_tunnel_uses_ipv4")) {
 			if (OptionGetNumberValueAfterOptionName(&lValue, sOptionNameEnd, NULL, 0, 1) == -1) goto err_invalid_config_with_msg;
 			pPxchConfig->dwWillFirstTunnelUseIpv4 = lValue;

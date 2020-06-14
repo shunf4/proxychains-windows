@@ -12,7 +12,7 @@ Proxychains.exe 是 [proxychains4](https://github.com/haad/proxychains) 或者 [
 
 Proxychains.exe 在 Windows 10 x64 1909 (18363.418)、Windows 7 x64 SP1、Windows XP x86 SP3 和 Cygwin 64-bit 3.1.2 经过测试。注意目标操作系统需要安装 [Visual C++ Redistributable for Visual Studio 2015](https://www.microsoft.com/zh-cn/download/details.aspx?id=48145)。
 
-**警告：目前版本存在 DNS 泄露的问题。对匿名性有要求者目前请不要使用此工具！**
+**警告：此工具不能保证匿名性！**
 
 警告：此程序只对动态链接的程序有用。同时，Proxychains.exe 和需要运行的目标程序必须是同一架构和平台（用 proxychains_x86.exe 运行 x86 程序，用 proxychains_x64.exe 运行 x64 程序；用 Cygwin 下构建的版本来运行 Cygwin 程序）。
 

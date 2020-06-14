@@ -492,7 +492,7 @@ DWORD GetMsgHostnameAndResolvedIpsFromMsgIp(PXCH_IPC_MSGBUF chMessageBuf, PXCH_U
 
 	LOGI(L"NotRegisteredIp %ls, return it As-is", FormatHostPortToStr(PXCH_IPC_IP_ARR(pMsgIp), sizeof(PXCH_IP_ADDRESS)));
 	PrintTablePerProcess();
-	dwLastError = HostnameAndIpsToMessage(chMessageBuf, pcbMessageSize, pMsgIp->dwPid, &EmptyHostname, FALSE /*ignored*/, 1, &AsKey.Ip, PXCH_RULE_TARGET_DIRECT);
+	dwLastError = HostnameAndIpsToMessage(chMessageBuf, pcbMessageSize, pMsgIp->dwPid, &EmptyHostname, FALSE /*ignored*/, 1, &AsKey.Ip, PXCH_RULE_TARGET_DIRECT /*ignored*/);
 	if (dwLastError != NO_ERROR) goto error;
 
 	return NO_ERROR;

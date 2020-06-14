@@ -123,7 +123,7 @@ static BOOL Ipv6MatchCidr(const struct sockaddr_in6* pIp, const struct sockaddr_
 	return memcmp(&MaskedIpv6, &MaskedCidr, sizeof(MaskedIpv6)) == 0;
 }
 
-static PXCH_UINT32 GetTargetByRule(BOOL* pbMatchedHostnameRule, BOOL* pbMatchedIpRule, BOOL* pbMatchedPortRule, BOOL* pbMatchedFinalRule, const PXCH_HOST_PORT* pHostPort, PXCH_UINT32 dwDefault)
+static PXCH_UINT32 GetTargetByRule(BOOL* pbHasMatchedHostnameRule, BOOL* pbMatchedIpRule, BOOL* pbMatchedPortRule, BOOL* pbMatchedFinalRule, const PXCH_HOST_PORT* pHostPort)
 {
 	unsigned int i;
 	PXCH_RULE* pRule;
@@ -132,12 +132,12 @@ static PXCH_UINT32 GetTargetByRule(BOOL* pbMatchedHostnameRule, BOOL* pbMatchedI
 	BOOL bDummyMatched3;
 	BOOL bDummyMatched4;
 
-	if (pbMatchedHostnameRule == NULL) pbMatchedHostnameRule = &bDummyMatched1;
+	if (pbHasMatchedHostnameRule == NULL) pbHasMatchedHostnameRule = &bDummyMatched1;
 	if (pbMatchedIpRule == NULL) pbMatchedIpRule = &bDummyMatched2;
 	if (pbMatchedPortRule == NULL) pbMatchedPortRule = &bDummyMatched3;
 	if (pbMatchedFinalRule == NULL) pbMatchedFinalRule = &bDummyMatched4;
 
-	*pbMatchedHostnameRule = FALSE;
+	*pbHasMatchedHostnameRule = FALSE;
 	*pbMatchedIpRule = FALSE;
 	*pbMatchedPortRule = FALSE;
 	*pbMatchedFinalRule = FALSE;
@@ -189,7 +189,7 @@ static PXCH_UINT32 GetTargetByRule(BOOL* pbMatchedHostnameRule, BOOL* pbMatchedI
 		if (HostIsType(HOSTNAME, *pHostPort) && RuleIsType(DOMAIN, *pRule)) {
 			if (StrCmpIW(pHostPort->HostnamePort.szValue, pRule->HostPort.HostnamePort.szValue) == 0) {
 				// Match
-				*pbMatchedHostnameRule = TRUE;
+				*pbHasMatchedHostnameRule = TRUE;
 				return pRule->dwTarget;
 			}
 		}
@@ -203,7 +203,7 @@ static PXCH_UINT32 GetTargetByRule(BOOL* pbMatchedHostnameRule, BOOL* pbMatchedI
 			if (cchRuleLength <= cchLength) {
 				if (StrCmpIW(pHostPort->HostnamePort.szValue + (cchLength - cchRuleLength), pRule->HostPort.HostnamePort.szValue) == 0) {
 					// Match
-					*pbMatchedHostnameRule = TRUE;
+					*pbHasMatchedHostnameRule = TRUE;
 					return pRule->dwTarget;
 				}
 			}
@@ -212,13 +212,13 @@ static PXCH_UINT32 GetTargetByRule(BOOL* pbMatchedHostnameRule, BOOL* pbMatchedI
 		if (HostIsType(HOSTNAME, *pHostPort) && RuleIsType(DOMAIN_KEYWORD, *pRule)) {
 			if (pRule->HostPort.HostnamePort.szValue[0] == L'\0' || StrStrIW(pHostPort->HostnamePort.szValue, pRule->HostPort.HostnamePort.szValue)) {
 				// Match
-				*pbMatchedHostnameRule = TRUE;
+				*pbHasMatchedHostnameRule = TRUE;
 				return pRule->dwTarget;
 			}
 		}
 	}
 
-	return dwDefault;
+	return g_pPxchConfig->dwDefaultTarget;
 }
 
 PXCH_UINT32 ReverseLookupForHost(PXCH_HOSTNAME_PORT* pReverseLookedupHostnamePort, PXCH_IP_PORT* pReverseLookedupResolvedIpPort, const PXCH_IP_PORT** ppIpPortForDirectConnection, const PXCH_HOST_PORT** ppHostPortForProxiedConnection, PXCH_UINT32* pdwTarget, const PXCH_IP_PORT* pOriginalIpPort, int iOriginalAddrLen)
@@ -271,20 +271,25 @@ PXCH_UINT32 ReverseLookupForHost(PXCH_HOSTNAME_PORT* pReverseLookedupHostnamePor
 				break;
 			}
 		}
-		if (dw == dwRespIpNum) goto addr_not_supported_end;
-		*pReverseLookedupResolvedIpPort = RespIps[dw];
-		pReverseLookedupResolvedIpPort->CommonHeader.wPort = pOriginalIpPort->CommonHeader.wPort;
-		*ppIpPortForDirectConnection = pReverseLookedupResolvedIpPort;
+		// if (dw == dwRespIpNum) goto addr_not_supported_end;
+		if (dw != dwRespIpNum) {
+			*pReverseLookedupResolvedIpPort = RespIps[dw];
+			pReverseLookedupResolvedIpPort->CommonHeader.wPort = pOriginalIpPort->CommonHeader.wPort;
+			*ppIpPortForDirectConnection = pReverseLookedupResolvedIpPort;
+		} else {
+			ZeroMemory(pReverseLookedupResolvedIpPort, sizeof(PXCH_IP_PORT));
+			*ppIpPortForDirectConnection = NULL;
+		}
 
 		pReverseLookedupHostnamePort->wPort = pOriginalIpPort->CommonHeader.wPort;
 		*ppHostPortForProxiedConnection = (const PXCH_HOST_PORT*)pReverseLookedupHostnamePort;
 
 		// Case for entry not found
 		if (pReverseLookedupHostnamePort->szValue[0] == L'\0') {
-			*pdwTarget = GetTargetByRule(NULL, NULL, NULL, NULL, (const PXCH_HOST_PORT*)*ppIpPortForDirectConnection, g_pPxchConfig->dwDefaultTarget);
+			*pdwTarget = GetTargetByRule(NULL, NULL, NULL, NULL, (const PXCH_HOST_PORT*)*ppIpPortForDirectConnection);
 		}
 	} else {
-		*pdwTarget = GetTargetByRule(NULL, NULL, NULL, NULL, (const PXCH_HOST_PORT*)pOriginalIpPort, g_pPxchConfig->dwDefaultTarget);
+		*pdwTarget = GetTargetByRule(NULL, NULL, NULL, NULL, (const PXCH_HOST_PORT*)pOriginalIpPort);
 	}
 
 	return NO_ERROR;
@@ -888,7 +893,7 @@ PROXY_FUNC2(Ws2_32, connect)
 
 	DWORD dw;
 
-	RestoreChildData();
+	RestoreChildDataIfNecessary();
 
 	FUNCIPCLOGD(L"Ws2_32.dll connect(%d, %ls, %d) called", s, FormatHostPortToStr(name, namelen), namelen);
 
@@ -992,7 +997,7 @@ PROXY_FUNC2(Mswsock, ConnectEx)
 
 	DWORD dw;
 
-	RestoreChildData();
+	RestoreChildDataIfNecessary();
 
 	FUNCIPCLOGD(L"Mswsock.dll (FP)ConnectEx(%d, %ls, %d) called", s, FormatHostPortToStr(name, namelen), namelen);
 
@@ -1104,7 +1109,7 @@ PROXY_FUNC2(Ws2_32, WSAConnect)
 
 	DWORD dw;
 
-	RestoreChildData();
+	RestoreChildDataIfNecessary();
 
 	FUNCIPCLOGD(L"Ws2_32.dll WSAConnect(%d, %ls, %d) called", s, FormatHostPortToStr(name, namelen), namelen);
 
@@ -1179,19 +1184,21 @@ end:
 
 PROXY_FUNC2(Ws2_32, gethostbyname)
 {
-	struct hostent* orig_pHostent;
-	struct hostent* pReturnHostent;
+	struct hostent* pResolvedHostent = NULL;
+	struct hostent* pReturnHostent = NULL;
+	struct hostent* pNewHostentResult = NULL;
 	int iWSALastError;
 	DWORD dwLastError;
 
 	ADDRINFOW RequeryAddrInfoHints;
-	ADDRINFOW* pRequeryAddrInfo;
+	ADDRINFOW* pRequeryAddrInfo = NULL;
 	PXCH_HOSTNAME OriginalHostname;
 	PXCH_HOSTNAME ResolvedHostname;
-	PXCH_UINT32 dwIpNum;
+	PXCH_IP_PORT IpPortResolvedByHosts;
+	PXCH_UINT32 dwIpNum = 0;
 	PXCH_IP_ADDRESS Ips[PXCH_MAX_ARRAY_IP_NUM];
 	PXCH_UINT32 dwTarget;
-	BOOL bMatchedHostnameRule;
+	BOOL bHasMatchedHostnameRule;
 
 	PXCH_IPC_MSGBUF chMessageBuf;
 	PXCH_UINT32 cbMessageSize;
@@ -1200,18 +1207,16 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 	PXCH_IP_ADDRESS FakeIps[2];
 	PXCH_IP_ADDRESS* pFakeIps;
 
-	pRequeryAddrInfo = NULL;
+	BOOL bShouldReturnResolvedResult = FALSE;
+	BOOL bShouldUseResolvedResult = FALSE;
+	BOOL bShouldUseHostsResult = FALSE;
+	BOOL bShouldReturnHostsResult = FALSE;
+	BOOL bShouldReturnFakeIp = FALSE;
 
+	// Print DNS query
 	FUNCIPCLOGD(L"Ws2_32.dll gethostbyname(" WPRS L") called", name);
 
-	orig_pHostent = orig_fpWs2_32_gethostbyname(name);
-	iWSALastError = WSAGetLastError();
-	dwLastError = GetLastError();
-
-	if (name == NULL || name[0] == '\0' || orig_pHostent == NULL || orig_pHostent->h_length != sizeof(PXCH_UINT32)) goto orig;
-
-	if (!g_pPxchConfig->dwWillUseFakeIpAsRemoteDns) goto orig;
-
+	ZeroMemory(&IpPortResolvedByHosts, sizeof(IpPortResolvedByHosts));
 	ZeroMemory(&RequeryAddrInfoHints, sizeof(RequeryAddrInfoHints));
 	RequeryAddrInfoHints.ai_family = AF_UNSPEC;
 	RequeryAddrInfoHints.ai_flags = AI_NUMERICHOST;
@@ -1222,33 +1227,96 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 	OriginalHostname.wPort = 0;
 	OriginalHostname.wTag = PXCH_HOST_TYPE_HOSTNAME;
 	StringCchPrintfW(OriginalHostname.szValue, _countof(OriginalHostname.szValue), L"%S", name);
-	HostentToHostnameAndIps(&ResolvedHostname, &dwIpNum, Ips, orig_pHostent);
-	if (dwIpNum == 0) goto orig;
 
-	if (orig_fpWs2_32_GetAddrInfoW(OriginalHostname.szValue, L"80", &RequeryAddrInfoHints, &pRequeryAddrInfo) != WSAHOST_NOT_FOUND) goto orig;
+	// Decide if we should use hosts entry
+	if (g_pPxchConfig->dwWillResolveLocallyIfMatchHosts && ResolveByHostsFile((PXCH_IP_ADDRESS*)&IpPortResolvedByHosts, &OriginalHostname)) {
+		bShouldReturnHostsResult = TRUE;
+		bShouldUseHostsResult = TRUE;
+	}
 
-	if (pRequeryAddrInfo) orig_fpWs2_32_FreeAddrInfoW(pRequeryAddrInfo);
+	// Decide if we should use original result
+	if (!bShouldReturnHostsResult && !g_pPxchConfig->dwWillUseFakeIpAsRemoteDns) {
+		bShouldReturnResolvedResult = TRUE;
+		bShouldUseResolvedResult = TRUE;
+	} else if (!bShouldReturnHostsResult) {
+		ZeroMemory(&RequeryAddrInfoHints, sizeof(RequeryAddrInfoHints));
+		RequeryAddrInfoHints.ai_family = AF_UNSPEC;
+		RequeryAddrInfoHints.ai_flags = AI_NUMERICHOST;
+		RequeryAddrInfoHints.ai_socktype = SOCK_STREAM;
+		RequeryAddrInfoHints.ai_protocol = IPPROTO_TCP;
 
-	if (g_pPxchConfig->dwWillForceResolveByHostsFile && ResolveByHostsFile(NULL, &OriginalHostname)) goto orig;
+		if (name == NULL
+			|| name[0] == '\0'
+			|| orig_fpWs2_32_GetAddrInfoW(OriginalHostname.szValue, L"80", &RequeryAddrInfoHints, &pRequeryAddrInfo) != WSAHOST_NOT_FOUND
+		) {
+			FUNCIPCLOGD(L"conditons not satisfied; not hijacking name query");
+			bShouldReturnResolvedResult = TRUE;
+			bShouldUseResolvedResult = TRUE;
+		}
+	}
 
-	// Won't match port!
-	dwTarget = GetTargetByRule(&bMatchedHostnameRule, NULL, NULL, NULL, (PXCH_HOST_PORT*)&OriginalHostname, g_pPxchConfig->dwDefaultTarget);
+	if (pRequeryAddrInfo) {
+		orig_fpWs2_32_FreeAddrInfoW(pRequeryAddrInfo);
+		pRequeryAddrInfo = NULL;
+	}
 
-	if (bMatchedHostnameRule || g_pPxchConfig->dwWillUseFakeIpWhenHostnameNotMatched) {
-		struct hostent* pNewHostentResult;
+	if (!bShouldReturnHostsResult && !bShouldReturnResolvedResult) {
+		// Won't match port!
+		dwTarget = GetTargetByRule(&bHasMatchedHostnameRule, NULL, NULL, NULL, (PXCH_HOST_PORT*)&OriginalHostname);
+		bShouldReturnFakeIp = bHasMatchedHostnameRule || g_pPxchConfig->dwWillUseFakeIpWhenHostnameNotMatched;
+		bShouldReturnResolvedResult = !bShouldReturnFakeIp;
+		if (dwTarget == PXCH_RULE_TARGET_DIRECT) {
+			bShouldUseResolvedResult = TRUE;
+		}
+	}
+
+	if (bShouldReturnResolvedResult) {
+		bShouldUseResolvedResult = TRUE;
+	}
+
+	if (bShouldUseResolvedResult) {
+		if (!g_pPxchConfig->dwWillResolveLocallyIfMatchHosts && ResolveByHostsFile((PXCH_IP_ADDRESS*)&IpPortResolvedByHosts, &OriginalHostname)) {
+			bShouldUseHostsResult = TRUE;
+		}
+	}
+
+	if (bShouldUseResolvedResult && !bShouldUseHostsResult) {
+		pResolvedHostent = NULL;
+		pResolvedHostent = orig_fpWs2_32_gethostbyname(name);
+		iWSALastError = WSAGetLastError();
+	    dwLastError = GetLastError();
+
+		if (pResolvedHostent == NULL
+			|| pResolvedHostent->h_length != sizeof(PXCH_UINT32)
+		) {
+			bShouldReturnFakeIp = FALSE;
+			bShouldReturnResolvedResult = TRUE;
+		}
+
+		HostentToHostnameAndIps(&ResolvedHostname, &dwIpNum, Ips, pResolvedHostent);
+		if (dwIpNum == 0) {
+			bShouldReturnFakeIp = FALSE;
+			bShouldReturnResolvedResult = TRUE;
+		}
+	}
+
+	if (bShouldUseHostsResult) {
+		pResolvedHostent = NULL;
+
+		HostnameAndIpsToHostent(
+			&pResolvedHostent,
+			(g_dwTlsIndex != TLS_OUT_OF_INDEXES) ? TlsGetValue(g_dwTlsIndex) : pHostentPseudoTls,
+			&OriginalHostname,
+			1,
+			&IpPortResolvedByHosts
+		);
+
+		iWSALastError = NO_ERROR;
+		dwLastError = NO_ERROR;
+	}
+
+	if (bShouldReturnFakeIp) {
 		int iIpFamilyAllowed;
-		// DWORD dw;
-		// BOOL bAnyResolvedIpv4 = FALSE;
-		// BOOL bAnyResolvedIpv6 = FALSE;
-
-		// for (dw = 0; dw < dwIpNum; dw++) {
-		// 	if (Ips[dw].CommonHeader.wTag == PXCH_HOST_TYPE_IPV4) {
-		// 		bAnyResolvedIpv4 = TRUE;
-		// 	}
-		// 	if (Ips[dw].CommonHeader.wTag == PXCH_HOST_TYPE_IPV6) {
-		// 		bAnyResolvedIpv6 = TRUE;
-		// 	}
-		// }
 
 		if ((dwLastError = HostnameAndIpsToMessage(chMessageBuf, &cbMessageSize, GetCurrentProcessId(), &OriginalHostname, g_pPxchConfig->dwWillMapResolvedIpToHost, dwIpNum, Ips, dwTarget)) != NO_ERROR) goto err;
 
@@ -1259,30 +1327,33 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 		iIpFamilyAllowed = 0;
 		pFakeIps = FakeIps + 1;
 
-		if (g_pPxchConfig->dwWillFirstTunnelUseIpv4 /* && bAnyResolvedIpv4*/) {
+		if (g_pPxchConfig->dwWillFirstTunnelUseIpv4) {
 			iIpFamilyAllowed++;
 			pFakeIps--;
 		}
-		if (g_pPxchConfig->dwWillFirstTunnelUseIpv6 /* && bAnyResolvedIpv6*/) {
+		if (g_pPxchConfig->dwWillFirstTunnelUseIpv6) {
 			iIpFamilyAllowed++;
 		}
 		HostnameAndIpsToHostent(&pNewHostentResult, (g_dwTlsIndex != TLS_OUT_OF_INDEXES) ? TlsGetValue(g_dwTlsIndex) : pHostentPseudoTls, &OriginalHostname, iIpFamilyAllowed, pFakeIps);
 		iWSALastError = NO_ERROR;
 		dwLastError = NO_ERROR;
-	
+
 		pReturnHostent = pNewHostentResult;
-	} else {
-		pReturnHostent = orig_pHostent;
+	}
+
+	if (bShouldReturnResolvedResult) {
+		pReturnHostent = pResolvedHostent;
+	}
+
+	if (bShouldReturnHostsResult) {
+		pReturnHostent = pResolvedHostent;
+		iWSALastError = NO_ERROR;
+		dwLastError = NO_ERROR;
 	}
 
 	WSASetLastError(iWSALastError);
 	SetLastError(dwLastError);
 	return pReturnHostent;
-
-orig:
-	WSASetLastError(iWSALastError);
-	SetLastError(dwLastError);
-	return orig_pHostent;
 
 err:
 	WSASetLastError(iWSALastError);
@@ -1397,7 +1468,7 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 {
 	const ADDRINFOW* pHintsCast;
 	PADDRINFOW* ppResultCast = ppResult;
-	PADDRINFOW pOriginalResultCast;
+	PADDRINFOW pResolvedResultCast = NULL;
 	int iReturn;
 	DWORD dwLastError;
 	int iWSALastError;
@@ -1406,119 +1477,184 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 	PADDRINFOW pResultCast;
 
 	PXCH_UINT32 dwTarget;
-	BOOL bMatchedHostnameRule;
+	BOOL bHasMatchedHostnameRule;
 
-	ADDRINFOW* pRequeryAddrInfo;
-
-	// DWORD dw;
+	ADDRINFOW* pQueryPortAddrInfo = NULL;
+	ADDRINFOW* pRequeryAddrInfo = NULL;
 
 	ADDRINFOW DefaultHints;
 	WCHAR szAddrsBuf[1024];
+	PXCH_IP_PORT IpPortResolvedByHosts;
 	PXCH_HOST_PORT HostPort;
 	PXCH_HOSTNAME Hostname;
 	ADDRINFOW RequeryAddrInfoHints;
 
+	BOOL bShouldReturnResolvedResult = FALSE;
+	BOOL bShouldUseResolvedResult = FALSE;
+	BOOL bShouldUseHostsResult = FALSE;
+	BOOL bShouldReturnHostsResult = FALSE;
+	BOOL bShouldReturnFakeIp = FALSE;
 	PXCH_IPC_MSGBUF chMessageBuf;
 	PXCH_IPC_MSGBUF chRespMessageBuf;
 	PXCH_IP_ADDRESS Ips[PXCH_MAX_ARRAY_IP_NUM];
 	PXCH_IP_PORT FakeIpPorts[2];
 
 	pHintsCast = pHints ? pHints : &DefaultHints;
-	pRequeryAddrInfo = NULL;
 
+	ZeroMemory(&IpPortResolvedByHosts, sizeof(IpPortResolvedByHosts));
 	ZeroMemory(&DefaultHints, sizeof(DefaultHints));
+	// To distinguish case when pHints == NULL when printing
 	DefaultHints.ai_family = -1;
 	DefaultHints.ai_flags = -1;
 	DefaultHints.ai_socktype = -1;
 	DefaultHints.ai_protocol = -1;
 
+	// Print DNS query
 	FUNCIPCLOGD(L"Ws2_32.dll GetAddrInfoW(%ls, %ls, AF%#010x, FL%#010x, ST%#010x, PT%#010x) called", pNodeName, pServiceName, pHintsCast->ai_family, pHintsCast->ai_flags, pHintsCast->ai_socktype, pHintsCast->ai_protocol);
 
-	*ppResultCast = pOriginalResultCast = NULL;
-	iReturn = orig_fpWs2_32_GetAddrInfoW(pNodeName, pServiceName, pHints, ppResultCast);
+	iReturn = orig_fpWs2_32_GetAddrInfoW(L"127.0.0.1", pServiceName, NULL, &pQueryPortAddrInfo);
 	iWSALastError = WSAGetLastError();
 	dwLastError = GetLastError();
-	pOriginalResultCast = *ppResultCast;
-	FUNCIPCLOGD(L"Ws2_32.dll GetAddrInfoW(%ls, %ls, AF%#010x, FL%#010x, ST%#010x, PT%#010x): orig_fpWs2_32_GetAddrInfoW ret: %d", pNodeName, pServiceName, pHintsCast->ai_family, pHintsCast->ai_flags, pHintsCast->ai_socktype, pHintsCast->ai_protocol, iReturn);
-
-	szAddrsBuf[0] = L'\0';
-	pszAddrsBuf = szAddrsBuf;
-
-	if (g_pPxchConfig->dwLogLevel >= PXCH_LOG_LEVEL_DEBUG) {
-		for (pResultCast = pOriginalResultCast; pResultCast; pResultCast = pResultCast->ai_next) {
-			StringCchPrintfExW(pszAddrsBuf, _countof(szAddrsBuf) - (pszAddrsBuf - szAddrsBuf), &pszAddrsBuf, NULL, 0, L"%ls%ls", pResultCast == pOriginalResultCast ? L"" : L", ", FormatHostPortToStr(pResultCast->ai_addr, (int)pResultCast->ai_addrlen));
-		}
-		FUNCIPCLOGD(L"Ws2_32.dll GetAddrInfoW(%ls, %ls, ...) result %p: %ls", pNodeName, pServiceName, pOriginalResultCast, szAddrsBuf);
-	}
-
-	if (!g_pPxchConfig->dwWillUseFakeIpAsRemoteDns) goto out;
-
-	DefaultHints.ai_family = AF_UNSPEC;
-	DefaultHints.ai_flags = 0;
-	DefaultHints.ai_socktype = SOCK_STREAM;
-	DefaultHints.ai_protocol = IPPROTO_TCP;
-
-	ZeroMemory(&RequeryAddrInfoHints, sizeof(RequeryAddrInfoHints));
-	RequeryAddrInfoHints.ai_family = AF_UNSPEC;
-	RequeryAddrInfoHints.ai_protocol = pHintsCast->ai_protocol;
-	RequeryAddrInfoHints.ai_socktype = pHintsCast->ai_socktype;
-	RequeryAddrInfoHints.ai_flags = AI_NUMERICHOST;
-
-	if (!(
-		pNodeName != NULL
-		&& pNodeName[0] != L'\0'
-		&& (
-			pHintsCast->ai_family == AF_UNSPEC
-			|| pHintsCast->ai_family == AF_INET
-			|| pHintsCast->ai_family == AF_INET6)
-		&& (pHintsCast->ai_protocol == IPPROTO_TCP
-			|| pHintsCast->ai_protocol == IPPROTO_UDP
-			|| pHintsCast->ai_protocol == 0)
-		&& (pHintsCast->ai_socktype == SOCK_STREAM
-			|| pHintsCast->ai_socktype == SOCK_DGRAM
-			|| pHintsCast->ai_socktype == 0)
-		&& ((pHintsCast->ai_flags & (AI_PASSIVE | AI_NUMERICHOST)) == 0)
-		&& orig_fpWs2_32_GetAddrInfoW(pNodeName, pServiceName, &RequeryAddrInfoHints, &pRequeryAddrInfo) == WSAHOST_NOT_FOUND
-		&& pOriginalResultCast != NULL
-		)) {
-		FUNCIPCLOGD(L"goto out as-is");
-		goto out;
-	}
-
-	if (pRequeryAddrInfo) orig_fpWs2_32_FreeAddrInfoW(pRequeryAddrInfo);
+	// Most probably WSATYPE_NOT_FOUND
+	if (iReturn != NO_ERROR || pQueryPortAddrInfo == NULL) goto err;
 
 	ZeroMemory(&HostPort, sizeof(PXCH_HOST_PORT));
 	SetHostType(HOSTNAME, HostPort);
-	HostPort.HostnamePort.wPort = ((PXCH_IP_PORT*)pOriginalResultCast->ai_addr)->CommonHeader.wPort;
+	HostPort.HostnamePort.wPort = ((PXCH_IP_PORT*)pQueryPortAddrInfo->ai_addr)->CommonHeader.wPort;
+	if (pQueryPortAddrInfo) {
+		orig_fpWs2_32_FreeAddrInfoW(pQueryPortAddrInfo);
+		pQueryPortAddrInfo = NULL;
+	}
 	StringCchCopyW(HostPort.HostnamePort.szValue, _countof(HostPort.HostnamePort.szValue), pNodeName);
 
 	Hostname = HostPort.HostnamePort;
 	Hostname.wPort = 0;
 
-	if (g_pPxchConfig->dwWillForceResolveByHostsFile && ResolveByHostsFile(NULL, &Hostname)) goto out;
+	// Decide if we should use hosts entry
+	if (g_pPxchConfig->dwWillResolveLocallyIfMatchHosts && ResolveByHostsFile((PXCH_IP_ADDRESS*)&IpPortResolvedByHosts, &Hostname)) {
+		bShouldReturnHostsResult = TRUE;
+		bShouldUseHostsResult = TRUE;
+	}
 
-	dwTarget = GetTargetByRule(&bMatchedHostnameRule, NULL, NULL, NULL, &HostPort, g_pPxchConfig->dwDefaultTarget);
+	// Decide if we should use original result
+	if (!bShouldReturnHostsResult && !g_pPxchConfig->dwWillUseFakeIpAsRemoteDns) {
+		bShouldReturnResolvedResult = TRUE;
+		bShouldUseResolvedResult = TRUE;
+	} else if (!bShouldReturnHostsResult) {
+		DefaultHints.ai_family = AF_UNSPEC;
+		DefaultHints.ai_flags = 0;
+		DefaultHints.ai_socktype = SOCK_STREAM;
+		DefaultHints.ai_protocol = IPPROTO_TCP;
 
-	if (bMatchedHostnameRule || g_pPxchConfig->dwWillUseFakeIpWhenHostnameNotMatched) {
+		ZeroMemory(&RequeryAddrInfoHints, sizeof(RequeryAddrInfoHints));
+		RequeryAddrInfoHints.ai_family = AF_UNSPEC;
+		RequeryAddrInfoHints.ai_protocol = pHintsCast->ai_protocol;
+		RequeryAddrInfoHints.ai_socktype = pHintsCast->ai_socktype;
+		RequeryAddrInfoHints.ai_flags = AI_NUMERICHOST;
+
+		// See if we should hijack this query(it needs to satisfy several conditions)
+		if (!(
+			pNodeName != NULL
+			&& pNodeName[0] != L'\0'
+			&& (
+				pHintsCast->ai_family == AF_UNSPEC
+				|| pHintsCast->ai_family == AF_INET
+				|| pHintsCast->ai_family == AF_INET6)
+			&& (pHintsCast->ai_protocol == IPPROTO_TCP
+				|| pHintsCast->ai_protocol == IPPROTO_UDP
+				|| pHintsCast->ai_protocol == 0)
+			&& (pHintsCast->ai_socktype == SOCK_STREAM
+				|| pHintsCast->ai_socktype == SOCK_DGRAM
+				|| pHintsCast->ai_socktype == 0)
+			&& ((pHintsCast->ai_flags & (AI_PASSIVE | AI_NUMERICHOST)) == 0)
+			&& orig_fpWs2_32_GetAddrInfoW(pNodeName, pServiceName, &RequeryAddrInfoHints, &pRequeryAddrInfo) == WSAHOST_NOT_FOUND
+		)) {
+			FUNCIPCLOGD(L"conditons not satisfied; not hijacking name query");
+			bShouldReturnResolvedResult = TRUE;
+			bShouldUseResolvedResult = TRUE;
+		}
+	}
+
+	if (pRequeryAddrInfo) {
+		orig_fpWs2_32_FreeAddrInfoW(pRequeryAddrInfo);
+		pRequeryAddrInfo = NULL;
+	}
+
+	if (!bShouldReturnHostsResult && !bShouldReturnResolvedResult) {
+		dwTarget = GetTargetByRule(&bHasMatchedHostnameRule, NULL, NULL, NULL, &HostPort);
+		bShouldReturnFakeIp = bHasMatchedHostnameRule || g_pPxchConfig->dwWillUseFakeIpWhenHostnameNotMatched;
+		bShouldReturnResolvedResult = !bShouldReturnFakeIp;
+
+		if (dwTarget == PXCH_RULE_TARGET_DIRECT) {
+			bShouldUseResolvedResult = TRUE;
+		}
+	}
+
+	if (bShouldReturnResolvedResult) {
+		bShouldUseResolvedResult = TRUE;
+	}
+
+	if (bShouldUseResolvedResult) {
+		if (!g_pPxchConfig->dwWillResolveLocallyIfMatchHosts && ResolveByHostsFile((PXCH_IP_ADDRESS*)&IpPortResolvedByHosts, &Hostname)) {
+			bShouldUseHostsResult = TRUE;
+		}
+	}
+
+	if (bShouldUseResolvedResult && !bShouldUseHostsResult) {
+		pResolvedResultCast = NULL;
+		
+		iReturn = orig_fpWs2_32_GetAddrInfoW(pNodeName, pServiceName, pHints, &pResolvedResultCast);
+		iWSALastError = WSAGetLastError();
+		dwLastError = GetLastError();
+
+		FUNCIPCLOGD(L"Ws2_32.dll GetAddrInfoW(%ls, %ls, AF%#010x, FL%#010x, ST%#010x, PT%#010x): orig_fpWs2_32_GetAddrInfoW ret: %d", pNodeName, pServiceName, pHintsCast->ai_family, pHintsCast->ai_flags, pHintsCast->ai_socktype, pHintsCast->ai_protocol, iReturn);
+
+		szAddrsBuf[0] = L'\0';
+		pszAddrsBuf = szAddrsBuf;
+
+		if (g_pPxchConfig->dwLogLevel >= PXCH_LOG_LEVEL_DEBUG) {
+			for (pResultCast = pResolvedResultCast; pResultCast; pResultCast = pResultCast->ai_next) {
+				StringCchPrintfExW(pszAddrsBuf, _countof(szAddrsBuf) - (pszAddrsBuf - szAddrsBuf), &pszAddrsBuf, NULL, 0, L"%ls%ls", pResultCast == pResolvedResultCast ? L"" : L", ", FormatHostPortToStr(pResultCast->ai_addr, (int)pResultCast->ai_addrlen));
+			}
+			FUNCIPCLOGD(L"Ws2_32.dll GetAddrInfoW(%ls, %ls, ...) result %p: %ls", pNodeName, pServiceName, pResolvedResultCast, szAddrsBuf);
+		}
+
+		if (pResolvedResultCast == NULL) {
+			bShouldReturnFakeIp = FALSE;
+			bShouldReturnResolvedResult = TRUE;
+		}
+	}
+
+	if (bShouldUseHostsResult) {
+		pResolvedResultCast = NULL;
+		IpPortResolvedByHosts.CommonHeader.wPort = HostPort.CommonHeader.wPort;
+
+		HostnameAndIpPortsToAddrInfo_WillAllocate(
+			&pResolvedResultCast,
+			&Hostname,
+			1,
+			&IpPortResolvedByHosts,
+			!!(pHintsCast->ai_flags & AI_CANONNAME),
+			pHintsCast->ai_socktype,
+			pHintsCast->ai_protocol
+		);
+		
+		FUNCIPCLOGD(L"Ws2_32.dll GetAddrInfoW(%ls, %ls, AF%#010x, FL%#010x, ST%#010x, PT%#010x): resolved by hosts: %ls", pNodeName, pServiceName, pHintsCast->ai_family, pHintsCast->ai_flags, pHintsCast->ai_socktype, pHintsCast->ai_protocol, FormatHostPortToStr(&IpPortResolvedByHosts, sizeof(IpPortResolvedByHosts)));
+
+		iWSALastError = NO_ERROR;
+		dwLastError = NO_ERROR;
+		iReturn = 0;
+	}
+
+	if (bShouldReturnFakeIp) {
 		PXCH_UINT32 cbMessageSize;
 		PXCH_UINT32 cbRespMessageSize;
 		PXCH_UINT32 dwIpNum;
 		ADDRINFOW* pNewAddrInfoWResult;
 		int iIpFamilyAllowed;
 		PXCH_IP_PORT* pFakeIpPorts;
-		// BOOL bAnyResolvedIpv4 = FALSE;
-		// BOOL bAnyResolvedIpv6 = FALSE;
 
-		AddrInfoToIps(&dwIpNum, Ips, pOriginalResultCast, TRUE);
-
-		// for (dw = 0; dw < dwIpNum; dw++) {
-		// 	if (Ips[dw].CommonHeader.wTag == PXCH_HOST_TYPE_IPV4) {
-		// 		bAnyResolvedIpv4 = TRUE;
-		// 	}
-		// 	if (Ips[dw].CommonHeader.wTag == PXCH_HOST_TYPE_IPV6) {
-		// 		bAnyResolvedIpv6 = TRUE;
-		// 	}
-		// }
+		AddrInfoToIps(&dwIpNum, Ips, pResolvedResultCast, TRUE);
 
 		if ((dwLastError = HostnameAndIpsToMessage(chMessageBuf, &cbMessageSize, GetCurrentProcessId(), &Hostname, g_pPxchConfig->dwWillMapResolvedIpToHost, dwIpNum, Ips, dwTarget)) != NO_ERROR) goto err;
 
@@ -1532,33 +1668,57 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 		iIpFamilyAllowed = 0;
 		pFakeIpPorts = FakeIpPorts + 1;
 
-		if (g_pPxchConfig->dwWillFirstTunnelUseIpv4 /* && bAnyResolvedIpv4*/) {
+		if (g_pPxchConfig->dwWillFirstTunnelUseIpv4) {
 			iIpFamilyAllowed++;
 			pFakeIpPorts--;
 		}
-		if (g_pPxchConfig->dwWillFirstTunnelUseIpv6 /* && bAnyResolvedIpv6*/) {
+		if (g_pPxchConfig->dwWillFirstTunnelUseIpv6) {
 			iIpFamilyAllowed++;
 		}
-		HostnameAndIpPortsToAddrInfo_WillAllocate(&pNewAddrInfoWResult, &Hostname, iIpFamilyAllowed, pFakeIpPorts, !!(pHintsCast->ai_flags & AI_CANONNAME), pOriginalResultCast->ai_socktype, pOriginalResultCast->ai_protocol);
-		iWSALastError = NO_ERROR;
-		dwLastError = NO_ERROR;
-		iReturn = 0;
+		HostnameAndIpPortsToAddrInfo_WillAllocate(
+			&pNewAddrInfoWResult,
+			&Hostname,
+			iIpFamilyAllowed,
+			pFakeIpPorts,
+			!!(pHintsCast->ai_flags & AI_CANONNAME),
+			pResolvedResultCast ? pResolvedResultCast->ai_socktype : pHintsCast->ai_socktype,
+			pResolvedResultCast ? pResolvedResultCast->ai_protocol : pHintsCast->ai_protocol
+		);
 
 		*ppResultCast = pNewAddrInfoWResult;
 		if (*ppResultCast == NULL) {
 			dwLastError = ERROR_NOT_FOUND;
 			goto err;
 		}
-		if (pOriginalResultCast) orig_fpWs2_32_FreeAddrInfoW(pOriginalResultCast);
+		if (pResolvedResultCast) {
+			ProxyWs2_32_FreeAddrInfoW(pResolvedResultCast);
+			pResolvedResultCast = NULL;
+		}
+
+		iWSALastError = NO_ERROR;
+		dwLastError = NO_ERROR;
+		iReturn = 0;
 	}
 
-out:
+	if (bShouldReturnResolvedResult) {
+		*ppResultCast = pResolvedResultCast;
+	}
+
+	if (bShouldReturnHostsResult) {
+		*ppResultCast = pResolvedResultCast;
+		iWSALastError = NO_ERROR;
+		dwLastError = NO_ERROR;
+		iReturn = 0;
+	}
+
 	WSASetLastError(iWSALastError);
 	SetLastError(dwLastError);
 	return iReturn;
 
 err:
-	if (pOriginalResultCast) orig_fpWs2_32_FreeAddrInfoW(pOriginalResultCast);
+	if (pResolvedResultCast) orig_fpWs2_32_FreeAddrInfoW(pResolvedResultCast);
+	if (pQueryPortAddrInfo) orig_fpWs2_32_FreeAddrInfoW(pQueryPortAddrInfo);
+	if (pRequeryAddrInfo) orig_fpWs2_32_FreeAddrInfoW(pRequeryAddrInfo);
 	WSASetLastError(WSAHOST_NOT_FOUND);
 	SetLastError(dwLastError);
 	return WSAHOST_NOT_FOUND;

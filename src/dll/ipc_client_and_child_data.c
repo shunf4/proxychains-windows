@@ -183,7 +183,7 @@ err_mapviewoffile:
 }
 
 
-PXCH_UINT32 RestoreChildData()
+PXCH_UINT32 RestoreChildDataIfNecessary()
 {
 	// Restore child process essential data overwritten by Cygwin fork().
 
