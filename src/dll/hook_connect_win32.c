@@ -1187,8 +1187,8 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 	struct hostent* pResolvedHostent = NULL;
 	struct hostent* pReturnHostent = NULL;
 	struct hostent* pNewHostentResult = NULL;
-	int iWSALastError;
-	DWORD dwLastError;
+	int iWSALastError = 0;
+	DWORD dwLastError = 0;
 
 	ADDRINFOW RequeryAddrInfoHints;
 	ADDRINFOW* pRequeryAddrInfo = NULL;

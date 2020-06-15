@@ -58,3 +58,7 @@ https://github.com/shunf4/busybox-w32
 
 Related pull request:
 https://github.com/git-for-windows/busybox-w32/pull/2
+
+# Name Resolution
+
+See [here](name_resolution.md).

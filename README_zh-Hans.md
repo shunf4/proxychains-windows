@@ -82,9 +82,9 @@ Proxychains.exe 按照以下顺序寻找配置：
 
 **Cygwin 自 0.6.0 开始完全得到支持！**
 
-自从将 DLL 注入的方法从 `CreateRemoteThread()` 改为修改目标进程的入口点之后，proxychains.exe 现在支持完美地强制代理 Cygwin/Msys2 进程了（即使从 Win32 构建版本来调用也是这样）。详见 [DevNotes](DEVNOTES.md)。
+自从将 DLL 注入的方法从 `CreateRemoteThread()` 改为修改目标进程的入口点之后，proxychains.exe 现在支持完美地强制代理 Cygwin/Msys2 进程了（即使从 Win32 构建版本来调用也是这样）。详见 [DevNotes](doc/DEVNOTES.md)。
 
-如果你想要强制代理 [MinGit busybox 版本](https://github.com/git-for-windows/git/releases/)，请将 `busybox.exe` 换成[我修改的这个版本](https://github.com/shunf4/busybox-w32)。详见 [DevNotes](DEVNOTES.md)。
+如果你想要强制代理 [MinGit busybox 版本](https://github.com/git-for-windows/git/releases/)，请将 `busybox.exe` 换成[我修改的这个版本](https://github.com/shunf4/busybox-w32)。详见 [DevNotes](doc/DEVNOTES.md)。
 
 # To-Do 以及已知的问题
 

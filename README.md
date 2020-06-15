@@ -133,12 +133,12 @@ SIGINT (Ctrl-C).
 Switching the DLL injection technique from `CreateRemoteThread()` to 
 modifying the target process' entry point, proxychains.exe now supports 
 proxifying Cygwin/Msys2 process perfectly. (Even when you call them 
-with Win32 version of proxychains.exe). See [DevNotes](DEVNOTES.md).
+with Win32 version of proxychains.exe). See [DevNotes](doc/DEVNOTES.md).
 
 If you want to proxify [MinGit busybox variant](https://github.com/git-for-windows/git/releases/),
 replace its `busybox.exe` with
 [this version modified by me](https://github.com/shunf4/busybox-w32).
-See [DevNotes](DEVNOTES.md).
+See [DevNotes](doc/DEVNOTES.md).
 
 # To-do and Known Issues
 
