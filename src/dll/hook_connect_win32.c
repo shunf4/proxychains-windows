@@ -296,8 +296,8 @@ PXCH_UINT32 ReverseLookupForHost(PXCH_HOSTNAME_PORT* pReverseLookedupHostnamePor
 
 err_general:
 	return dwLastError;
-addr_not_supported_end:
-	return ERROR_NOT_SUPPORTED;
+// addr_not_supported_end:
+//	return ERROR_NOT_SUPPORTED;
 }
 
 void PrintConnectResultAndFreeResources(const WCHAR* szPrintPrefix, PXCH_UINT_PTR SocketHandle, const void* pOriginalAddr, int iOriginalAddrLen, const PXCH_IP_PORT* pIpPortForDirectConnection, const PXCH_HOST_PORT* pHostPortForProxiedConnection, PXCH_UINT32 dwTarget, PXCH_CHAIN* pChain, int iReturn, BOOL bIsConnectSuccessful, int iWSALastError)
@@ -1189,6 +1189,7 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 	struct hostent* pNewHostentResult = NULL;
 	int iWSALastError = 0;
 	DWORD dwLastError = 0;
+	DWORD dw;
 
 	ADDRINFOW RequeryAddrInfoHints;
 	ADDRINFOW* pRequeryAddrInfo = NULL;
@@ -1318,6 +1319,26 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 	if (bShouldReturnFakeIp) {
 		int iIpFamilyAllowed;
 
+		BOOL bShouldReturnIpv4 = FALSE;
+		BOOL bShouldReturnIpv6 = FALSE;
+
+		if (bShouldUseResolvedResult) {
+			// We should not return fake IPs with types that are not in resolved IPs, because we know later we will connect to one of the resolved IPs
+			for (dw = 0; dw < dwIpNum; dw++) {
+				if (Ips[dw].CommonHeader.wTag == PXCH_HOST_TYPE_IPV4) {
+					bShouldReturnIpv4 = TRUE;
+				}
+				if (Ips[dw].CommonHeader.wTag == PXCH_HOST_TYPE_IPV6) {
+					bShouldReturnIpv6 = TRUE;
+				}
+			}
+		} else {
+			// We can always return fake IPv4 address, because locally resolved IPs are not used
+			// Note that gethostbyname() can only return IPv4 address at most
+			bShouldReturnIpv4 = TRUE;
+			bShouldReturnIpv6 = FALSE;
+		}
+
 		if ((dwLastError = HostnameAndIpsToMessage(chMessageBuf, &cbMessageSize, GetCurrentProcessId(), &OriginalHostname, g_pPxchConfig->dwWillMapResolvedIpToHost, dwIpNum, Ips, dwTarget)) != NO_ERROR) goto err;
 
 		if ((dwLastError = IpcCommunicateWithServer(chMessageBuf, cbMessageSize, chRespMessageBuf, &cbRespMessageSize)) != NO_ERROR) goto err;
@@ -1327,11 +1348,11 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 		iIpFamilyAllowed = 0;
 		pFakeIps = FakeIps + 1;
 
-		if (g_pPxchConfig->dwWillFirstTunnelUseIpv4) {
+		if (g_pPxchConfig->dwWillFirstTunnelUseIpv4 && bShouldReturnIpv4) {
 			iIpFamilyAllowed++;
 			pFakeIps--;
 		}
-		if (g_pPxchConfig->dwWillFirstTunnelUseIpv6) {
+		if (g_pPxchConfig->dwWillFirstTunnelUseIpv6 && bShouldReturnIpv6) {
 			iIpFamilyAllowed++;
 		}
 		HostnameAndIpsToHostent(&pNewHostentResult, (g_dwTlsIndex != TLS_OUT_OF_INDEXES) ? TlsGetValue(g_dwTlsIndex) : pHostentPseudoTls, &OriginalHostname, iIpFamilyAllowed, pFakeIps);
@@ -1472,6 +1493,7 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 	int iReturn;
 	DWORD dwLastError;
 	int iWSALastError;
+	DWORD dw;
 
 	WCHAR* pszAddrsBuf;
 	PADDRINFOW pResultCast;
@@ -1653,8 +1675,26 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 		ADDRINFOW* pNewAddrInfoWResult;
 		int iIpFamilyAllowed;
 		PXCH_IP_PORT* pFakeIpPorts;
+		BOOL bShouldReturnIpv4 = FALSE;
+		BOOL bShouldReturnIpv6 = FALSE;
 
 		AddrInfoToIps(&dwIpNum, Ips, pResolvedResultCast, TRUE);
+
+		if (bShouldUseResolvedResult) {
+			// We should not return fake IPs with types that are not in resolved IPs, because we know later we will connect to one of the resolved IPs
+			for (dw = 0; dw < dwIpNum; dw++) {
+				if (Ips[dw].CommonHeader.wTag == PXCH_HOST_TYPE_IPV4) {
+					bShouldReturnIpv4 = TRUE;
+				}
+				if (Ips[dw].CommonHeader.wTag == PXCH_HOST_TYPE_IPV6) {
+					bShouldReturnIpv6 = TRUE;
+				}
+			}
+		} else {
+			// We can return fake IPs with requested types, because locally resolved IPs are not used
+			bShouldReturnIpv4 = (pHintsCast->ai_family == AF_UNSPEC || pHintsCast->ai_family == AF_INET);
+			bShouldReturnIpv6 = (pHintsCast->ai_family == AF_UNSPEC || pHintsCast->ai_family == AF_INET6);
+		}
 
 		if ((dwLastError = HostnameAndIpsToMessage(chMessageBuf, &cbMessageSize, GetCurrentProcessId(), &Hostname, g_pPxchConfig->dwWillMapResolvedIpToHost, dwIpNum, Ips, dwTarget)) != NO_ERROR) goto err;
 
@@ -1668,11 +1708,11 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 		iIpFamilyAllowed = 0;
 		pFakeIpPorts = FakeIpPorts + 1;
 
-		if (g_pPxchConfig->dwWillFirstTunnelUseIpv4) {
+		if (g_pPxchConfig->dwWillFirstTunnelUseIpv4 && bShouldReturnIpv4) {
 			iIpFamilyAllowed++;
 			pFakeIpPorts--;
 		}
-		if (g_pPxchConfig->dwWillFirstTunnelUseIpv6) {
+		if (g_pPxchConfig->dwWillFirstTunnelUseIpv6 && bShouldReturnIpv6) {
 			iIpFamilyAllowed++;
 		}
 		HostnameAndIpPortsToAddrInfo_WillAllocate(

@@ -17,6 +17,9 @@ _test3 : test3.c
 _test4 : test4.c
 	$(CC) -g -o_$(basename $^) $^
 
+_test5 : test5.c
+	$(CC) -g -o_$(basename $^) $^
+
 px :
 	make -C ../../
 
