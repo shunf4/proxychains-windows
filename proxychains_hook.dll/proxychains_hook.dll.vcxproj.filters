@@ -33,13 +33,13 @@
     <ClCompile Include="..\src\dll\hook_installer.c">
       <Filter>Sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\dll\hookdll_util.c">
+    <ClCompile Include="..\src\dll\hookdll_util_log_win32.c">
       <Filter>Sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\dll\hookdll_util_wsock.c">
+    <ClCompile Include="..\src\dll\hookdll_util_wsock_win32.c">
       <Filter>Sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\dll\hookdll_util_ipc_message.c">
+    <ClCompile Include="..\src\dll\hookdll_util_ipc_message_win32.c">
       <Filter>Sources</Filter>
     </ClCompile>
   </ItemGroup>

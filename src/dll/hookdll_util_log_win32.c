@@ -1,5 +1,5 @@
 ﻿// SPDX-License-Identifier: GPL-2.0-or-later
-/* hookdll_util.c
+/* hookdll_util_log_win32.c
  * Copyright (C) 2020 Feng Shun.
  *
  *   This program is free software: you can redistribute it and/or modify
@@ -20,6 +20,8 @@
 #include "tls_generic.h"
 #include "hookdll_generic.h"
 #include "hookdll_util_win32.h"
+
+HANDLE g_hCygwinConsoleSemaphore;
 
 PXCH_DLL_API PXCH_UINT32 g_dwTlsIndex = TLS_OUT_OF_INDEXES;
 PXCH_DLL_API const PXCH_UINT32 g_dwW32SystemTimeSize = sizeof(SYSTEMTIME);
@@ -117,10 +119,12 @@ void pxchlog_ipc_func(const wchar_t* prefix_fmt, const wchar_t* ipc_prefix_fmt, 
 
 PXCH_DLL_API void StdVwprintf(DWORD dwStdHandle, const WCHAR* fmt, va_list args)
 {
-	HANDLE h;
 	STRSAFE_LPWSTR pEnd = g_szFwprintfWbuf;
 	int iBufSize;
+#ifndef __CYGWIN__
+	HANDLE h;
 	DWORD cbWritten;
+#endif // __CYGWIN__
 
 	g_szFwprintfWbuf[0] = L'\0';
 	g_szFwprintfBuf[0] = '\0';
@@ -135,11 +139,56 @@ PXCH_DLL_API void StdVwprintf(DWORD dwStdHandle, const WCHAR* fmt, va_list args)
 
 	if (g_szFwprintfWbuf[PXCH_MAX_FWPRINTF_BUFSIZE - 2]) g_szFwprintfWbuf[PXCH_MAX_FWPRINTF_BUFSIZE - 2] = L'\n';
 	g_szFwprintfWbuf[PXCH_MAX_FWPRINTF_BUFSIZE - 1] = L'\0';
-	iBufSize = WideCharToMultiByte(CP_ACP, 0, g_szFwprintfWbuf, (int)(pEnd - g_szFwprintfWbuf), g_szFwprintfBuf, PXCH_MAX_FWPRINTF_BUFSIZE, NULL, NULL);
+	iBufSize = WideCharToMultiByte(
+#ifndef __CYGWIN__
+		CP_ACP
+#else // __CYGWIN__
+		CP_UTF8
+#endif // __CYGWIN__
+	, 0, g_szFwprintfWbuf, (int)(pEnd - g_szFwprintfWbuf), g_szFwprintfBuf, PXCH_MAX_FWPRINTF_BUFSIZE, NULL, NULL);
 	g_szFwprintfBuf[PXCH_MAX_FWPRINTF_BUFSIZE - 1] = '\0';
 
+#ifndef __CYGWIN__
 	h = GetStdHandle(dwStdHandle);
 	if (h && h != INVALID_HANDLE_VALUE) WriteFile(h, g_szFwprintfBuf, iBufSize, &cbWritten, NULL);
+#else // __CYGWIN__
+	DWORD dwWaitResult;
+	DWORD dwLastError;
+
+	ODBGSTRLOGV(L"Waiting for g_hCygwinConsoleSemaphore.");
+
+	dwWaitResult = WaitForSingleObject(g_hCygwinConsoleSemaphore, 0);
+	switch (dwWaitResult)
+	{
+	case WAIT_OBJECT_0:
+		if (dwStdHandle == STD_OUTPUT_HANDLE) {
+			pxch_cygwin_write(1, g_szFwprintfBuf, (size_t)iBufSize);
+		} else if (dwStdHandle == STD_ERROR_HANDLE) {
+			pxch_cygwin_write(2, g_szFwprintfBuf, (size_t)iBufSize);
+		}
+		if (!ReleaseSemaphore(g_hCygwinConsoleSemaphore, 1, NULL)) {
+			dwLastError = GetLastError();
+			ODBGSTRLOGD(L"Release g_hCygwinConsoleSemaphore error: %ls", FormatErrorToStr(dwLastError));
+			exit(dwLastError);
+		}
+		break;
+
+	case WAIT_ABANDONED:
+		ODBGSTRLOGD(L"g_hCygwinConsoleSemaphore abandoned!");
+		Sleep(INFINITE);
+		exit(ERROR_ABANDONED_WAIT_0);
+		break;
+
+	case WAIT_TIMEOUT:
+		ODBGSTRLOGD(L"g_hCygwinConsoleSemaphore is currently unavailable, not outputing: %ls", g_szFwprintfWbuf);
+		break;
+
+	default:
+		dwLastError = GetLastError();
+		ODBGSTRLOGD(L"Wait for g_hCygwinConsoleSemaphore(%p) status: " WPRDW L"; error: %ls", g_hCygwinConsoleSemaphore, dwWaitResult, FormatErrorToStr(dwLastError));
+		exit(dwLastError);
+	}
+#endif // __CYGWIN__
 }
 
 

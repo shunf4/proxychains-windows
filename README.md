@@ -150,17 +150,13 @@ its descendant processes to do `SetThreadContext()`. This means
 proxychains.exe is in no way compatible with terminals based on ConEmu
 (like cmder).
 
-## Encoding Issue Regarding Cygwin and Mintty
-
-Cygwin winsup [hooks](https://github.com/mirror/newlib-cygwin/blob/a97bdf100f54c736c1ab46d39984c4deaacd7386/winsup/cygwin/fhandler_tty.cc#L229) `WriteFile` and some other functions, forcing current process to switch to pseudo console etc. Proxychains.exe uses `WriteFile()` for log output, so encoding issue may happen (like UTF-8 Chinese characters displayed as "???").
-
 ## To-do
 
-- [ ] Resolve encoding issue regarding Cygwin and Mintty
 - [ ] Properly handle "fork-and-exit" child process ? (In this case the
 descendant processes' dns queries would never succeed)
 - [ ] Remote DNS resolving based on UDP associate
 - [ ] Hook `sendto()`, coping with applications which do TCP fast open
+- [X] Resolve encoding issue regarding Cygwin and Mintty (fixed in 0.6.7)
 - [X] Fake IPs should be filtered according to types of resolved IPs
 and hints in `GetAddrInfoW` and `gethostbyname`, otherwise crash may happen
 (fixed in 0.6.7)

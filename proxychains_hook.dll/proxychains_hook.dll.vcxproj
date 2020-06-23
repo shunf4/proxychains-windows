@@ -212,9 +212,9 @@
     <ClCompile Include="..\src\dll\hook_connect_win32.c" />
     <ClCompile Include="..\src\dll\hook_installer.c" />
     <ClCompile Include="..\src\dll\ipc_client_and_child_data.c" />
-    <ClCompile Include="..\src\dll\hookdll_util.c" />
-    <ClCompile Include="..\src\dll\hookdll_util_wsock.c" />
-    <ClCompile Include="..\src\dll\hookdll_util_ipc_message.c" />
+    <ClCompile Include="..\src\dll\hookdll_util_log_win32.c" />
+    <ClCompile Include="..\src\dll\hookdll_util_wsock_win32.c" />
+    <ClCompile Include="..\src\dll\hookdll_util_ipc_message_win32.c" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\minhook\build\VC15\libMinHook.vcxproj">

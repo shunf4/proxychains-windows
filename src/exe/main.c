@@ -464,6 +464,7 @@ DWORD Init(void)
 {
 	g_dwCurrentProcessIdForVerify = GetCurrentProcessId();
 	if ((g_hIpcServerSemaphore = CreateSemaphoreW(NULL, 0, 1, NULL)) == NULL) return GetLastError();
+	if ((g_hCygwinConsoleSemaphore = CreateSemaphoreW(NULL, 1, 1, NULL)) == NULL) return GetLastError();
 	return 0;
 }
 
@@ -502,7 +503,6 @@ int wmain(int argc, WCHAR* wargv[])
 
 	setvbuf(stderr, NULL, _IOFBF, 65536);
 	szLocale = setlocale(LC_ALL, "");
-	LOGD(L"Locale: " WPRS, szLocale);
 
 	if ((dwError = Init()) != NOERROR) goto err;
 	if ((dwError = InitProcessBookkeeping()) != NOERROR) goto err;
@@ -584,6 +584,8 @@ void handle_sigchld(int sig)
 	int iChildStatusTmp;
 	BOOL bChildExitedNormally;
 	int iChildExitStatus;
+	DWORD dwWaitResult;
+	DWORD dwLastError;
 
 	while ((iChildPidTmp = waitpid((pid_t)(-1), &iChildStatusTmp, WNOHANG)) > 0) {
 		bChild = TRUE;
@@ -600,7 +602,28 @@ void handle_sigchld(int sig)
 		} else {
 			LOGI(L"Cygwin child process pid %d exited %ls(%d).", iChildPid, bChildExitedNormally ? L"normally" : L"ABNORMALLY", iChildExitStatus);
 		}
+
 		// KillAllDescendant();
+
+		// Close cygwin console semaphore
+		dwWaitResult = WaitForSingleObject(g_hCygwinConsoleSemaphore, INFINITE);
+		switch (dwWaitResult)
+		{
+		case WAIT_OBJECT_0:
+			break;
+
+		case WAIT_ABANDONED:
+			LOGC(L"g_hCygwinConsoleSemaphore abandoned!");
+			Sleep(INFINITE);
+			exit(ERROR_ABANDONED_WAIT_0);
+			break;
+
+		default:
+			dwLastError = GetLastError();
+			LOGE(L"Wait for g_hCygwinConsoleSemaphore status: " WPRDW L"; error: %ls", dwWaitResult, FormatErrorToStr(dwLastError));
+			exit(dwLastError);
+		}
+
 		exit(iChildExitStatus);
 	}
 }
@@ -655,15 +678,6 @@ int main(int argc, char* const argv[], char* const envp[])
 	setvbuf(stderr, NULL, _IOFBF, 65536);
 	szLocale = setlocale(LC_ALL, "");
 	(void)szLocale;
-	// WriteFile() executed inside StdWprintf() in DLL won't work??? This is a workaround.
-	if (1) {
-		DWORD cbWritten;
-		WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), "", 0, &cbWritten, NULL);
-		FlushFileBuffers(GetStdHandle(STD_OUTPUT_HANDLE));
-		WriteFile(GetStdHandle(STD_ERROR_HANDLE), "", 0, &cbWritten, NULL);
-		FlushFileBuffers(GetStdHandle(STD_ERROR_HANDLE));
-	}
-	LOGD(L"Locale: " WPRS, szLocale);
 
 	if ((dwError = Init()) != NOERROR) goto err;
 	if ((dwError = InitProcessBookkeeping()) != NOERROR) goto err;

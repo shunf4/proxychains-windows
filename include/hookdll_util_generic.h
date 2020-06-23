@@ -22,8 +22,9 @@
 #include "tls_generic.h"
 #include "hookdll_util_ipc_win32.h"
 
+PXCH_DLL_API extern HANDLE g_hCygwinConsoleSemaphore;
 extern PXCH_INJECT_REMOTE_DATA* g_pRemoteData;
-PXCH_DLL_API  extern const wchar_t* g_szRuleTargetDesc[3];
+PXCH_DLL_API extern const wchar_t* g_szRuleTargetDesc[3];
 
 // *_early are per-process instead of per-thread, which will cause race condition, and are only used at early stages of DLL loading and hook initializing
 PXCH_DLL_API extern wchar_t g_szDumpMemoryBuf_early[PXCH_MAX_DUMP_MEMORY_BUFSIZE];
@@ -40,10 +41,10 @@ PXCH_DLL_API extern char g_szFwprintfBuf_early[PXCH_MAX_FWPRINTF_BUFSIZE];
 #define g_szFwprintfWbuf ((g_dwTlsIndex != TLS_OUT_OF_INDEXES) ? PXCH_TLS_PTR_FORMAT_FWPRINTF_W_BUF(g_dwTlsIndex) : g_szFwprintfWbuf_early)
 #define g_szFwprintfBuf ((g_dwTlsIndex != TLS_OUT_OF_INDEXES) ? PXCH_TLS_PTR_FORMAT_FWPRINTF_BUF(g_dwTlsIndex) : g_szFwprintfBuf_early)
 
-
 PXCH_DLL_API const wchar_t* FormatHostPortToStr(const void* pHostPort, int iAddrLen);
 PXCH_DLL_API const wchar_t* DumpMemory(const void* p, int iLength);
 
 PXCH_DLL_API void IndexToIp(const PROXYCHAINS_CONFIG* pPxchConfig, PXCH_IP_ADDRESS* pIp, PXCH_UINT32 iIndex);
 PXCH_DLL_API void IpToIndex(const PROXYCHAINS_CONFIG* pPxchConfig, PXCH_UINT32* piIndex, const PXCH_IP_ADDRESS* pIp);
 
+void pxch_cygwin_write(int fd, const void *buf, size_t nbyte);

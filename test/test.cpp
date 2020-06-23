@@ -63,6 +63,8 @@ int main()
 {
     setlocale(LC_ALL, "");
 
+    printf("WriteFile: %p\n", WriteFile);
+
     char szIpStrNarrowBuf[100];
     char szIpStrNarrowBuf2[100];
     WCHAR szIpStrWBuf[100];

@@ -164,10 +164,10 @@ MADE_REMOTE_FUNC_BIN_HEADER : proxychains_helper.o $(SRC_PREFIX)remote_function.
 	$(MAKE) -f $(MAKEFILE_PATH) $(REMOTE_FUNC_BIN_HEADER)
 	touch MADE_REMOTE_FUNC_BIN_HEADER
 	
-$(DLL_PATH_DEBUG) : ../minhook/libMinHook.a dll/hookdll_main.o dll/hook_connect_win32.o dll/hook_connect_win32.o dll/hook_connect_cygwin.o dll/hook_createprocess_win32.o dll/hook_installer.o dll/ipc_client_and_child_data.o dll/hookdll_util.o dll/hookdll_util_wsock.o dll/hookdll_util_ipc_message.o cygwin_strsafe/strsafe.o
+$(DLL_PATH_DEBUG) : ../minhook/libMinHook.a dll/hookdll_main.o dll/hook_connect_win32.o dll/hook_connect_win32.o dll/hook_connect_cygwin.o dll/hook_createprocess_win32.o dll/hook_installer.o dll/ipc_client_and_child_data.o dll/hookdll_util_log_win32.o dll/hookdll_util_log_cygwin.o dll/hookdll_util_wsock_win32.o dll/hookdll_util_ipc_message_win32.o cygwin_strsafe/strsafe.o
 	$(CC) -shared -o$@ -Wl,--out-implib=$(DLL_IMPLIB_PATH_DEBUG),--output-def,$@.def $(LIB_DIR_LDFLAGS) $(filter %.o %.a %.lib,$^) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lws2_32 -lshlwapi
 	
-$(DLL_PATH_RELEASE) : ../minhook/libMinHook.a dll/hookdll_main.o dll/hook_connect_win32.o dll/hook_connect_win32.o dll/hook_connect_cygwin.o dll/hook_createprocess_win32.o dll/hook_installer.o dll/ipc_client_and_child_data.o dll/hookdll_util.o dll/hookdll_util_wsock.o dll/hookdll_util_ipc_message.o cygwin_strsafe/strsafe.o
+$(DLL_PATH_RELEASE) : ../minhook/libMinHook.a dll/hookdll_main.o dll/hook_connect_win32.o dll/hook_connect_win32.o dll/hook_connect_cygwin.o dll/hook_createprocess_win32.o dll/hook_installer.o dll/ipc_client_and_child_data.o dll/hookdll_util_log_win32.o dll/hookdll_util_log_cygwin.o dll/hookdll_util_wsock_win32.o dll/hookdll_util_ipc_message_win32.o cygwin_strsafe/strsafe.o
 	$(CC) -shared -o$@ -Wl,--out-implib=$(DLL_IMPLIB_PATH_RELEASE),--output-def,$@.def $(LIB_DIR_LDFLAGS) $(filter %.o %.a %.lib,$^) -Wl,-static -lMinHook -Wl,-Bdynamic -lntdllcrt -lws2_32 -lshlwapi
 
 #	-Wl,--export-all-symbols \

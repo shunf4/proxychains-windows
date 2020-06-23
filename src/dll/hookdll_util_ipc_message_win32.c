@@ -1,5 +1,5 @@
 ﻿// SPDX-License-Identifier: GPL-2.0-or-later
-/* hookdll_util_ipc_message.c
+/* hookdll_util_ipc_message_win32.c
  * Copyright (C) 2020 Feng Shun.
  *
  *   This program is free software: you can redistribute it and/or modify
