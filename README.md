@@ -152,6 +152,7 @@ proxychains.exe is in no way compatible with terminals based on ConEmu
 
 ## To-do
 
+- [ ] IPs resolved from hosts file should also be filtered like fake ip
 - [ ] Properly handle "fork-and-exit" child process ? (In this case the
 descendant processes' dns queries would never succeed)
 - [ ] Remote DNS resolving based on UDP associate
