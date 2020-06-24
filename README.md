@@ -152,11 +152,11 @@ proxychains.exe is in no way compatible with terminals based on ConEmu
 
 ## To-do
 
-- [ ] IPs resolved from hosts file should also be filtered like fake ip
 - [ ] Properly handle "fork-and-exit" child process ? (In this case the
 descendant processes' dns queries would never succeed)
 - [ ] Remote DNS resolving based on UDP associate
 - [ ] Hook `sendto()`, coping with applications which do TCP fast open
+- [X] IPs resolved from hosts file should also be filtered like fake ip
 - [X] Resolve encoding issue regarding Cygwin and Mintty (fixed in 0.6.7)
 - [X] Fake IPs should be filtered according to types of resolved IPs
 and hints in `GetAddrInfoW` and `gethostbyname`, otherwise crash may happen

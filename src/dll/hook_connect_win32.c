@@ -69,14 +69,21 @@ typedef union _PXCH_TEMP_DATA {
 	PXCH_WS2_32_TEMP_DATA Ws2_32_TempData;
 } PXCH_TEMP_DATA;
 
-static BOOL ResolveByHostsFile(PXCH_IP_ADDRESS* pIp, const PXCH_HOSTNAME* pHostname)
+static BOOL ResolveByHostsFile(PXCH_IP_ADDRESS* pIp, const PXCH_HOSTNAME* pHostname, int iFamily)
 {
 	PXCH_UINT32 i;
-	
+	PXCH_IP_ADDRESS* pCurrentIp;
+
 	for (i = 0; i < g_pPxchConfig->dwHostsEntryNum; i++) {
 		if (StrCmpW(PXCH_CONFIG_HOSTS_ENTRY_ARR_G[i].Hostname.szValue, pHostname->szValue) == 0) {
-			if (pIp) *pIp = PXCH_CONFIG_HOSTS_ENTRY_ARR_G[i].Ip;
-			break;
+			pCurrentIp = &PXCH_CONFIG_HOSTS_ENTRY_ARR_G[i].Ip;
+			if (iFamily == AF_UNSPEC
+				|| (iFamily == AF_INET && pCurrentIp->CommonHeader.wTag == PXCH_HOST_TYPE_IPV4)
+				|| (iFamily == AF_INET6 && pCurrentIp->CommonHeader.wTag == PXCH_HOST_TYPE_IPV6)
+			) {
+				if (pIp) *pIp = *pCurrentIp;
+				break;
+			}
 		}
 	}
 	return i != g_pPxchConfig->dwHostsEntryNum;
@@ -1230,7 +1237,7 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 	StringCchPrintfW(OriginalHostname.szValue, _countof(OriginalHostname.szValue), L"%S", name);
 
 	// Decide if we should use hosts entry
-	if (g_pPxchConfig->dwWillResolveLocallyIfMatchHosts && ResolveByHostsFile((PXCH_IP_ADDRESS*)&IpPortResolvedByHosts, &OriginalHostname)) {
+	if (g_pPxchConfig->dwWillResolveLocallyIfMatchHosts && ResolveByHostsFile((PXCH_IP_ADDRESS*)&IpPortResolvedByHosts, &OriginalHostname, AF_INET)) {
 		bShouldReturnHostsResult = TRUE;
 		bShouldUseHostsResult = TRUE;
 	}
@@ -1276,7 +1283,7 @@ PROXY_FUNC2(Ws2_32, gethostbyname)
 	}
 
 	if (bShouldUseResolvedResult) {
-		if (!g_pPxchConfig->dwWillResolveLocallyIfMatchHosts && ResolveByHostsFile((PXCH_IP_ADDRESS*)&IpPortResolvedByHosts, &OriginalHostname)) {
+		if (!g_pPxchConfig->dwWillResolveLocallyIfMatchHosts && ResolveByHostsFile((PXCH_IP_ADDRESS*)&IpPortResolvedByHosts, &OriginalHostname, AF_INET)) {
 			bShouldUseHostsResult = TRUE;
 		}
 	}
@@ -1534,6 +1541,11 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 	// Print DNS query
 	FUNCIPCLOGD(L"Ws2_32.dll GetAddrInfoW(%ls, %ls, AF%#010x, FL%#010x, ST%#010x, PT%#010x) called", pNodeName, pServiceName, pHintsCast->ai_family, pHintsCast->ai_flags, pHintsCast->ai_socktype, pHintsCast->ai_protocol);
 
+	DefaultHints.ai_family = AF_UNSPEC;
+	DefaultHints.ai_flags = 0;
+	DefaultHints.ai_socktype = SOCK_STREAM;
+	DefaultHints.ai_protocol = IPPROTO_TCP;
+
 	iReturn = orig_fpWs2_32_GetAddrInfoW(L"127.0.0.1", pServiceName, NULL, &pQueryPortAddrInfo);
 	iWSALastError = WSAGetLastError();
 	dwLastError = GetLastError();
@@ -1553,7 +1565,7 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 	Hostname.wPort = 0;
 
 	// Decide if we should use hosts entry
-	if (g_pPxchConfig->dwWillResolveLocallyIfMatchHosts && ResolveByHostsFile((PXCH_IP_ADDRESS*)&IpPortResolvedByHosts, &Hostname)) {
+	if (g_pPxchConfig->dwWillResolveLocallyIfMatchHosts && ResolveByHostsFile((PXCH_IP_ADDRESS*)&IpPortResolvedByHosts, &Hostname, pHintsCast->ai_family)) {
 		bShouldReturnHostsResult = TRUE;
 		bShouldUseHostsResult = TRUE;
 	}
@@ -1563,11 +1575,6 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 		bShouldReturnResolvedResult = TRUE;
 		bShouldUseResolvedResult = TRUE;
 	} else if (!bShouldReturnHostsResult) {
-		DefaultHints.ai_family = AF_UNSPEC;
-		DefaultHints.ai_flags = 0;
-		DefaultHints.ai_socktype = SOCK_STREAM;
-		DefaultHints.ai_protocol = IPPROTO_TCP;
-
 		ZeroMemory(&RequeryAddrInfoHints, sizeof(RequeryAddrInfoHints));
 		RequeryAddrInfoHints.ai_family = AF_UNSPEC;
 		RequeryAddrInfoHints.ai_protocol = pHintsCast->ai_protocol;
@@ -1617,7 +1624,7 @@ PROXY_FUNC2(Ws2_32, GetAddrInfoW)
 	}
 
 	if (bShouldUseResolvedResult) {
-		if (!g_pPxchConfig->dwWillResolveLocallyIfMatchHosts && ResolveByHostsFile((PXCH_IP_ADDRESS*)&IpPortResolvedByHosts, &Hostname)) {
+		if (!g_pPxchConfig->dwWillResolveLocallyIfMatchHosts && ResolveByHostsFile((PXCH_IP_ADDRESS*)&IpPortResolvedByHosts, &Hostname, pHintsCast->ai_family)) {
 			bShouldUseHostsResult = TRUE;
 		}
 	}
