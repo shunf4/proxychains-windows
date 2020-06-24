@@ -320,6 +320,17 @@ static int OptionGetIpPortValue(PXCH_IP_PORT* pIpPort, PXCH_UINT32* pdwPrefixLen
 
 		*pdwPrefixLength = (PXCH_UINT32)lPrefix;
 	} else {
+		if (bAllowCidr) {
+			switch (pIpPort->CommonHeader.wTag) {
+			case PXCH_HOST_TYPE_IPV4:
+				*pdwPrefixLength = 32;
+				break;
+			case PXCH_HOST_TYPE_IPV6:
+				*pdwPrefixLength = 128;
+				break;
+			}
+		}
+
 		pAfterPrefix = pAfterIpPort;
 	}
 
