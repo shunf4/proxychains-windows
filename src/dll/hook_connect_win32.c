@@ -661,8 +661,8 @@ PXCH_DLL_API int Ws2_32_Socks5Connect(void* pTempData, PXCH_UINT_PTR s, const PX
 		pSockAddrIpv6 = (const struct sockaddr_in6*)pHostPort;
 
 		// Connect
-		CopyMemory(SendBuf, "\05\01\00\x04\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xEE\xEE", 10);
-		CopyMemory(SendBuf + 4, &pSockAddrIpv6->sin6_addr, 4);
+		CopyMemory(SendBuf, "\05\01\00\x04\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xEE\xEE", 22);
+		CopyMemory(SendBuf + 4, &pSockAddrIpv6->sin6_addr, 16);
 		CopyMemory(SendBuf + 4 + 16, &pSockAddrIpv6->sin6_port, 2);
 		if ((iReturn = Ws2_32_LoopSend(pTempData, s, SendBuf, 22)) == SOCKET_ERROR) goto err_general;
 	}
