@@ -84,8 +84,8 @@ See "Configuration".
 
 Proxychains.exe looks for configuration in the following order:
 
-- file listed in environment variable `%PROXYCHAINS_CONF_FILE%` or 
-`$PROXYCHAINS_CONF_FILE` or provided as a -f argument
+- file listed in environment variable `PROXYCHAINS_CONF_FILE` or provided
+as a `-f` argument
 - `$HOME/.proxychains/proxychains.conf` (Cygwin) or 
 `%USERPROFILE%\.proxychains\proxychains.conf` (Win32)
 - `(SYSCONFDIR)/proxychains.conf` (Cygwin) or `(User roaming 
@@ -152,6 +152,9 @@ proxychains.exe is in no way compatible with terminals based on ConEmu
 
 ## To-do
 
+- [ ] Recognize IPv4-mapped fake IPv6 address
+- [ ] Resolve proxy server name by custom hosts file, or at least
+declare it as not supported in docs
 - [ ] Properly handle "fork-and-exit" child process ? (In this case the
 descendant processes' dns queries would never succeed)
 - [ ] Remote DNS resolving based on UDP associate
