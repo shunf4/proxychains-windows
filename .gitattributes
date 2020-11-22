@@ -2,41 +2,7 @@
 # Set default behavior to automatically normalize line endings.
 ###############################################################################
 
-#encoding=utf8
-**/*.sh text eol=lf
-
-#encoding=utf8
-**/Makefile eol=lf
-
-#encoding=ascii
-**/*.bat eol=crlf
-
-#encoding=utf8
-**/*.md eol=crlf
-
-#encoding=utf8
-**/*.py eol=crlf
-
-#encoding=utf8
-cygwin_build/*.h eol=lf
-
-#encoding=utf8
-cygwin_build/*.c eol=lf
-
-#encoding=utf8
-cygwin_build/*.cpp eol=lf
-
-#encoding=utf8
-msys_build/*.h eol=lf
-
-#encoding=utf8
-msys_build/*.c eol=lf
-
-#encoding=utf8
-msys_build/*.cpp eol=lf
-
-#encoding=utf8bom
-.vscode/*.json eol=crlf
+* text=auto eol=lf
 
 #encoding=utf8bom
 **/*.h eol=crlf
@@ -62,7 +28,44 @@ msys_build/*.cpp eol=lf
 #encoding=ascii
 proxychains.conf eol=crlf
 
-* text=auto eol=lf
+
+#encoding=utf8
+cygwin_build/*.h eol=lf
+
+#encoding=utf8
+cygwin_build/*.c eol=lf
+
+#encoding=utf8
+cygwin_build/*.cpp eol=lf
+
+
+#encoding=utf8
+msys_build/*.h eol=lf
+
+#encoding=utf8
+msys_build/*.c eol=lf
+
+#encoding=utf8
+msys_build/*.cpp eol=lf
+
+#encoding=utf8bom
+.vscode/*.json eol=crlf
+
+
+#encoding=utf8
+**/*.sh text eol=lf
+
+#encoding=utf8
+**/Makefile eol=lf
+
+#encoding=ascii
+**/*.bat eol=crlf
+
+#encoding=utf8
+**/*.md eol=crlf
+
+#encoding=utf8
+**/*.py eol=crlf
 
 ###############################################################################
 # Set default behavior for command prompt diff.
