@@ -152,6 +152,8 @@ proxychains.exe is in no way compatible with terminals based on ConEmu
 
 ## To-do
 
+- [ ] Proxify osu!lazer launcher? (#11)
+- [ ] Configuration file path (#9)
 - [ ] Recognize IPv4-mapped fake IPv6 address
 - [ ] Resolve proxy server name by custom hosts file, or at least
 declare it as not supported in docs
