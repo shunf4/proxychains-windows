@@ -90,6 +90,10 @@ Proxychains.exe 按照以下顺序寻找配置：
 
 详见英文文档。
 
+# 开发
+
+详见英文文档。
+
 # 授权协议
 
 This program is free software: you can redistribute it and/or modify

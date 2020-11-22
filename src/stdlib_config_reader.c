@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+﻿// SPDX-License-Identifier: GPL-2.0-or-later
 /* stdlib_config_reader.c
  * Copyright (C) 2020 Feng Shun.
  *

@@ -63,6 +63,8 @@ int main()
 {
     setlocale(LC_ALL, "");
 
+    printf("你好世界！\n");
+
     printf("WriteFile: %p\n", WriteFile);
 
     char szIpStrNarrowBuf[100];

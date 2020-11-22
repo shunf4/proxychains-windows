@@ -183,6 +183,13 @@ proxifying git/SSH, probably using a FQDN hash function (fixed in 0.6.0)
 - [X] Tell the user if command line is bad under Cygwin (fixed in 0.6.4)
 - [X] Inherit exit code of direct child (fixed in 0.6.4)
 
+# Developing
+
+## Line ending, encoding and BOM
+
+Different file types are required to have different line endings, encodings.
+See `.gitattributes` for details.
+
 # Licensing
 
 This program is free software: you can redistribute it and/or modify it 
