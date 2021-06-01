@@ -52,8 +52,8 @@ Proxychains.exe 按照以下顺序寻找配置：
 
 - 环境变量 `%PROXYCHAINS_CONF_FILE%` 或通过 -f 命令行参数指定的文件
 - `%USERPROFILE%\.proxychains\proxychains.conf`（Win32 用户主目录）
-- `(用户的 Roaming 目录)\Proxychains\proxychains.conf`（在现代 Windows 版本中，典型的路径如 `C:\Users\<用户名>\AppData\Roaming\Proxychains\proxychains.conf`）
-- `(全局的 ProgramData 目录)\Proxychains\proxychains.conf`（在现代 Windows 版本中，典型的路径如 `C:\ProgramData\Proxychains\proxychains.conf`）
+- `(CSIDL_APPDATA)\Proxychains\proxychains.conf`（在现代 Windows 版本中，典型的路径如 `C:\Users\<用户名>\AppData\Roaming\Proxychains\proxychains.conf`）
+- `(CSIDL_COMMON_APPDATA)\Proxychains\proxychains.conf`（在现代 Windows 版本中，典型的路径如 `C:\ProgramData\Proxychains\proxychains.conf`）
 
 ### 在 Cygwin 环境中
 
