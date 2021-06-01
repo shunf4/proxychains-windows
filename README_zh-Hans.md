@@ -48,10 +48,19 @@ Proxychains.exe 在 Windows 10 x64 1909 (18363.418)、Windows 7 x64 SP1、Window
 
 Proxychains.exe 按照以下顺序寻找配置：
 
-- 环境变量 `%PROXYCHAINS_CONF_FILE%` 或 `$PROXYCHAINS_CONF_FILE` 或通过 -f 命令行参数指定的文件
-- `$HOME/.proxychains/proxychains.conf` （Cygwin 用户主目录） 或 `%USERPROFILE%\.proxychains\proxychains.conf` （Win32 用户主目录）
-- `(SYSCONFDIR)/proxychains.conf` （Cygwin） 或 `(用户的 Roaming 目录)\Proxychains\proxychains.conf` （Win32）
-- `/etc/proxychains.conf` （Cygwin） 或 `(全局的 ProgramData 目录)\Proxychains\proxychains.conf` （Win32）
+### 在 Win32 环境中
+
+- 环境变量 `%PROXYCHAINS_CONF_FILE%` 或通过 -f 命令行参数指定的文件
+- `%USERPROFILE%\.proxychains\proxychains.conf`（Win32 用户主目录）
+- `(用户的 Roaming 目录)\Proxychains\proxychains.conf`（在现代 Windows 版本中，典型的路径如 `C:\Users\<用户名>\AppData\Roaming\Proxychains\proxychains.conf`）
+- `(全局的 ProgramData 目录)\Proxychains\proxychains.conf`（在现代 Windows 版本中，典型的路径如 `C:\ProgramData\Proxychains\proxychains.conf`）
+
+### 在 Cygwin 环境中
+
+- 环境变量 `$PROXYCHAINS_CONF_FILE` 或通过 -f 命令行参数指定的文件
+- `$HOME/.proxychains/proxychains.conf`（Cygwin 用户主目录）
+- `(SYSCONFDIR)/proxychains.conf`
+- `/etc/proxychains.conf`
   
 关于配置选项，参见 `proxychains.conf`。
 
