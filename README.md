@@ -89,10 +89,10 @@ Proxychains.exe looks for configuration in the following order:
 - file listed in environment variable `PROXYCHAINS_CONF_FILE` or provided
 as a `-f` argument
 - `%USERPROFILE%\.proxychains\proxychains.conf`
-- `(User roaming dir)\Proxychains\proxychains.conf` (On modern Windows
+- `(CSIDL_APPDATA)\Proxychains\proxychains.conf` (On modern Windows
 versions, a typical path is `C:\Users\<user name>\AppData\Roaming\
 Proxychains\proxychains.conf`)
-- `(Global programdata dir)\Proxychains\proxychains.conf` (On modern
+- `(CSIDL_COMMON_APPDATA)\Proxychains\proxychains.conf` (On modern
 Windows versions, a typical path is `C:\ProgramData\Proxychains\
 proxychains.conf`)
 
