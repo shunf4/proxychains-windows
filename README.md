@@ -84,14 +84,25 @@ See "Configuration".
 
 Proxychains.exe looks for configuration in the following order:
 
+### On Win32
+
 - file listed in environment variable `PROXYCHAINS_CONF_FILE` or provided
 as a `-f` argument
-- `$HOME/.proxychains/proxychains.conf` (Cygwin) or 
-`%USERPROFILE%\.proxychains\proxychains.conf` (Win32)
-- `(SYSCONFDIR)/proxychains.conf` (Cygwin) or `(User roaming 
-dir)\Proxychains\proxychains.conf` (Win32)
-- `/etc/proxychains.conf` (Cygwin) or `(Global programdata 
-dir)\Proxychains\proxychains.conf` (Win32)
+- `%USERPROFILE%\.proxychains\proxychains.conf`
+- `(User roaming dir)\Proxychains\proxychains.conf` (On modern Windows
+versions, a typical path is `C:\Users\<user name>\AppData\Roaming\
+Proxychains\proxychains.conf`)
+- `(Global programdata dir)\Proxychains\proxychains.conf` (On modern
+Windows versions, a typical path is `C:\ProgramData\Proxychains\
+proxychains.conf`)
+
+### On Cygwin
+
+- file listed in environment variable `PROXYCHAINS_CONF_FILE` or provided
+as a `-f` argument
+- `$HOME/.proxychains/proxychains.conf`
+- `(SYSCONFDIR)/proxychains.conf`
+- `/etc/proxychains.conf`
   
 For options, see `proxychains.conf`.
 
