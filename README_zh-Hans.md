@@ -24,13 +24,21 @@ Proxychains.exe 在 Windows 10 x64 1909 (18363.418)、Windows 7 x64 SP1、Window
 
 **免责声明：本程序的作者不对任何滥用、误用此软件的行为以及其可能导致的后果负责。**
 
+# 下载
+
+你可以从 [Release 页](https://github.com/shunf4/proxychains-windows/releases) 下载预先构建的二进制文件。
+
 # 构建
+
+如果你想自己构建的话……
 
 首先你需要克隆本代码仓库，并且在其中运行 `git submodule update --init --recursive` 来拉取所有子模块的代码。
 
 ## 构建 Win32 版本
 
 在 64 位 Windows 下使用较新版本的 Visual Studio 打开 proxychains.exe.sln （Visual Studio 2019 测试有效）。Visual Studio 应该安装 v141_xp 平台工具集。
+
+选择配置（Debug/Release）和平台（x86/x64）。
 
 构建整个解决方案，在 `win32_output/` 找到输出的 EXE 和 DLL 文件。
 
