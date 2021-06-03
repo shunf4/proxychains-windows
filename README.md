@@ -50,7 +50,13 @@ ONLY USE PROXYCHAINS.EXE IF YOU KNOW WHAT YOU'RE DOING. THE AUTHORS AND
 MAINTAINERS OF PROXYCHAINS DO NOT TAKE ANY RESPONSIBILITY FOR ANY ABUSE 
 OR MISUSE OF THIS SOFTWARE AND THE RESULTING CONSEQUENCES.
 
+# Download
+
+Download the pre-built binaries from [Release Page](https://github.com/shunf4/proxychains-windows/releases).
+
 # Build
+
+If you want to buid proxychains.exe yourself...
 
 First you need to clone this repository and run `git submodule update 
 --init --recursive` in it to retrieve all submodules.
@@ -60,6 +66,8 @@ First you need to clone this repository and run `git submodule update
 Open proxychains.exe.sln with a recent version Visual Studio (tested 
 with Visual Studio 2019) with platform toolset v141_xp on a 64-bit 
 Windows.
+
+Select the configuration (Debug/Release) and the platform (x86/x64).
 
 Build the whole solution and you will see DLL file and executable file 
 generated under `win32_output/`.
