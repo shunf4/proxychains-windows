@@ -2,45 +2,74 @@
 # Set default behavior to automatically normalize line endings.
 ###############################################################################
 
-**/* text=auto eol=lf
+* text=auto eol=lf
+
+**/.gitattributes eol=lf
+**/.gitignore eol=lf
+**/.gitmodules eol=lf
 
 #encoding=utf8bom
 **/*.h eol=crlf
-**/*.c eol=crlf
-**/*.cpp eol=crlf
-**/*.py eol=crlf
-**/*.vcxproj eol=crlf
-**/*.vcxproj.filters eol=crlf
-**/*.sln eol=crlf
 
-#encoding=utf8
-**/*.yml eol=lf
+#encoding=utf8bom
+**/*.c eol=crlf
+
+#encoding=utf8bom
+**/*.cpp eol=crlf
+
+#encoding=utf8bom
+**/*.py eol=crlf
+
+#encoding=utf8bom
+**/*.vcxproj eol=crlf
+
+#encoding=utf8bom
+**/*.vcxproj.filters eol=crlf
+
+#encoding=utf8bom
+**/*.sln eol=crlf
 
 #encoding=ascii
 proxychains.conf eol=crlf
 
-#encoding=utf8
-cygwin_build/**/*.h eol=lf
-cygwin_build/**/*.c eol=lf
-cygwin_build/**/*.cpp eol=lf
 
 #encoding=utf8
-msys_build/**/*.h eol=lf
-msys_build/**/*.c eol=lf
-msys_build/**/*.cpp eol=lf
+cygwin_build/*.h eol=lf
 
 #encoding=utf8
-.vscode/**/*.json eol=lf
+cygwin_build/*.c eol=lf
+
+#encoding=utf8
+cygwin_build/*.cpp eol=lf
+
+
+#encoding=utf8
+msys_build/*.h eol=lf
+
+#encoding=utf8
+msys_build/*.c eol=lf
+
+#encoding=utf8
+msys_build/*.cpp eol=lf
+
+#encoding=utf8bom
+.vscode/*.json eol=crlf
+
 
 #encoding=utf8
 **/*.sh text eol=lf
+
+#encoding=utf8
 **/Makefile eol=lf
-**/*.md eol=crlf
-**/*.py eol=crlf
 
 #encoding=ascii
 **/*.bat eol=crlf
 
+#encoding=utf8
+**/*.md eol=crlf
+
+#encoding=utf8
+**/*.py eol=crlf
 
 ###############################################################################
 # Set default behavior for command prompt diff.
