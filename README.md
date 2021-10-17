@@ -171,6 +171,9 @@ proxychains.exe is in no way compatible with terminals based on ConEmu
 
 ## To-do
 
+**In the following period, I will try to re-structure proxychains.exe
+(files, functions, ...) and complete some to-dos at the same time.**
+
 - [ ] Domain name resolution should be case-insensitive
 - [ ] Proxify osu!lazer launcher? (#11)
 - [ ] Configuration file path (#9)
