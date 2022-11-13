@@ -184,6 +184,7 @@ declare it as not supported in docs
 descendant processes' dns queries would never succeed)
 - [ ] Remote DNS resolving based on UDP associate
 - [ ] Hook `sendto()`, coping with applications which do TCP fast open
+- [ ] Powershell wget bug
 - [X] IPs resolved from hosts file should also be filtered like fake ip
 (fixed in 0.6.8)
 - [X] Resolve encoding issue regarding Cygwin and Mintty (fixed in 0.6.7)
